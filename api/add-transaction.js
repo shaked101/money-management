@@ -6,7 +6,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const { guard, readBody, forwardToMake, fail } = require('./_lib.js');
+const { guard, readBody, forwardToScript, fail } = require('./_lib.js');
 
 module.exports = async function handler(req, res) {
   if (!guard(req, res)) return;
@@ -45,7 +45,7 @@ module.exports = async function handler(req, res) {
     }
 
     const row = {
-      action: 'add-transaction',
+      action: 'add',
       uid,
       createdAt,
       date,
@@ -57,15 +57,15 @@ module.exports = async function handler(req, res) {
       recurring: body.recurring === true || body.recurring === 'true'
     };
 
-    const { status, data } = await forwardToMake('MAKE_ADD_URL', row);
+    const { status, data } = await forwardToScript(row);
 
-    if (status < 200 || status >= 300) {
-      console.error('[add-transaction] Make returned', status, data);
-      return res.status(502).json({ ok: false, error: 'Make returned ' + status });
+    if (status < 200 || status >= 300 || data.ok === false) {
+      console.error('[add-transaction] Google Script returned', status, data);
+      return res.status(502).json({ ok: false, error: data.error || ('Google Script returned ' + status) });
     }
 
-    /* מחזירים ללקוח את השורה כפי שנשמרה (כולל ה-UID הסופי) */
-    return res.status(200).json({ ok: true, row });
+    /* מחזירים ללקוח את השורה כפי שנשמרה ב-GAS (כולל חותמת הזמן) */
+    return res.status(200).json({ ok: true, row: data.row || row });
   } catch (err) {
     return fail(res, err);
   }

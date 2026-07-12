@@ -14,7 +14,7 @@
    ════════════════════════════════════════════════════════════ */
 'use strict';
 
-const { safeEqual, forwardToMake, fail } = require('./_lib.js');
+const { safeEqual, forwardToScript, fail } = require('./_lib.js');
 
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') {
@@ -42,14 +42,11 @@ module.exports = async function handler(req, res) {
   const kind = ['expense', 'income', 'all'].includes(kindParam) ? kindParam : 'all';
 
   try {
-    const { status, data } = await forwardToMake('MAKE_CATEGORIES_URL', {
-      action: 'get-categories',
-      mode: 'list'
-    });
+    const { status, data } = await forwardToScript({ action: 'categories' });
 
-    if (status < 200 || status >= 300) {
-      console.error('[get-live-categories] Make returned', status, data);
-      return res.status(502).json({ ok: false, error: 'Make returned ' + status });
+    if (status < 200 || status >= 300 || data.ok === false) {
+      console.error('[get-live-categories] Google Script returned', status, data);
+      return res.status(502).json({ ok: false, error: data.error || ('Google Script returned ' + status) });
     }
 
     /* נירמול: תומך בכל אחד מהמבנים —

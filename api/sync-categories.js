@@ -7,7 +7,7 @@
    ════════════════════════════════════════════════════════════ */
 'use strict';
 
-const { guard, readBody, forwardToMake, fail } = require('./_lib.js');
+const { guard, readBody, forwardToScript, fail } = require('./_lib.js');
 
 const MAX_CATS = 60;
 const MAX_NAME = 40;
@@ -41,8 +41,7 @@ module.exports = async function handler(req, res) {
         });
       }
       payload = {
-        action: 'sync-categories',
-        mode: 'full',
+        action: 'categories',
         categories: { expense, income }
       };
     } else if (body.op === 'add' || body.op === 'remove') {
@@ -58,8 +57,7 @@ module.exports = async function handler(req, res) {
         });
       }
       payload = {
-        action: 'sync-categories',
-        mode: 'op',
+        action: 'categories',
         op: body.op,
         kind,
         name
@@ -68,14 +66,14 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ ok: false, error: 'Missing categories or op' });
     }
 
-    const { status, data } = await forwardToMake('MAKE_CATEGORIES_URL', payload);
+    const { status, data } = await forwardToScript(payload);
 
-    if (status < 200 || status >= 300) {
-      console.error('[sync-categories] Make returned', status, data);
-      return res.status(502).json({ ok: false, error: 'Make returned ' + status });
+    if (status < 200 || status >= 300 || data.ok === false) {
+      console.error('[sync-categories] Google Script returned', status, data);
+      return res.status(502).json({ ok: false, error: data.error || ('Google Script returned ' + status) });
     }
 
-    return res.status(200).json({ ok: true, synced: payload.mode });
+    return res.status(200).json({ ok: true, synced: data.synced || 'full', categories: data.categories });
   } catch (err) {
     return fail(res, err);
   }

@@ -76,17 +76,24 @@ async function readBody(req) {
   try { return JSON.parse(raw); } catch (e) { return {}; }
 }
 
-/* ── שיגור ל-Make ────────────────────────────────────────
-   envKey: שם משתנה הסביבה שמכיל את כתובת ה-Webhook.
-   מחזיר { status, data } כאשר data הוא תמיד אובייקט:
-   אם Make החזיר טקסט (למשל "Accepted"), הוא נעטף. */
-async function forwardToMake(envKey, payload) {
-  const url = process.env[envKey];
+/* ── שיגור ל-Google Apps Script ──────────────────────────
+   כתובת אחת ויחידה (GOOGLE_SCRIPT_URL) לכל הפעולות; הפעולה
+   נבחרת לפי payload.action בצד ה-GAS.
+   הערות חשובות:
+   • GAS עונה ל-POST עם 302 Redirect לדומיין תוכן — fetch של
+     Node עוקב אחריו אוטומטית (redirect: 'follow').
+   • אם מוגדר GAS_API_KEY בסביבה — הוא מוזרק כ-payload.key
+     ונאכף בסקריפט (שכבת אבטחה שנייה מעבר ל-X-App-Secret). */
+async function forwardToScript(payload) {
+  const url = process.env.GOOGLE_SCRIPT_URL;
   if (!url) {
-    const err = new Error(`Missing env var: ${envKey}`);
+    const err = new Error('Missing env var: GOOGLE_SCRIPT_URL');
     err.code = 'ENV_MISSING';
     throw err;
   }
+
+  const body = Object.assign({}, payload);
+  if (process.env.GAS_API_KEY) body.key = process.env.GAS_API_KEY;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 25000); /* 25s תקרה */
@@ -95,8 +102,9 @@ async function forwardToMake(envKey, payload) {
   try {
     upstream = await fetch(url, {
       method: 'POST',
+      redirect: 'follow',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
       signal: controller.signal
     });
   } finally {
@@ -108,8 +116,8 @@ async function forwardToMake(envKey, payload) {
   try {
     data = text ? JSON.parse(text) : { ok: upstream.ok };
   } catch (e) {
-    /* Make ללא מודול Webhook Response מחזיר "Accepted" כטקסט */
-    data = { ok: upstream.ok, raw: text.slice(0, 500) };
+    /* GAS החזיר HTML (למשל דף שגיאת הרשאות של גוגל) */
+    data = { ok: false, raw: text.slice(0, 500) };
   }
   return { status: upstream.status, data };
 }
@@ -121,10 +129,10 @@ function fail(res, err) {
     return res.status(500).json({ ok: false, error: 'Server misconfiguration' });
   }
   if (err && err.name === 'AbortError') {
-    return res.status(504).json({ ok: false, error: 'Make webhook timeout' });
+    return res.status(504).json({ ok: false, error: 'Google Script timeout' });
   }
   console.error('[api error]', err);
-  return res.status(502).json({ ok: false, error: 'Upstream (Make) request failed' });
+  return res.status(502).json({ ok: false, error: 'Upstream (Google Script) request failed' });
 }
 
-module.exports = { safeEqual, guard, readBody, forwardToMake, fail };
+module.exports = { safeEqual, guard, readBody, forwardToScript, fail };

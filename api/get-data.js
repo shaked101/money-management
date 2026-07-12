@@ -5,7 +5,7 @@
    ════════════════════════════════════════════════════════════ */
 'use strict';
 
-const { guard, readBody, forwardToMake, fail } = require('./_lib.js');
+const { guard, readBody, forwardToScript, fail } = require('./_lib.js');
 
 module.exports = async function handler(req, res) {
   if (!guard(req, res)) return; /* 401 / 405 / 500 כבר נשלחו */
@@ -22,15 +22,11 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    const { status, data } = await forwardToMake('MAKE_GET_DATA_URL', {
-      action: 'get-data',
-      month,
-      year
-    });
+    const { status, data } = await forwardToScript({ action: 'get', month, year });
 
-    if (status < 200 || status >= 300) {
-      console.error('[get-data] Make returned', status, data);
-      return res.status(502).json({ ok: false, error: 'Make returned ' + status });
+    if (status < 200 || status >= 300 || data.ok === false) {
+      console.error('[get-data] Google Script returned', status, data);
+      return res.status(502).json({ ok: false, error: data.error || ('Google Script returned ' + status) });
     }
 
     /* נירמול: הדשבורד מצפה תמיד ל-rows (מערך) ו-categories (אובייקט).
