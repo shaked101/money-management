@@ -11,10 +11,10 @@
      בשם GAS_API_KEY. אם ה-Property מוגדר — הסקריפט יאכוף אותו.
 
    ▸ מבנה הגיליונות (נוצרים אוטומטית בקריאה הראשונה):
-     'הוצאות'        A:UID B:תאריך C:קטגוריה D:סכום E:תיאור F:מי רשם G:נוצר
+     'הוצאות'        A:UID B:תאריך ושעה (DD/MM/YYYY HH:mm) C:מי רשם D:קטגוריה E:סכום F:הערות
      'הכנסות'        (אותו מבנה)
      'תנועות קבועות' A:UID B:סוג C:קטגוריה D:סכום E:תיאור F:מי רשם G:יום בחודש H:נוצר
-     'קטגוריות'      A:הוצאות B:הכנסות
+     'קטגוריות'      A:הוצאה B:אימוג'י C:צבע | D:הכנסה E:אימוג'י F:צבע
    ════════════════════════════════════════════════════════════ */
 
 var TZ = 'Asia/Jerusalem';
@@ -23,9 +23,9 @@ var SHEET_INCOMES   = 'הכנסות';
 var SHEET_RECURRING = 'תנועות קבועות';
 var SHEET_CATEGORIES = 'קטגוריות';
 
-var TX_HEADER  = ['UID', 'תאריך', 'קטגוריה', 'סכום', 'תיאור', 'מי רשם', 'נוצר בתאריך'];
+var TX_HEADER  = ['UID', 'תאריך ושעה', 'מי רשם', 'קטגוריה', 'סכום', 'הערות'];
 var REC_HEADER = ['UID', 'סוג', 'קטגוריה', 'סכום', 'תיאור', 'מי רשם', 'יום בחודש', 'נוצר בתאריך'];
-var CAT_HEADER = ['הוצאות', 'הכנסות'];
+var CAT_HEADER = ['הוצאות', "אימוג'י", 'צבע', 'הכנסות', "אימוג'י", 'צבע'];
 
 var DEFAULT_EXPENSE_CATS = ['סופר', 'אוכל בחוץ', 'רכב ודלק', 'דיור', 'חשבונות', 'ילדים', 'בריאות', 'פנאי', 'ביגוד', 'שונות'];
 var DEFAULT_INCOME_CATS  = ['משכורת שקד', 'משכורת אביטל', 'עסק', 'מתנות', 'אחר'];
@@ -118,6 +118,7 @@ function actionGet_(p) {
 }
 
 function readTxSheet_(sheet, type, month, year) {
+  /* מבנה: A:UID B:תאריך ושעה C:מי רשם D:קטגוריה E:סכום F:הערות */
   var vals = sheet.getDataRange().getValues();
   var out = [];
   for (var i = 1; i < vals.length; i++) {
@@ -129,10 +130,10 @@ function readTxSheet_(sheet, type, month, year) {
       uid: String(r[0]),
       date: fmtDate_(d),
       type: type,
-      category: String(r[2] || ''),
-      amount: Number(r[3]) || 0,
-      note: String(r[4] || ''),
-      who: String(r[5] || '')
+      who: String(r[2] || ''),
+      category: String(r[3] || ''),
+      amount: Number(r[4]) || 0,
+      note: String(r[5] || '')
     });
   }
   return out;
@@ -156,7 +157,10 @@ function actionAdd_(p) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     date = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
   }
-  /* חותמת יצירה אמיתית — תאריך + שעה בשעון ירושלים, לא 00:00 */
+  /* עמודה B: תאריך התנועה + שעת הרישום בפועל, מאוחדים —
+     DD/MM/YYYY HH:mm בשעון ירושלים (בלי שניות, אף פעם לא 00:00) */
+  var dateTime = date.slice(8, 10) + '/' + date.slice(5, 7) + '/' + date.slice(0, 4) +
+                 ' ' + Utilities.formatDate(new Date(), TZ, 'HH:mm');
   var created = nowStamp_();
 
   ensureSetup_();
@@ -171,8 +175,9 @@ function actionAdd_(p) {
       ss.getSheetByName(SHEET_RECURRING)
         .appendRow([uid, type, category, amount, notes, user, dayOfMonth, created]);
     } else {
+      /* הסדר המדויק: A:UID B:תאריך+שעה C:רושם D:קטגוריה E:סכום F:הערות */
       ss.getSheetByName(type === 'income' ? SHEET_INCOMES : SHEET_EXPENSES)
-        .appendRow([uid, date, category, amount, notes, user, created]);
+        .appendRow([uid, dateTime, user, category, amount, notes]);
     }
   } finally {
     lock.releaseLock();
@@ -227,23 +232,24 @@ function actionDelete_(p) {
 function actionCategories_(p) {
   ensureSetup_();
 
-  /* סנכרון מלא: החלפת שתי העמודות */
+  /* סנכרון מלא: החלפת המבנה כולו (שם + אימוג'י + צבע) */
   if (p.categories && (p.categories.expense || p.categories.income)) {
-    var exp = cleanList_(p.categories.expense);
-    var inc = cleanList_(p.categories.income);
+    var exp = cleanCatList_(p.categories.expense);
+    var inc = cleanCatList_(p.categories.income);
     writeCategories_(exp, inc);
     return { ok: true, synced: 'full', categories: { expense: exp, income: inc } };
   }
 
-  /* פעולה בודדת: הוספה/הסרה */
+  /* פעולה בודדת: הוספה/הסרה לפי שם */
   if (p.op === 'add' || p.op === 'remove') {
     var kind = String(p.kind) === 'income' ? 'income' : 'expense';
     var name = String(p.name || '').trim();
     if (!name) return { ok: false, error: 'Missing name' };
     var cats = readCategories_();
     var list = cats[kind];
-    var idx = list.indexOf(name);
-    if (p.op === 'add' && idx === -1) list.push(name);
+    var idx = -1;
+    for (var i = 0; i < list.length; i++) if (list[i].name === name) { idx = i; break; }
+    if (p.op === 'add' && idx === -1) list.push({ name: name, emoji: String(p.emoji || ''), color: String(p.color || '') });
     if (p.op === 'remove' && idx !== -1) list.splice(idx, 1);
     writeCategories_(cats.expense, cats.income);
     return { ok: true, synced: 'op', categories: cats };
@@ -257,11 +263,19 @@ function readCategories_() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_CATEGORIES);
   var vals = sheet.getDataRange().getValues();
   var expense = [], income = [];
+  function has(list, name) {
+    for (var j = 0; j < list.length; j++) if (list[j].name === name) return true;
+    return false;
+  }
   for (var i = 1; i < vals.length; i++) {
-    var e = String(vals[i][0] || '').trim();
-    var n = String(vals[i][1] || '').trim();
-    if (e && expense.indexOf(e) === -1) expense.push(e);
-    if (n && income.indexOf(n) === -1) income.push(n);
+    var en = String(vals[i][0] || '').trim();
+    if (en && !has(expense, en)) {
+      expense.push({ name: en, emoji: String(vals[i][1] || ''), color: String(vals[i][2] || '') });
+    }
+    var inn = String(vals[i][3] || '').trim();
+    if (inn && !has(income, inn)) {
+      income.push({ name: inn, emoji: String(vals[i][4] || ''), color: String(vals[i][5] || '') });
+    }
   }
   return { expense: expense, income: income };
 }
@@ -274,8 +288,12 @@ function writeCategories_(expense, income) {
     sheet.clearContents();
     var rows = [CAT_HEADER];
     var n = Math.max(expense.length, income.length);
-    for (var i = 0; i < n; i++) rows.push([expense[i] || '', income[i] || '']);
-    sheet.getRange(1, 1, rows.length, 2).setValues(rows);
+    for (var i = 0; i < n; i++) {
+      var e = expense[i] || { name: '', emoji: '', color: '' };
+      var c = income[i] || { name: '', emoji: '', color: '' };
+      rows.push([e.name, e.emoji, e.color, c.name, c.emoji, c.color]);
+    }
+    sheet.getRange(1, 1, rows.length, 6).setValues(rows);
   } finally {
     lock.releaseLock();
   }
@@ -310,6 +328,9 @@ function ensureSheet_(ss, name, header) {
 function toDate_(v) {
   if (v instanceof Date && !isNaN(v)) return v;
   if (typeof v === 'string' && v) {
+    /* DD/MM/YYYY או DD/MM/YYYY HH:mm */
+    var m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+    if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), Number(m[4] || 0), Number(m[5] || 0));
     var d = new Date(v);
     if (!isNaN(d)) return d;
   }
@@ -317,19 +338,35 @@ function toDate_(v) {
 }
 
 function fmtDate_(d) {
-  return Utilities.formatDate(d, TZ, 'yyyy-MM-dd');
+  /* פורמט לפי רכיבי התאריך כפי שהם בגיליון — ללא המרת אזור-זמן,
+     כדי שהתאריך לא יזוז ביום אם אזור הזמן של הפרויקט שונה. */
+  return d.getFullYear() + '-' + pad2_(d.getMonth() + 1) + '-' + pad2_(d.getDate());
+}
+
+function pad2_(n) {
+  return (n < 10 ? '0' : '') + n;
 }
 
 function nowStamp_() {
   return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
 }
 
-function cleanList_(list) {
+function cleanCatList_(list) {
   if (!list || !list.length) return [];
   var out = [];
   for (var i = 0; i < list.length && out.length < 60; i++) {
-    var name = String(list[i] || '').trim().slice(0, 40);
-    if (name && out.indexOf(name) === -1) out.push(name);
+    var item = list[i];
+    var o = (item && typeof item === 'object') ? item : { name: item };
+    var name = String(o.name || '').trim().slice(0, 40);
+    if (!name) continue;
+    var dup = false;
+    for (var j = 0; j < out.length; j++) if (out[j].name === name) { dup = true; break; }
+    if (dup) continue;
+    out.push({
+      name: name,
+      emoji: String(o.emoji || '').slice(0, 8),
+      color: String(o.color || '').slice(0, 16)
+    });
   }
   return out;
 }

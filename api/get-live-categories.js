@@ -68,7 +68,8 @@ module.exports = async function handler(req, res) {
     /* ניקוי: מחרוזות בלבד, ללא ריקים וכפילויות */
     const clean = [];
     for (const item of list) {
-      const name = String(item ?? '').trim();
+      const raw = (item && typeof item === 'object' && item.name != null) ? item.name : item;
+      const name = String(raw ?? '').trim();
       if (name && clean.indexOf(name) === -1) clean.push(name);
     }
 

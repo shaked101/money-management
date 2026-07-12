@@ -16,8 +16,15 @@ function cleanList(list) {
   if (!Array.isArray(list)) return null;
   const out = [];
   for (const item of list) {
-    const name = String(item ?? '').trim().slice(0, MAX_NAME);
-    if (name && out.indexOf(name) === -1) out.push(name);
+    /* תומך גם במחרוזות וגם באובייקטים {name, emoji, color} */
+    const src = (item && typeof item === 'object') ? item : { name: item };
+    const name = String(src.name ?? '').trim().slice(0, MAX_NAME);
+    if (!name || out.some((x) => x.name === name)) continue;
+    out.push({
+      name,
+      emoji: String(src.emoji ?? '').slice(0, 8),
+      color: String(src.color ?? '').slice(0, 16)
+    });
     if (out.length >= MAX_CATS) break;
   }
   return out;
