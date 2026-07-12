@@ -23,7 +23,8 @@ function cleanList(list) {
     out.push({
       name,
       emoji: String(src.emoji ?? '').slice(0, 8),
-      color: String(src.color ?? '').slice(0, 16)
+      color: String(src.color ?? '').slice(0, 16),
+      fav: src.fav === true || src.fav === 'true'
     });
     if (out.length >= MAX_CATS) break;
   }
