@@ -905,15 +905,83 @@ function shiftMonth(d){
   loadMonth();
 }
 
-async function loadMonth(){
+/* ═══ מנגנון Caching — עצירת שריפת קרדיטים ב-Make ═══════
+   כל חודש שנטען נשמר ב-Cache (זיכרון + sessionStorage).
+   מעבר בין חודשים = אפס קריאות רשת אם החודש כבר נטען.
+   קריאת רשת מתבצעת אך ורק כאשר:
+   1. חודש נפתח בפעם הראשונה בסשן.
+   2. נוספה תנועה (סנכרון רקע מושהה — ראו saveTx).
+   3. המשתמש לחץ על כפתור הריענון (⟳) — force.          */
+var CACHE_SS='ff_month_cache_v1';
+var monthCache={};
+try{ monthCache=JSON.parse(sessionStorage.getItem(CACHE_SS)||'{}')||{}; }catch(e){ monthCache={}; }
+function mKey(y,m){ return y+'-'+String(m).padStart(2,'0'); }
+function cacheSave(){ try{ sessionStorage.setItem(CACHE_SS,JSON.stringify(monthCache)); }catch(e){} }
+function cacheInvalidate(y,m){ delete monthCache[mKey(y,m)]; cacheSave(); }
+
+/* תנועות אופטימיות שממתינות לאישור מהשרת (מרוץ מול Make) */
+var pendingRows=[];
+
+/* ═══ חילוץ קטגוריות עמיד — תומך בכל מבנה תשובה ═══════
+   {categories:{expense:[],income:[]}} | {categories:[...]} | ריק */
+function applyCategories(data){
+  var c=data ? data.categories : undefined;
+  if(c===undefined || c===null){
+    console.warn('[categories] לא התקבל שדה categories בתשובת get-data — נשארים עם הקטגוריות הקיימות. מבנה התשובה:',
+      JSON.stringify(data).slice(0,300));
+    return;
+  }
+  if(Array.isArray(c)){
+    if(!c.length){
+      console.warn('[categories] התקבל מערך קטגוריות ריק — נשארים עם הקיימות. תשובה גולמית:',
+        JSON.stringify(data).slice(0,300));
+      return;
+    }
+    /* מערך שטוח מ-Make → קטגוריות הוצאה (הכנסה נשמרת כפי שהיא) */
+    state.cats.expense=c.map(function(x){ return String(x).trim(); }).filter(Boolean);
+    console.debug('[categories] נטען מערך שטוח: '+state.cats.expense.length+' קטגוריות הוצאה');
+    return;
+  }
+  if(typeof c==='object' && (Array.isArray(c.expense)||Array.isArray(c.income))){
+    if(Array.isArray(c.expense) && c.expense.length) state.cats.expense=c.expense;
+    else console.warn('[categories] רשימת expense חסרה/ריקה בתשובה:',JSON.stringify(c).slice(0,300));
+    if(Array.isArray(c.income) && c.income.length) state.cats.income=c.income;
+    return;
+  }
+  console.warn('[categories] מבנה categories לא מזוהה:',JSON.stringify(c).slice(0,300));
+}
+
+async function loadMonth(force){
   if(state.loading) return;
-  state.loading=true;
   monthLabel();
+  var key=mKey(state.y,state.m);
+
+  /* ── פגיעת Cache: אפס קריאות רשת ── */
+  if(!force && monthCache[key]){
+    state.rows=(monthCache[key].rows||[]).slice();
+    if(monthCache[key].cats) state.cats=monthCache[key].cats;
+    renderAll();
+    return;
+  }
+
+  state.loading=true;
   $('refresh-btn').style.opacity='.4';
   try{
     var data=await apiFetch('/api/get-data',{month:state.m,year:state.y});
     state.rows=Array.isArray(data.rows)?data.rows:(Array.isArray(data)?data:[]);
-    if(data.categories && data.categories.expense) state.cats=data.categories;
+    applyCategories(data);
+
+    /* פיוס שורות אופטימיות: אם שורה שהוספנו עדיין לא הגיעה
+       מהשרת (Make טרם כתב לגיליון) — משאירים אותה בתצוגה. */
+    pendingRows=pendingRows.filter(function(p){
+      if(p.key!==key) return true; /* שייכת לחודש אחר — ממתינה */
+      var confirmed=state.rows.some(function(r){ return String(r.uid)===String(p.row.uid); });
+      if(!confirmed) state.rows.push(p.row);
+      return !confirmed;
+    });
+
+    monthCache[key]={rows:state.rows,cats:state.cats,t:Date.now()};
+    cacheSave();
     renderAll();
   }catch(e){
     if(e.code!==401) toast('שגיאה בטעינת נתונים: '+e.message,true);
@@ -1062,6 +1130,10 @@ async function deleteTx(uid){
   try{
     await apiFetch('/api/delete-transaction',{uid:uid});
     state.rows=state.rows.filter(function(r){ return String(r.uid)!==String(uid); });
+    pendingRows=pendingRows.filter(function(p){ return String(p.row.uid)!==String(uid); });
+    /* עדכון ה-Cache של החודש המוצג — ללא קריאת רשת נוספת */
+    var key=mKey(state.y,state.m);
+    if(monthCache[key]){ monthCache[key].rows=state.rows.slice(); cacheSave(); }
     renderAll();
     toast('🗑 התנועה נמחקה');
   }catch(e){ if(e.code!==401) toast('שגיאה במחיקה: '+e.message,true); }
@@ -1083,11 +1155,13 @@ function fillCatSelect(){
   sel.innerHTML=list.map(function(c){ return '<option>'+esc(c)+'</option>'; }).join('')
     || '<option value="">— אין קטגוריות —</option>';
 }
+function todayLocalISO(){
+  var d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function openTxModal(){
-  var now=new Date();
-  var inMonth=(now.getFullYear()===state.y && now.getMonth()+1===state.m);
-  var d=inMonth?now:new Date(state.y,state.m-1,1);
-  $('tx-date').value=d.toISOString().slice(0,10);
+  /* תאריך ברירת מחדל: תמיד היום (זמן מקומי, פורמט YYYY-MM-DD) */
+  $('tx-date').value=todayLocalISO();
   $('tx-amount').value=''; $('tx-note').value='';
   $('tx-recurring').checked=false;
   fillCatSelect();
@@ -1101,7 +1175,7 @@ async function saveTx(){
   if(!cat){ toast('נא לבחור קטגוריה',true); return; }
   var payload={
     uid:'tx_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),
-    date:$('tx-date').value||new Date().toISOString().slice(0,10),
+    date:$('tx-date').value||todayLocalISO(),
     type:txForm.type,
     category:cat,
     amount:amount,
@@ -1114,10 +1188,28 @@ async function saveTx(){
   try{
     await apiFetch('/api/add-transaction',payload);
     $('tx-modal').classList.remove('on');
+
+    /* 1. הצגה אופטימית מיידית — השורה מופיעה בלי לחכות לרשת */
     var pd=new Date(payload.date);
-    if(pd.getFullYear()===state.y && pd.getMonth()+1===state.m){
-      state.rows.push(payload); renderAll();
+    var txKey=mKey(pd.getFullYear(),pd.getMonth()+1);
+    pendingRows.push({key:txKey,row:payload});
+    if(txKey===mKey(state.y,state.m)){
+      state.rows.push(payload);
+      renderAll();
     }
+    /* 2. עדכון Cache של חודש היעד (אם קיים) */
+    if(monthCache[txKey]){
+      monthCache[txKey].rows=(monthCache[txKey].rows||[]).concat([payload]);
+      cacheSave();
+    }
+    /* 3. סנכרון רקע מושהה: משיכה טרייה מהשרת אחרי ש-Make
+       הספיק לכתוב לגיליון. אם השורה טרם הופיעה — הפיוס
+       ב-loadMonth משאיר אותה בתצוגה עד לאישור.            */
+    setTimeout(function(){
+      if(txKey===mKey(state.y,state.m)) loadMonth(true);
+      else cacheInvalidate(pd.getFullYear(),pd.getMonth()+1);
+    },2000);
+
     toast('✓ התנועה נשמרה');
     haptic(15);
   }catch(e){ if(e.code!==401) toast('שגיאה בשמירה: '+e.message,true); }
@@ -1263,7 +1355,7 @@ function init(){
   });
   $('m-prev').addEventListener('click',function(){ shiftMonth(-1); });
   $('m-next').addEventListener('click',function(){ shiftMonth(1); });
-  $('refresh-btn').addEventListener('click',loadMonth);
+  $('refresh-btn').addEventListener('click',function(){ loadMonth(true); }); /* ריענון ידני = משיכה טרייה מהשרת */
   $('lock-btn').addEventListener('click',function(){ lockOut('המערכת ננעלה'); });
 
   /* תנועות */
