@@ -1,0 +1,82 @@
+/* ════════════════════════════════════════════════════════════
+   api/sync-categories.js — עדכון גיליון הקטגוריות
+   תומך בשני מצבים:
+   א. סנכרון מלא:  POST { categories: { expense:[…], income:[…] } }
+   ב. פעולה בודדת: POST { op:'add'|'remove', kind:'expense'|'income', name }
+   ⇒ Make (MAKE_CATEGORIES_URL)
+   ════════════════════════════════════════════════════════════ */
+'use strict';
+
+const { guard, readBody, forwardToMake, fail } = require('./_lib.js');
+
+const MAX_CATS = 60;
+const MAX_NAME = 40;
+
+function cleanList(list) {
+  if (!Array.isArray(list)) return null;
+  const out = [];
+  for (const item of list) {
+    const name = String(item ?? '').trim().slice(0, MAX_NAME);
+    if (name && out.indexOf(name) === -1) out.push(name);
+    if (out.length >= MAX_CATS) break;
+  }
+  return out;
+}
+
+module.exports = async function handler(req, res) {
+  if (!guard(req, res)) return;
+
+  try {
+    const body = await readBody(req);
+    let payload;
+
+    if (body.categories) {
+      /* ── מצב א: סנכרון מלא ── */
+      const expense = cleanList(body.categories.expense);
+      const income = cleanList(body.categories.income);
+      if (!expense || !income) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Invalid categories — expected { categories: { expense: [], income: [] } }'
+        });
+      }
+      payload = {
+        action: 'sync-categories',
+        mode: 'full',
+        categories: { expense, income }
+      };
+    } else if (body.op === 'add' || body.op === 'remove') {
+      /* ── מצב ב: פעולה בודדת ── */
+      const kind = body.kind === 'income' ? 'income'
+                 : body.kind === 'expense' ? 'expense'
+                 : null;
+      const name = String(body.name ?? '').trim().slice(0, MAX_NAME);
+      if (!kind || !name) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Invalid op — expected { op, kind: expense|income, name }'
+        });
+      }
+      payload = {
+        action: 'sync-categories',
+        mode: 'op',
+        op: body.op,
+        kind,
+        name
+      };
+    } else {
+      return res.status(400).json({ ok: false, error: 'Missing categories or op' });
+    }
+
+    const { status, data } = await forwardToMake('MAKE_CATEGORIES_URL', payload);
+
+    if (status < 200 || status >= 300) {
+      console.error('[sync-categories] Make returned', status, data);
+      return res.status(502).json({ ok: false, error: 'Make returned ' + status });
+    }
+
+    return res.status(200).json({ ok: true, synced: payload.mode });
+  } catch (err) {
+    return fail(res, err);
+  }
+};

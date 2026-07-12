@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B2E23">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="הכסף שלנו">
+<meta name="application-name" content="הכסף שלנו">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>הכסף שלנו · שקד & אביטל</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════
+   הכסף שלנו — מערכת ניהול פיננסי משפחתית (PWA)
+   עיצוב: ירוק כהה בנקאי · לבן · אפור פרימיום · Mobile-First · RTL
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --g-950:#07211A;          /* ירוק לילה — מסך נעילה */
+  --g-900:#0B2E23;          /* ירוק כהה ראשי */
+  --g-700:#14503C;          /* ירוק עמוק */
+  --g-500:#1E7A5A;          /* ירוק פעולה */
+  --g-400:#2E9B74;          /* ירוק בהיר / הכנסות */
+  --g-100:#DCEDE5;          /* ירוק רקע עדין */
+  --gold:#C9A85C;           /* נגיעת פרימיום */
+  --ink:#182420;            /* טקסט ראשי */
+  --gray-700:#4C5B54;       /* טקסט משני */
+  --gray-500:#7C8B84;       /* טקסט חלש */
+  --gray-300:#D8DFDB;       /* קווים */
+  --gray-100:#EEF2F0;       /* רקע משני */
+  --bg:#F4F7F5;             /* רקע כללי */
+  --card:#FFFFFF;
+  --red:#B3402F;            /* הוצאות / מחיקה */
+  --red-bg:#F9ECEA;
+  --shadow:0 1px 2px rgba(11,46,35,.06),0 6px 20px rgba(11,46,35,.07);
+  --shadow-lg:0 10px 40px rgba(7,33,26,.25);
+  --r:16px;
+  --r-sm:11px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{font-size:16px}
+body{
+  font-family:'Heebo',-apple-system,'Segoe UI',Arial,sans-serif;
+  background:var(--bg);color:var(--ink);
+  min-height:100dvh;line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input,select{font-family:inherit;font-size:1rem;color:var(--ink)}
+::selection{background:var(--g-100)}
+
+/* ── שלד האפליקציה ─────────────────────────── */
+#app{display:none;min-height:100dvh;padding-bottom:calc(76px + var(--safe-b))}
+#app.on{display:block}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px}
+@media(min-width:700px){.wrap{max-width:640px}}
+
+/* כותרת עליונה */
+header.top{
+  background:linear-gradient(160deg,var(--g-900) 0%,var(--g-700) 100%);
+  color:#fff;padding:14px 0 58px;border-radius:0 0 28px 28px;
+  box-shadow:var(--shadow);
+}
+.top-row{display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:1.02rem;letter-spacing:.2px}
+.brand .coin{
+  width:30px;height:30px;border-radius:9px;flex:0 0 auto;
+  background:linear-gradient(140deg,var(--gold),#A8843B);
+  display:grid;place-items:center;color:var(--g-950);font-weight:800;font-size:.95rem;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45);
+}
+.top-actions{display:flex;gap:8px}
+.icon-btn{
+  width:36px;height:36px;border-radius:11px;display:grid;place-items:center;
+  background:rgba(255,255,255,.12);color:#fff;font-size:1rem;
+  transition:background .15s;
+}
+.icon-btn:active{background:rgba(255,255,255,.24)}
+
+/* בורר חודשים */
+.month-nav{
+  display:flex;align-items:center;justify-content:center;gap:6px;margin-top:14px;
+}
+.month-nav .mv{
+  width:38px;height:38px;border-radius:12px;color:#fff;font-size:1.15rem;
+  background:rgba(255,255,255,.12);display:grid;place-items:center;transition:background .15s;
+}
+.month-nav .mv:active{background:rgba(255,255,255,.26)}
+.month-nav .mv:disabled{opacity:.35}
+#month-label{
+  min-width:150px;text-align:center;font-weight:600;font-size:1.06rem;color:#fff;
+  padding:7px 10px;border-radius:12px;
+}
+#month-label small{display:block;font-size:.66rem;font-weight:400;color:rgba(255,255,255,.62);letter-spacing:.6px}
+
+/* כרטיסי סיכום */
+.cards{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:-42px;
+}
+.card{
+  background:var(--card);border-radius:var(--r);padding:14px 15px;box-shadow:var(--shadow);
+}
+.card .lbl{font-size:.74rem;color:var(--gray-500);font-weight:500}
+.card .val{font-size:1.32rem;font-weight:800;letter-spacing:-.3px;margin-top:2px;font-variant-numeric:tabular-nums}
+.card.income .val{color:var(--g-400)}
+.card.expense .val{color:var(--red)}
+.card.balance{
+  grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(135deg,#fff 60%,var(--g-100));
+  border:1px solid var(--g-100);
+}
+.card.balance .val{font-size:1.6rem}
+.card.balance .val.neg{color:var(--red)}
+.card.balance .val.pos{color:var(--g-700)}
+.badge-month{
+  font-size:.68rem;background:var(--g-900);color:#fff;border-radius:99px;padding:4px 11px;font-weight:500;
+}
+
+/* מקטעים */
+section.pane{display:none;animation:fadeUp .22s ease}
+section.pane.on{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+h2.sec{
+  font-size:.82rem;font-weight:700;color:var(--gray-700);letter-spacing:.4px;
+  margin:22px 2px 10px;display:flex;align-items:center;gap:8px;
+}
+h2.sec::after{content:'';flex:1;height:1px;background:var(--gray-300)}
+
+/* גרף פאי */
+.chart-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:16px}
+.chart-flex{display:flex;align-items:center;gap:14px}
+#pie-svg{width:150px;height:150px;flex:0 0 auto}
+#pie-center-val{font-weight:800}
+.legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+.legend .li{display:flex;align-items:center;gap:8px;font-size:.8rem;min-width:0}
+.legend .dot{width:10px;height:10px;border-radius:4px;flex:0 0 auto}
+.legend .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray-700)}
+.legend .amt{font-weight:600;font-variant-numeric:tabular-nums}
+.legend .pct{color:var(--gray-500);font-size:.72rem;width:38px;text-align:left}
+.chart-empty{padding:26px 0;text-align:center;color:var(--gray-500);font-size:.86rem}
+
+/* כפתור AI */
+.ai-btn{
+  width:100%;margin-top:14px;border-radius:var(--r);padding:14px 16px;
+  background:linear-gradient(135deg,var(--g-900),var(--g-500));color:#fff;
+  display:flex;align-items:center;gap:12px;text-align:right;
+  box-shadow:var(--shadow);transition:transform .12s;
+}
+.ai-btn:active{transform:scale(.985)}
+.ai-btn .ic{font-size:1.4rem}
+.ai-btn b{display:block;font-size:.95rem}
+.ai-btn span{display:block;font-size:.72rem;color:rgba(255,255,255,.72);font-weight:300}
+
+/* רשימת תנועות */
+.tx-list{display:flex;flex-direction:column;gap:8px}
+.tx{
+  background:var(--card);border-radius:var(--r-sm);box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:11px;padding:11px 13px;
+}
+.tx .cat-ic{
+  width:38px;height:38px;border-radius:12px;flex:0 0 auto;display:grid;place-items:center;
+  font-weight:700;font-size:.92rem;color:#fff;
+}
+.tx .mid{flex:1;min-width:0}
+.tx .cat{font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tx .meta{font-size:.7rem;color:var(--gray-500);display:flex;gap:6px;align-items:center;margin-top:1px}
+.who-chip{
+  font-size:.64rem;font-weight:600;border-radius:99px;padding:1px 8px;
+}
+.who-chip.shaked{background:#E3EEFA;color:#2A5B8F}
+.who-chip.avital{background:#F6EAF3;color:#8F3A76}
+.tx .amt{font-weight:800;font-variant-numeric:tabular-nums;font-size:.95rem;white-space:nowrap}
+.tx.expense .amt{color:var(--red)}
+.tx.income .amt{color:var(--g-400)}
+.tx .del{
+  width:32px;height:32px;border-radius:9px;color:var(--gray-500);font-size:.95rem;
+  display:grid;place-items:center;transition:all .15s;flex:0 0 auto;
+}
+.tx .del:active{background:var(--red-bg);color:var(--red)}
+.list-empty{
+  background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);
+  padding:34px 16px;text-align:center;color:var(--gray-500);font-size:.88rem;
+}
+.list-empty .big{font-size:1.9rem;display:block;margin-bottom:6px}
+
+/* קטגוריות */
+.cat-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:15px;margin-bottom:12px}
+.cat-card h3{font-size:.9rem;font-weight:700;margin-bottom:11px;display:flex;align-items:center;gap:7px}
+.chip-wrap{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;min-height:30px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:500;
+  background:var(--gray-100);border:1px solid var(--gray-300);border-radius:99px;padding:5px 6px 5px 12px;
+}
+.chip .x{
+  width:18px;height:18px;border-radius:50%;display:grid;place-items:center;
+  font-size:.68rem;color:var(--gray-500);background:rgba(0,0,0,.05);
+}
+.chip .x:active{background:var(--red);color:#fff}
+.cat-add{display:flex;gap:8px}
+.cat-add input{flex:1;min-width:0}
+.sync-note{font-size:.72rem;color:var(--gray-500);text-align:center;margin:4px 0 10px}
+
+/* טפסים וכפתורים */
+.ifield{
+  width:100%;background:var(--gray-100);border:1.5px solid var(--gray-300);
+  border-radius:var(--r-sm);padding:11px 13px;outline:none;transition:border .15s;
+  appearance:none;
+}
+.ifield:focus{border-color:var(--g-500);background:#fff}
+select.ifield{background-image:linear-gradient(45deg,transparent 50%,var(--gray-500) 50%),linear-gradient(135deg,var(--gray-500) 50%,transparent 50%);background-position:left 16px center,left 11px center;background-size:5px 5px;background-repeat:no-repeat;padding-left:32px}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:.74rem;font-weight:600;color:var(--gray-700);margin-bottom:5px}
+.btn{
+  border-radius:var(--r-sm);padding:12px 18px;font-weight:600;font-size:.94rem;
+  background:var(--g-700);color:#fff;transition:all .15s;
+}
+.btn:active{transform:scale(.98);background:var(--g-900)}
+.btn.full{width:100%;display:block}
+.btn.ghost{background:var(--gray-100);color:var(--ink);border:1.5px solid var(--gray-300)}
+.btn.sm{padding:9px 14px;font-size:.84rem}
+.btn:disabled{opacity:.55;pointer-events:none}
+.seg{display:flex;background:var(--gray-100);border-radius:var(--r-sm);padding:4px;gap:4px}
+.seg button{
+  flex:1;border-radius:8px;padding:9px 4px;font-size:.86rem;font-weight:600;color:var(--gray-500);
+  transition:all .15s;
+}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:var(--shadow)}
+.seg.type button.on[data-v="expense"]{color:var(--red)}
+.seg.type button.on[data-v="income"]{color:var(--g-500)}
+
+/* כפתור צף */
+#fab{
+  position:fixed;bottom:calc(88px + var(--safe-b));left:18px;z-index:40;
+  width:56px;height:56px;border-radius:19px;font-size:1.7rem;font-weight:300;color:#fff;
+  background:linear-gradient(140deg,var(--g-500),var(--g-700));
+  box-shadow:0 8px 24px rgba(20,80,60,.4);display:grid;place-items:center;
+  transition:transform .15s;
+}
+#fab:active{transform:scale(.92)}
+
+/* ניווט תחתון */
+nav.bottom{
+  position:fixed;bottom:0;right:0;left:0;z-index:30;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-top:1px solid var(--gray-300);padding:6px 8px calc(6px + var(--safe-b));
+}
+nav.bottom .inner{max-width:560px;margin:0 auto;display:flex}
+nav.bottom button{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  font-size:.66rem;font-weight:600;color:var(--gray-500);padding:7px 0;border-radius:12px;
+  transition:color .15s;
+}
+nav.bottom button .nic{font-size:1.25rem;line-height:1}
+nav.bottom button.on{color:var(--g-700)}
+nav.bottom button.on .nic{transform:translateY(-1px)}
+
+/* מודאל */
+.modal-bg{
+  position:fixed;inset:0;z-index:60;background:rgba(7,33,26,.55);
+  display:none;align-items:flex-end;justify-content:center;
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+}
+.modal-bg.on{display:flex;animation:fadeIn .18s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{
+  background:#fff;width:100%;max-width:560px;border-radius:24px 24px 0 0;
+  padding:20px 18px calc(20px + var(--safe-b));box-shadow:var(--shadow-lg);
+  animation:slideUp .24s cubic-bezier(.2,.9,.3,1.1);max-height:88dvh;overflow:auto;
+}
+@keyframes slideUp{from{transform:translateY(60px);opacity:.4}to{transform:none;opacity:1}}
+@media(min-width:700px){
+  .modal-bg{align-items:center;padding:20px}
+  .modal{border-radius:22px}
+}
+.modal h3{font-size:1.05rem;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.modal h3 .close{font-size:1rem;color:var(--gray-500);width:32px;height:32px;border-radius:9px;display:grid;place-items:center}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* טוסט */
+#toast{
+  position:fixed;bottom:calc(96px + var(--safe-b));right:50%;transform:translateX(50%) translateY(14px);
+  z-index:90;background:var(--g-950);color:#fff;font-size:.84rem;font-weight:500;
+  padding:11px 20px;border-radius:99px;box-shadow:var(--shadow-lg);
+  opacity:0;pointer-events:none;transition:all .25s;max-width:88vw;text-align:center;
+}
+#toast.on{opacity:1;transform:translateX(50%)}
+#toast.err{background:var(--red)}
+
+/* ── מסך נעילה — Pattern Lock 4x4 + Vault ─────────────── */
+#lock{
+  position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:24px 20px calc(24px + var(--safe-b));
+  background:
+    radial-gradient(120% 90% at 50% -10%,#155741 0%,transparent 55%),
+    linear-gradient(175deg,var(--g-950) 0%,#0A2A20 100%);
+  color:#fff;
+}
+#lock.off{display:none}
+.lock-brand{text-align:center;margin-bottom:26px}
+.lock-brand .coin{
+  width:58px;height:58px;border-radius:18px;margin:0 auto 12px;
+  background:linear-gradient(140deg,var(--gold),#A8843B);
+  display:grid;place-items:center;color:var(--g-950);font-weight:800;font-size:1.6rem;
+  box-shadow:0 8px 30px rgba(201,168,92,.35),inset 0 1px 0 rgba(255,255,255,.5);
+}
+.lock-brand h1{font-size:1.25rem;font-weight:700;letter-spacing:.3px}
+.lock-brand p{font-size:.76rem;color:rgba(255,255,255,.55);font-weight:300;margin-top:3px}
+#pl-msg{
+  min-height:22px;font-size:.83rem;color:rgba(255,255,255,.72);text-align:center;margin-bottom:8px;
+  transition:color .15s;
+}
+#pl-msg.ok{color:#7FD7AE}
+#pl-msg.err{color:#F1998A}
+#pattern-wrap{max-width:280px;width:78vw}
+#pl-svg{touch-action:none;display:block;margin:0 auto;width:100%;height:auto;
+  -webkit-user-select:none;user-select:none}
+#pattern-wrap.shake{animation:shake .4s}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-9px)}40%{transform:translateX(9px)}
+  60%{transform:translateX(-6px)}80%{transform:translateX(6px)}
+}
+.lock-links{display:flex;flex-direction:column;gap:9px;margin-top:22px;align-items:center}
+.lock-links button{
+  font-size:.8rem;color:rgba(255,255,255,.6);font-weight:400;padding:6px 14px;border-radius:99px;
+}
+.lock-links button:active{background:rgba(255,255,255,.1);color:#fff}
+#pw-mode{display:none;width:100%;max-width:300px}
+#pw-mode.on{display:block}
+#pw-mode .ifield{
+  background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.18);color:#fff;text-align:center;
+  letter-spacing:1px;
+}
+#pw-mode .ifield::placeholder{color:rgba(255,255,255,.35);letter-spacing:0}
+#pw-mode .ifield:focus{border-color:var(--g-400);background:rgba(255,255,255,.13)}
+#pw-mode .btn{background:var(--g-500);margin-top:11px}
+#pw-mode .btn:active{background:var(--g-400)}
+.hidden{display:none!important}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ מסך נעילה ═══════════ -->
+<div id="lock">
+  <div class="lock-brand">
+    <div class="coin">₪</div>
+    <h1>הכסף שלנו</h1>
+    <p>שקד & אביטל · ניהול פיננסי משפחתי</p>
+  </div>
+
+  <div id="pl-msg">ציירו את הסימון לפתיחת הכספת</div>
+
+  <div id="pattern-wrap">
+    <svg id="pl-svg" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <div id="pw-mode">
+    <input class="ifield" id="pw-in" type="password" placeholder="סיסמת מערכת (App Secret)"
+           autocomplete="current-password" enterkeyhint="go">
+    <button class="btn full" id="pw-go">🔓 כניסה</button>
+  </div>
+
+  <div class="lock-links">
+    <button id="pl-to-pw" type="button">כניסה עם סיסמה במקום</button>
+    <button id="pl-to-pattern" type="button" class="hidden">חזרה לסימון הרץ</button>
+    <button id="pl-setup-link" type="button" class="hidden">🔒 הגדרת סימון כניסה (4x4)</button>
+  </div>
+</div>
+
+<!-- ═══════════ האפליקציה ═══════════ -->
+<div id="app">
+  <header class="top">
+    <div class="wrap">
+      <div class="top-row">
+        <div class="brand"><div class="coin">₪</div>הכסף שלנו</div>
+        <div class="top-actions">
+          <button class="icon-btn" id="refresh-btn" aria-label="רענון נתונים" title="רענון">⟳</button>
+          <button class="icon-btn" id="lock-btn" aria-label="נעילת המערכת" title="נעילה">🔒</button>
+        </div>
+      </div>
+      <div class="month-nav">
+        <button class="mv" id="m-prev" aria-label="חודש קודם">‹</button>
+        <div id="month-label"><small>&nbsp;</small>—</div>
+        <button class="mv" id="m-next" aria-label="חודש הבא">›</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- ── דשבורד ── -->
+    <section class="pane on" id="pane-dash">
+      <div class="cards">
+        <div class="card income">
+          <div class="lbl">הכנסות החודש</div>
+          <div class="val" id="c-income">—</div>
+        </div>
+        <div class="card expense">
+          <div class="lbl">הוצאות החודש</div>
+          <div class="val" id="c-expense">—</div>
+        </div>
+        <div class="card balance">
+          <div>
+            <div class="lbl">יתרה חודשית</div>
+            <div class="val" id="c-balance">—</div>
+          </div>
+          <div class="badge-month" id="c-badge">—</div>
+        </div>
+      </div>
+
+      <h2 class="sec">התפלגות הוצאות</h2>
+      <div class="chart-card">
+        <div class="chart-flex" id="chart-flex">
+          <svg id="pie-svg" viewBox="0 0 120 120"></svg>
+          <div class="legend" id="pie-legend"></div>
+        </div>
+        <div class="chart-empty hidden" id="chart-empty">אין עדיין הוצאות בחודש זה 🎉</div>
+      </div>
+
+      <button class="ai-btn" id="ai-btn">
+        <span class="ic">🤖</span>
+        <span>
+          <b>הפקת דוח ל-NotebookLM</b>
+          <span>ניתוח עמוק (ומצחיק) של הרגלי הצריכה של שקד ואביטל</span>
+        </span>
+      </button>
+    </section>
+
+    <!-- ── תנועות ── -->
+    <section class="pane" id="pane-tx">
+      <h2 class="sec">תנועות החודש <span id="tx-count" style="color:var(--gray-500);font-weight:400"></span></h2>
+      <div class="tx-list" id="tx-list"></div>
+    </section>
+
+    <!-- ── קטגוריות ── -->
+    <section class="pane" id="pane-cats">
+      <h2 class="sec">ניהול קטגוריות</h2>
+      <div class="cat-card">
+        <h3>📉 קטגוריות הוצאה</h3>
+        <div class="chip-wrap" id="chips-expense"></div>
+        <div class="cat-add">
+          <input class="ifield" id="new-cat-expense" placeholder="קטגוריה חדשה…" enterkeyhint="done">
+          <button class="btn sm" data-add-cat="expense">הוספה</button>
+        </div>
+      </div>
+      <div class="cat-card">
+        <h3>📈 קטגוריות הכנסה</h3>
+        <div class="chip-wrap" id="chips-income"></div>
+        <div class="cat-add">
+          <input class="ifield" id="new-cat-income" placeholder="קטגוריה חדשה…" enterkeyhint="done">
+          <button class="btn sm" data-add-cat="income">הוספה</button>
+        </div>
+      </div>
+      <div class="sync-note">שינויים נשמרים בגיליון רק לאחר סנכרון</div>
+      <button class="btn full" id="sync-cats-btn">☁️ שמירה וסנכרון לגיליון</button>
+    </section>
+
+  </main>
+
+  <button id="fab" aria-label="הוספת תנועה">+</button>
+
+  <nav class="bottom">
+    <div class="inner">
+      <button data-pane="dash" class="on"><span class="nic">📊</span>דשבורד</button>
+      <button data-pane="tx"><span class="nic">🧾</span>תנועות</button>
+      <button data-pane="cats"><span class="nic">🏷️</span>קטגוריות</button>
+    </div>
+  </nav>
+</div>
+
+<!-- ═══════════ מודאל הוספת תנועה ═══════════ -->
+<div class="modal-bg" id="tx-modal">
+  <div class="modal">
+    <h3>תנועה חדשה <button class="close" data-close="tx-modal">✕</button></h3>
+    <div class="fg">
+      <div class="seg type" id="tx-type-seg">
+        <button data-v="expense" class="on">📉 הוצאה</button>
+        <button data-v="income">📈 הכנסה</button>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="fg">
+        <label>סכום (₪)</label>
+        <input class="ifield" id="tx-amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
+      </div>
+      <div class="fg">
+        <label>תאריך</label>
+        <input class="ifield" id="tx-date" type="date">
+      </div>
+    </div>
+    <div class="fg">
+      <label>קטגוריה</label>
+      <select class="ifield" id="tx-cat"></select>
+    </div>
+    <div class="fg">
+      <label>תיאור (רשות)</label>
+      <input class="ifield" id="tx-note" placeholder="למשל: סופר שבועי, ביטוח רכב…">
+    </div>
+    <div class="fg">
+      <label>מי רשם?</label>
+      <div class="seg" id="tx-who-seg">
+        <button data-v="שקד" class="on">שקד</button>
+        <button data-v="אביטל">אביטל</button>
+      </div>
+    </div>
+    <button class="btn full" id="tx-save">💾 שמירת תנועה</button>
+  </div>
+</div>
+
+<!-- ═══════════ מודאל הגדרת סימון (מתוך מסך הנעילה) ═══════════ -->
+<div class="modal-bg" id="ps-modal">
+  <div class="modal" style="background:var(--g-950);color:#fff">
+    <h3 style="color:#fff">הגדרת סימון רץ 4x4 <button class="close" data-close="ps-modal" style="color:rgba(255,255,255,.6)">✕</button></h3>
+    <div id="ps-msg" style="min-height:20px;font-size:.82rem;color:rgba(255,255,255,.65);text-align:center;margin-bottom:8px">
+      ציירו סימון חדש (לפחות 4 נקודות)
+    </div>
+    <div id="ps-wrap" style="max-width:270px;margin:0 auto">
+      <svg id="ps-svg" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg"
+           style="touch-action:none;display:block;width:100%;height:auto;-webkit-user-select:none;user-select:none"></svg>
+    </div>
+    <button class="btn full ghost" id="ps-reset" style="margin-top:12px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff">התחלה מחדש</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script>
+/* ════════════════════════════════════════════════════════════
+   הכסף שלנו · Core JS
+   1) Utils + apiFetch (X-App-Secret)
+   2) Vault (AES-GCM) + Pattern Lock 4x4 (v4:)
+   3) State, Dashboard, Pie, Transactions, Categories, AI Report
+   ════════════════════════════════════════════════════════════ */
+(function(){
+'use strict';
+
+/* ─── 1. Utils ──────────────────────────────────────────── */
+var $ = function(id){ return document.getElementById(id); };
+var NIS = new Intl.NumberFormat('he-IL',{style:'currency',currency:'ILS',maximumFractionDigits:0});
+var NIS2 = new Intl.NumberFormat('he-IL',{style:'currency',currency:'ILS',minimumFractionDigits:2});
+function fmt(n){ n=Number(n)||0; return (Math.abs(n)%1>0.004?NIS2:NIS).format(n); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function haptic(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms||12); }catch(e){} }
+
+var toastTimer=null;
+function toast(msg,isErr){
+  var t=$('toast'); t.textContent=msg;
+  t.className='on'+(isErr?' err':'');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){ t.className=''; },2600);
+}
+
+/* ─── apiFetch — עטיפה אחידה לכל קריאות ה-API ─────────────
+   מזריקה X-App-Secret מה-session; השרת (Vercel Serverless)
+   משווה מול process.env.APP_SECRET_TOKEN לפני פרוקסי ל-Make.  */
+var SS_KEY='ff_secret';
+function getSecret(){ try{ return sessionStorage.getItem(SS_KEY)||''; }catch(e){ return ''; } }
+
+async function apiFetch(path, payload, secretOverride){
+  var secret = (secretOverride!=null) ? secretOverride : getSecret();
+  var res = await fetch(path,{
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'X-App-Secret':secret },
+    body: JSON.stringify(payload||{})
+  });
+  if(res.status===401 || res.status===403){
+    if(secretOverride==null) lockOut('פג תוקף ההרשאה — נדרשת כניסה מחדש');
+    var e1=new Error('unauthorized'); e1.code=401; throw e1;
+  }
+  if(!res.ok){ var e2=new Error('שגיאת שרת ('+res.status+')'); e2.code=res.status; throw e2; }
+  return res.json();
+}
+
+/* ─── 2. Vault — כספת מוצפנת (AES-GCM) ────────────────────
+   ה-Secret לא נשמר גלוי ב-localStorage: הוא מוצפן במפתח
+   שנגזר (PBKDF2) מהסימון הרץ עצמו. ציור הסימון = פתיחת הכספת. */
+var LS_PATTERN='ff_pattern';        /* 'v4:' + SHA-256(patternKey) */
+var LS_VAULT  ='ff_secret_vault';   /* JSON {v,s,i,c} base64 */
+var LS_TRIES  ='ff_pl_tries';
+var PAT_VER='v4:', MIN_DOTS=4, MAX_TRIES=5;
+
+function b64(u8){ var s=''; u8.forEach(function(b){ s+=String.fromCharCode(b); }); return btoa(s); }
+function ub64(s){ return Uint8Array.from(atob(s),function(c){ return c.charCodeAt(0); }); }
+var TE=new TextEncoder(), TD=new TextDecoder();
+
+async function sha256hex(str){
+  var buf=await crypto.subtle.digest('SHA-256',TE.encode(str));
+  return Array.prototype.map.call(new Uint8Array(buf),function(b){
+    return b.toString(16).padStart(2,'0'); }).join('');
+}
+async function deriveKey(patternKey,salt){
+  var km=await crypto.subtle.importKey('raw',TE.encode('ffv4|'+patternKey),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2',salt:salt,iterations:120000,hash:'SHA-256'},
+    km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function vaultSeal(secret,patternKey){
+  var salt=crypto.getRandomValues(new Uint8Array(16));
+  var iv=crypto.getRandomValues(new Uint8Array(12));
+  var key=await deriveKey(patternKey,salt);
+  var ct=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,TE.encode(secret));
+  localStorage.setItem(LS_VAULT,JSON.stringify({v:1,s:b64(salt),i:b64(iv),c:b64(new Uint8Array(ct))}));
+  localStorage.setItem(LS_PATTERN,PAT_VER+await sha256hex(patternKey));
+  localStorage.removeItem(LS_TRIES);
+}
+async function vaultOpen(patternKey){
+  var raw=localStorage.getItem(LS_VAULT); if(!raw) return null;
+  var o=JSON.parse(raw);
+  var key=await deriveKey(patternKey,ub64(o.s));
+  var pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:ub64(o.i)},key,ub64(o.c));
+  return TD.decode(pt);
+}
+function vaultExists(){
+  var p=localStorage.getItem(LS_PATTERN);
+  return !!(p && p.indexOf(PAT_VER)===0 && localStorage.getItem(LS_VAULT));
+}
+function vaultWipe(){
+  localStorage.removeItem(LS_PATTERN);
+  localStorage.removeItem(LS_VAULT);
+  localStorage.removeItem(LS_TRIES);
+}
+
+/* ─── Pattern Grid Engine — מנוע רשת 4x4 משותף ────────────
+   SVG, Pointer Events, הוספת נקודות-ביניים אוטומטית בקו ישר
+   (gcd), רטט, אנימציית שגיאה. משמש גם ללוגין וגם להגדרה.   */
+var GRID=4, CELL=240/GRID, R_DOT=6, R_HIT=24;
+function gcd(a,b){ return b?gcd(b,a%b):a; }
+
+function PatternGrid(svg,onComplete){
+  var NS='http://www.w3.org/2000/svg';
+  var path=[], drawing=false, dots=[], trace=null, live=null;
+
+  (function build(){
+    svg.innerHTML='';
+    trace=document.createElementNS(NS,'polyline');
+    trace.setAttribute('fill','none');
+    trace.setAttribute('stroke','rgba(46,155,116,.9)');
+    trace.setAttribute('stroke-width','3.5');
+    trace.setAttribute('stroke-linecap','round');
+    trace.setAttribute('stroke-linejoin','round');
+    svg.appendChild(trace);
+    live=document.createElementNS(NS,'line');
+    live.setAttribute('stroke','rgba(46,155,116,.45)');
+    live.setAttribute('stroke-width','3.5');
+    live.setAttribute('stroke-linecap','round');
+    svg.appendChild(live);
+    for(var i=0;i<GRID*GRID;i++){
+      var cx=CELL/2+(i%GRID)*CELL, cy=CELL/2+Math.floor(i/GRID)*CELL;
+      var halo=document.createElementNS(NS,'circle');
+      halo.setAttribute('cx',cx);halo.setAttribute('cy',cy);halo.setAttribute('r',15);
+      halo.setAttribute('fill','rgba(46,155,116,.18)');halo.setAttribute('opacity','0');
+      svg.appendChild(halo);
+      var dot=document.createElementNS(NS,'circle');
+      dot.setAttribute('cx',cx);dot.setAttribute('cy',cy);dot.setAttribute('r',R_DOT);
+      dot.setAttribute('fill','rgba(255,255,255,.55)');
+      svg.appendChild(dot);
+      dots.push({cx:cx,cy:cy,el:dot,halo:halo});
+    }
+  })();
+
+  function svgPoint(ev){
+    var r=svg.getBoundingClientRect();
+    return { x:(ev.clientX-r.left)*240/r.width, y:(ev.clientY-r.top)*240/r.height };
+  }
+  function hit(p){
+    for(var i=0;i<dots.length;i++){
+      var dx=p.x-dots[i].cx, dy=p.y-dots[i].cy;
+      if(dx*dx+dy*dy<=R_HIT*R_HIT) return i;
+    }
+    return -1;
+  }
+  function addDot(i){
+    if(path.indexOf(i)!==-1) return;
+    /* נקודות-ביניים בקו ישר בין הנקודה האחרונה לחדשה */
+    if(path.length){
+      var a=path[path.length-1];
+      var r1=Math.floor(a/GRID),c1=a%GRID,r2=Math.floor(i/GRID),c2=i%GRID;
+      var dr=r2-r1,dc=c2-c1,g=gcd(Math.abs(dr),Math.abs(dc));
+      for(var k=1;k<g;k++){
+        var mid=(r1+k*dr/g)*GRID+(c1+k*dc/g);
+        if(path.indexOf(mid)===-1){ path.push(mid); light(mid); }
+      }
+    }
+    path.push(i); light(i); haptic(10); redraw();
+  }
+  function light(i){
+    dots[i].el.setAttribute('fill','#2E9B74');
+    dots[i].el.setAttribute('r',R_DOT+2);
+    dots[i].halo.setAttribute('opacity','1');
+  }
+  function redraw(){
+    trace.setAttribute('points',path.map(function(i){
+      return dots[i].cx+','+dots[i].cy; }).join(' '));
+  }
+  function clearLive(){ live.removeAttribute('x1');live.removeAttribute('y1');
+    live.removeAttribute('x2');live.removeAttribute('y2'); }
+
+  function down(ev){
+    ev.preventDefault();
+    reset(); drawing=true;
+    try{ svg.setPointerCapture(ev.pointerId); }catch(e){}
+    var i=hit(svgPoint(ev)); if(i>-1) addDot(i);
+  }
+  function move(ev){
+    if(!drawing) return;
+    ev.preventDefault();
+    var p=svgPoint(ev), i=hit(p);
+    if(i>-1) addDot(i);
+    if(path.length){
+      var last=dots[path[path.length-1]];
+      live.setAttribute('x1',last.cx);live.setAttribute('y1',last.cy);
+      live.setAttribute('x2',p.x);live.setAttribute('y2',p.y);
+    }
+  }
+  function up(ev){
+    if(!drawing) return;
+    drawing=false; clearLive();
+    if(path.length) onComplete(path.join('-'), path.length);
+  }
+  function reset(){
+    path=[]; clearLive(); trace.setAttribute('points','');
+    dots.forEach(function(d){
+      d.el.setAttribute('fill','rgba(255,255,255,.55)');
+      d.el.setAttribute('r',R_DOT);
+      d.halo.setAttribute('opacity','0');
+    });
+  }
+  svg.addEventListener('pointerdown',down);
+  svg.addEventListener('pointermove',move);
+  svg.addEventListener('pointerup',up);
+  svg.addEventListener('pointercancel',up);
+  return { reset:reset };
+}
+
+/* ─── מסך נעילה — לוגיקה ──────────────────────────────── */
+var lockGrid=null, setupGrid=null, setupFirst=null;
+
+function setLockMsg(txt,cls){
+  var m=$('pl-msg'); m.textContent=txt; m.className=cls||'';
+}
+function patternError(msg){
+  setLockMsg(msg,'err'); haptic([28,40,28]);
+  var w=$('pattern-wrap'); w.classList.remove('shake');
+  void w.offsetWidth; w.classList.add('shake');
+  setTimeout(function(){ lockGrid && lockGrid.reset(); },420);
+}
+function showPatternMode(){
+  $('pattern-wrap').classList.remove('hidden');
+  $('pw-mode').classList.remove('on');
+  $('pl-to-pw').classList.remove('hidden');
+  $('pl-to-pattern').classList.add('hidden');
+  $('pl-setup-link').classList.add('hidden');
+  setLockMsg('ציירו את הסימון לפתיחת הכספת');
+}
+function showPasswordMode(canOfferSetup){
+  $('pattern-wrap').classList.add('hidden');
+  $('pw-mode').classList.add('on');
+  $('pl-to-pw').classList.add('hidden');
+  $('pl-to-pattern').classList.toggle('hidden',!vaultExists());
+  $('pl-setup-link').classList.add('hidden');
+  setLockMsg(canOfferSetup||'הזינו את סיסמת המערכת');
+  setTimeout(function(){ $('pw-in').focus(); },80);
+}
+function lockOut(msg){
+  try{ sessionStorage.removeItem(SS_KEY); }catch(e){}
+  $('app').classList.remove('on');
+  $('lock').classList.remove('off');
+  if(vaultExists()) showPatternMode(); else showPasswordMode();
+  if(msg) setLockMsg(msg,'err');
+}
+function bootApp(){
+  $('lock').classList.add('off');
+  $('app').classList.add('on');
+  loadMonth();
+}
+
+async function onLockPattern(key,len){
+  if(len<MIN_DOTS){ patternError('נדרשות לפחות '+MIN_DOTS+' נקודות'); return; }
+  setLockMsg('פותח כספת…');
+  try{
+    var stored=localStorage.getItem(LS_PATTERN)||'';
+    var h=PAT_VER+await sha256hex(key);
+    if(h!==stored) throw new Error('bad');
+    var secret=await vaultOpen(key);
+    if(!secret) throw new Error('bad');
+    sessionStorage.setItem(SS_KEY,secret);
+    localStorage.removeItem(LS_TRIES);
+    setLockMsg('הכספת נפתחה ✓','ok'); haptic([12,30,12]);
+    setTimeout(bootApp,220);
+  }catch(e){
+    var tries=(parseInt(localStorage.getItem(LS_TRIES)||'0',10)||0)+1;
+    localStorage.setItem(LS_TRIES,String(tries));
+    if(tries>=MAX_TRIES){
+      vaultWipe();
+      showPasswordMode();
+      setLockMsg('יותר מדי ניסיונות — הסימון נמחק, נדרשת סיסמה','err');
+      haptic([40,60,40]);
+      return;
+    }
+    patternError('סימון שגוי — נותרו '+(MAX_TRIES-tries)+' ניסיונות');
+  }
+}
+
+async function tryPassword(){
+  var pw=$('pw-in').value.trim();
+  if(pw.length<4){ setLockMsg('סיסמה קצרה מדי','err'); return; }
+  var btn=$('pw-go'); btn.disabled=true; setLockMsg('מאמת מול השרת…');
+  try{
+    var now=new Date();
+    /* אימות אמיתי: קריאת get-data עם ה-Secret שהוזן */
+    await apiFetch('/api/get-data',{month:now.getMonth()+1,year:now.getFullYear()},pw);
+    sessionStorage.setItem(SS_KEY,pw);
+    setLockMsg('ברוכים הבאים ✓','ok'); haptic([12,30,12]);
+    $('pw-in').value='';
+    /* הצעת הגדרת סימון אם אין */
+    if(!vaultExists()){
+      $('pl-setup-link').classList.remove('hidden');
+      setLockMsg('אפשר להגדיר סימון רץ לכניסה מהירה, או להמשיך','ok');
+      setTimeout(bootApp,1400);
+    }else{
+      setTimeout(bootApp,250);
+    }
+  }catch(e){
+    setLockMsg(e.code===401?'סיסמה שגויה':'שגיאת רשת — נסו שוב','err');
+    haptic([28,40,28]);
+  }finally{ btn.disabled=false; }
+}
+
+/* הגדרת סימון (מודאל) */
+var psMode='draw1';
+function setPsMsg(t,c){ var m=$('ps-msg'); m.textContent=t; m.style.color=c==='ok'?'#7FD7AE':(c==='err'?'#F1998A':'rgba(255,255,255,.65)'); }
+function openPatternSetup(){
+  if(!getSecret()){ setLockMsg('קודם יש להתחבר עם סיסמה','err'); return; }
+  psMode='draw1'; setupFirst=null;
+  setPsMsg('ציירו סימון חדש (לפחות '+MIN_DOTS+' נקודות)');
+  $('ps-modal').classList.add('on');
+  setupGrid && setupGrid.reset();
+}
+async function onSetupPattern(key,len){
+  if(psMode==='draw1'){
+    if(len<MIN_DOTS){ setPsMsg('נדרשות לפחות '+MIN_DOTS+' נקודות','err'); setTimeout(function(){setupGrid.reset();},350); return; }
+    setupFirst=key; psMode='draw2';
+    setPsMsg('מעולה! ציירו שוב לאישור','ok');
+    setTimeout(function(){ setupGrid.reset(); },350);
+  }else{
+    if(key!==setupFirst){
+      psMode='draw1'; setupFirst=null;
+      setPsMsg('הסימונים אינם תואמים — מתחילים מחדש','err');
+      setTimeout(function(){ setupGrid.reset(); },400);
+      return;
+    }
+    try{
+      await vaultSeal(getSecret(),key);
+      setPsMsg('הסימון נשמר והכספת נצרבה ✓','ok'); haptic([12,30,12]);
+      setTimeout(function(){
+        $('ps-modal').classList.remove('on');
+        if($('lock').classList.contains('off')) toast('🔒 סימון הכניסה עודכן');
+        else bootApp();
+      },700);
+    }catch(e){ setPsMsg('שגיאה בשמירת הכספת','err'); }
+  }
+}
+
+/* ─── 3. State + נתונים ──────────────────────────────── */
+var HE_MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+var DEFAULT_CATS={
+  expense:['סופר','אוכל בחוץ','רכב ודלק','דיור','חשבונות','ילדים','בריאות','פנאי','ביגוד','שונות'],
+  income:['משכורת שקד','משכורת אביטל','עסק','מתנות','אחר']
+};
+var PIE_COLORS=['#14503C','#2E9B74','#C9A85C','#4C7FA6','#8F3A76','#B3402F','#6B7F5A','#7C8B84'];
+
+var state={
+  y:(new Date()).getFullYear(),
+  m:(new Date()).getMonth()+1,   /* 1-12 */
+  rows:[],
+  cats:JSON.parse(JSON.stringify(DEFAULT_CATS)),
+  loading:false
+};
+
+function monthLabel(){
+  $('month-label').innerHTML='<small>חודש נבחר</small>'+HE_MONTHS[state.m-1]+' '+state.y;
+  $('c-badge').textContent=HE_MONTHS[state.m-1];
+}
+function shiftMonth(d){
+  var m=state.m+d, y=state.y;
+  if(m<1){ m=12; y--; } if(m>12){ m=1; y++; }
+  state.m=m; state.y=y;
+  loadMonth();
+}
+
+async function loadMonth(){
+  if(state.loading) return;
+  state.loading=true;
+  monthLabel();
+  $('refresh-btn').style.opacity='.4';
+  try{
+    var data=await apiFetch('/api/get-data',{month:state.m,year:state.y});
+    state.rows=Array.isArray(data.rows)?data.rows:(Array.isArray(data)?data:[]);
+    if(data.categories && data.categories.expense) state.cats=data.categories;
+    renderAll();
+  }catch(e){
+    if(e.code!==401) toast('שגיאה בטעינת נתונים: '+e.message,true);
+  }finally{
+    state.loading=false;
+    $('refresh-btn').style.opacity='';
+  }
+}
+
+function sums(){
+  var inc=0,exp=0;
+  state.rows.forEach(function(r){
+    var a=Number(r.amount)||0;
+    if(r.type==='income') inc+=a; else exp+=a;
+  });
+  return {inc:inc,exp:exp,bal:inc-exp};
+}
+
+function renderAll(){
+  var s=sums();
+  $('c-income').textContent=fmt(s.inc);
+  $('c-expense').textContent=fmt(s.exp);
+  var b=$('c-balance');
+  b.textContent=fmt(s.bal);
+  b.className='val '+(s.bal<0?'neg':'pos');
+  renderPie();
+  renderTx();
+  renderCats();
+}
+
+/* ── גרף פאי (SVG טהור, ללא תלות חיצונית) ── */
+function renderPie(){
+  var byCat={};
+  state.rows.forEach(function(r){
+    if(r.type!=='expense') return;
+    var c=r.category||'ללא קטגוריה';
+    byCat[c]=(byCat[c]||0)+(Number(r.amount)||0);
+  });
+  var entries=Object.keys(byCat).map(function(k){ return [k,byCat[k]]; })
+    .sort(function(a,b){ return b[1]-a[1]; });
+  var total=entries.reduce(function(t,e){ return t+e[1]; },0);
+
+  var svg=$('pie-svg'), legend=$('pie-legend');
+  if(!total){
+    $('chart-flex').classList.add('hidden');
+    $('chart-empty').classList.remove('hidden');
+    return;
+  }
+  $('chart-flex').classList.remove('hidden');
+  $('chart-empty').classList.add('hidden');
+
+  /* איחוד זנב ל"אחר" */
+  if(entries.length>7){
+    var head=entries.slice(0,6);
+    var tail=entries.slice(6).reduce(function(t,e){ return t+e[1]; },0);
+    head.push(['אחר',tail]); entries=head;
+  }
+
+  var NSX='http://www.w3.org/2000/svg';
+  svg.innerHTML='';
+  var cx=60,cy=60,rOut=54,rIn=34, start=-Math.PI/2;
+  function pt(r,a){ return (cx+r*Math.cos(a)).toFixed(2)+' '+(cy+r*Math.sin(a)).toFixed(2); }
+  entries.forEach(function(e,i){
+    var frac=e[1]/total;
+    var end=start+frac*Math.PI*2;
+    /* פרוסה אחת מלאה = טבעת */
+    var seg=document.createElementNS(NSX,'path');
+    var a1=start+0.008, a2=Math.max(a1,end-0.008);
+    if(frac>=0.999){
+      seg.setAttribute('d',
+        'M '+pt(rOut,0)+' A '+rOut+' '+rOut+' 0 1 1 '+pt(rOut,Math.PI)+' A '+rOut+' '+rOut+' 0 1 1 '+pt(rOut,0)+
+        ' M '+pt(rIn,0)+' A '+rIn+' '+rIn+' 0 1 0 '+pt(rIn,Math.PI)+' A '+rIn+' '+rIn+' 0 1 0 '+pt(rIn,0)+' Z');
+      seg.setAttribute('fill-rule','evenodd');
+    }else{
+      var large=(a2-a1)>Math.PI?1:0;
+      seg.setAttribute('d',
+        'M '+pt(rOut,a1)+' A '+rOut+' '+rOut+' 0 '+large+' 1 '+pt(rOut,a2)+
+        ' L '+pt(rIn,a2)+' A '+rIn+' '+rIn+' 0 '+large+' 0 '+pt(rIn,a1)+' Z');
+    }
+    seg.setAttribute('fill',PIE_COLORS[i%PIE_COLORS.length]);
+    svg.appendChild(seg);
+    start=end;
+  });
+  var t1=document.createElementNS(NSX,'text');
+  t1.setAttribute('x',60);t1.setAttribute('y',57);t1.setAttribute('text-anchor','middle');
+  t1.setAttribute('font-size','13');t1.setAttribute('font-weight','800');t1.setAttribute('fill','#182420');
+  t1.textContent=NIS.format(total);
+  svg.appendChild(t1);
+  var t2=document.createElementNS(NSX,'text');
+  t2.setAttribute('x',60);t2.setAttribute('y',71);t2.setAttribute('text-anchor','middle');
+  t2.setAttribute('font-size','7.5');t2.setAttribute('fill','#7C8B84');
+  t2.textContent='סה״כ הוצאות';
+  svg.appendChild(t2);
+
+  legend.innerHTML=entries.map(function(e,i){
+    var pct=Math.round(e[1]/total*100);
+    return '<div class="li">'+
+      '<span class="dot" style="background:'+PIE_COLORS[i%PIE_COLORS.length]+'"></span>'+
+      '<span class="nm">'+esc(e[0])+'</span>'+
+      '<span class="amt">'+fmt(e[1])+'</span>'+
+      '<span class="pct">'+pct+'%</span></div>';
+  }).join('');
+}
+
+/* ── רשימת תנועות ── */
+function whoChip(w){
+  if(w==='שקד') return '<span class="who-chip shaked">שקד</span>';
+  if(w==='אביטל') return '<span class="who-chip avital">אביטל</span>';
+  return w?('<span class="who-chip">'+esc(w)+'</span>'):'';
+}
+function fmtDate(d){
+  if(!d) return '';
+  var dt=new Date(d);
+  if(isNaN(dt)) return esc(d);
+  return dt.toLocaleDateString('he-IL',{day:'numeric',month:'numeric'});
+}
+function renderTx(){
+  var list=$('tx-list');
+  var rows=state.rows.slice().sort(function(a,b){
+    return new Date(b.date||0)-new Date(a.date||0);
+  });
+  $('tx-count').textContent=rows.length?('· '+rows.length):'';
+  if(!rows.length){
+    list.innerHTML='<div class="list-empty"><span class="big">🍃</span>אין תנועות בחודש זה.<br>לחצו על + כדי להוסיף את הראשונה.</div>';
+    return;
+  }
+  list.innerHTML=rows.map(function(r){
+    var isExp=r.type!=='income';
+    var color=isExp?'var(--red)':'var(--g-400)';
+    var initial=(r.category||'?').trim().charAt(0);
+    return '<div class="tx '+(isExp?'expense':'income')+'">'+
+      '<div class="cat-ic" style="background:'+color+'">'+esc(initial)+'</div>'+
+      '<div class="mid">'+
+        '<div class="cat">'+esc(r.category||'ללא קטגוריה')+(r.note?' · <span style="font-weight:400;color:var(--gray-700)">'+esc(r.note)+'</span>':'')+'</div>'+
+        '<div class="meta">'+fmtDate(r.date)+' '+whoChip(r.who)+'</div>'+
+      '</div>'+
+      '<div class="amt">'+(isExp?'−':'+')+fmt(Math.abs(Number(r.amount)||0))+'</div>'+
+      '<button class="del" data-del="'+esc(r.uid)+'" aria-label="מחיקת תנועה">🗑</button>'+
+    '</div>';
+  }).join('');
+}
+
+async function deleteTx(uid){
+  if(!uid){ toast('לתנועה זו אין מזהה (UID)',true); return; }
+  if(!confirm('למחוק את התנועה לצמיתות?')) return;
+  try{
+    await apiFetch('/api/delete-transaction',{uid:uid});
+    state.rows=state.rows.filter(function(r){ return String(r.uid)!==String(uid); });
+    renderAll();
+    toast('🗑 התנועה נמחקה');
+  }catch(e){ if(e.code!==401) toast('שגיאה במחיקה: '+e.message,true); }
+}
+
+/* ── מודאל הוספה ── */
+var txForm={type:'expense',who:'שקד'};
+function segInit(id,cb){
+  var seg=$(id);
+  seg.addEventListener('click',function(ev){
+    var b=ev.target.closest('button'); if(!b) return;
+    seg.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
+    b.classList.add('on'); cb(b.dataset.v);
+  });
+}
+function fillCatSelect(){
+  var sel=$('tx-cat');
+  var list=state.cats[txForm.type]||[];
+  sel.innerHTML=list.map(function(c){ return '<option>'+esc(c)+'</option>'; }).join('')
+    || '<option value="">— אין קטגוריות —</option>';
+}
+function openTxModal(){
+  var now=new Date();
+  var inMonth=(now.getFullYear()===state.y && now.getMonth()+1===state.m);
+  var d=inMonth?now:new Date(state.y,state.m-1,1);
+  $('tx-date').value=d.toISOString().slice(0,10);
+  $('tx-amount').value=''; $('tx-note').value='';
+  fillCatSelect();
+  $('tx-modal').classList.add('on');
+  setTimeout(function(){ $('tx-amount').focus(); },120);
+}
+async function saveTx(){
+  var amount=parseFloat($('tx-amount').value);
+  if(!(amount>0)){ toast('נא להזין סכום תקין',true); $('tx-amount').focus(); return; }
+  var cat=$('tx-cat').value;
+  if(!cat){ toast('נא לבחור קטגוריה',true); return; }
+  var payload={
+    uid:'tx_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),
+    date:$('tx-date').value||new Date().toISOString().slice(0,10),
+    type:txForm.type,
+    category:cat,
+    amount:amount,
+    note:$('tx-note').value.trim(),
+    who:txForm.who,
+    month:state.m, year:state.y
+  };
+  var btn=$('tx-save'); btn.disabled=true; btn.textContent='שומר…';
+  try{
+    await apiFetch('/api/add-transaction',payload);
+    $('tx-modal').classList.remove('on');
+    var pd=new Date(payload.date);
+    if(pd.getFullYear()===state.y && pd.getMonth()+1===state.m){
+      state.rows.push(payload); renderAll();
+    }
+    toast('✓ התנועה נשמרה');
+    haptic(15);
+  }catch(e){ if(e.code!==401) toast('שגיאה בשמירה: '+e.message,true); }
+  finally{ btn.disabled=false; btn.textContent='💾 שמירת תנועה'; }
+}
+
+/* ── קטגוריות ── */
+var catsDirty=false;
+function renderCats(){
+  ['expense','income'].forEach(function(kind){
+    var wrap=$('chips-'+kind);
+    wrap.innerHTML=(state.cats[kind]||[]).map(function(c,i){
+      return '<span class="chip">'+esc(c)+
+        '<button class="x" data-rm-cat="'+kind+':'+i+'" aria-label="הסרת '+esc(c)+'">✕</button></span>';
+    }).join('')||'<span style="font-size:.78rem;color:var(--gray-500)">אין קטגוריות</span>';
+  });
+  $('sync-cats-btn').style.opacity=catsDirty?'1':'.6';
+}
+function addCat(kind){
+  var inp=$('new-cat-'+kind);
+  var v=inp.value.trim();
+  if(!v) return;
+  if((state.cats[kind]||[]).indexOf(v)!==-1){ toast('הקטגוריה כבר קיימת',true); return; }
+  state.cats[kind]=state.cats[kind]||[];
+  state.cats[kind].push(v);
+  inp.value=''; catsDirty=true; renderCats();
+}
+function rmCat(kind,i){
+  state.cats[kind].splice(i,1);
+  catsDirty=true; renderCats();
+}
+async function syncCats(){
+  var btn=$('sync-cats-btn'); btn.disabled=true; btn.textContent='מסנכרן…';
+  try{
+    await apiFetch('/api/sync-categories',{categories:state.cats});
+    catsDirty=false; renderCats();
+    toast('☁️ הקטגוריות סונכרנו לגיליון');
+  }catch(e){ if(e.code!==401) toast('שגיאה בסנכרון: '+e.message,true); }
+  finally{ btn.disabled=false; btn.textContent='☁️ שמירה וסנכרון לגיליון'; }
+}
+
+/* ── 🤖 דוח AI ל-NotebookLM ── */
+function buildAiReport(){
+  var s=sums();
+  var mName=HE_MONTHS[state.m-1]+' '+state.y;
+  var byCat={}, byWho={'שקד':0,'אביטל':0}, biggest=null;
+  var expCount=0;
+  state.rows.forEach(function(r){
+    var a=Number(r.amount)||0;
+    if(r.type!=='expense') return;
+    expCount++;
+    byCat[r.category||'ללא קטגוריה']=(byCat[r.category||'ללא קטגוריה']||0)+a;
+    if(r.who && byWho[r.who]!=null) byWho[r.who]+=a;
+    if(!biggest||a>Number(biggest.amount)) biggest=r;
+  });
+  var topCats=Object.keys(byCat).map(function(k){ return [k,byCat[k]]; })
+    .sort(function(a,b){ return b[1]-a[1]; }).slice(0,5);
+
+  var lines=[];
+  lines.push('להלן נתוני ההוצאות וההכנסות של משפחתנו (שקד ואביטל) לחודש '+mName+':');
+  lines.push('');
+  lines.push('=== נתוני '+mName+' ===');
+  lines.push('הכנסות: '+fmt(s.inc));
+  lines.push('הוצאות: '+fmt(s.exp)+' ('+expCount+' תנועות)');
+  lines.push('יתרה: '+fmt(s.bal)+(s.bal<0?' (כן, מינוס. בבקשה בלי צעקות.)':' (החודש שרדנו!)'));
+  lines.push('');
+  lines.push('חמש קטגוריות ההוצאה המובילות:');
+  topCats.forEach(function(e,i){
+    var pct=s.exp?Math.round(e[1]/s.exp*100):0;
+    lines.push((i+1)+'. '+e[0]+': '+fmt(e[1])+' ('+pct+'% מסך ההוצאות)');
+  });
+  if(biggest){
+    lines.push('');
+    lines.push('ההוצאה הבודדת הגדולה ביותר: '+fmt(biggest.amount)+' על "'+(biggest.category||'')+
+      (biggest.note?' — '+biggest.note:'')+'" (נרשם ע"י '+(biggest.who||'עלום')+').');
+  }
+  lines.push('');
+  lines.push('דו-קרב הרישומים: שקד רשם הוצאות בסך '+fmt(byWho['שקד'])+' לעומת אביטל עם '+fmt(byWho['אביטל'])+'.');
+  lines.push('');
+  lines.push('רשימת כל התנועות (תאריך | סוג | קטגוריה | סכום | תיאור | מי רשם):');
+  state.rows.slice().sort(function(a,b){ return new Date(a.date||0)-new Date(b.date||0); })
+    .forEach(function(r){
+      lines.push([fmtDate(r.date),(r.type==='income'?'הכנסה':'הוצאה'),r.category||'',fmt(r.amount),r.note||'',r.who||''].join(' | '));
+    });
+  lines.push('');
+  lines.push('=== המשימה שלך ===');
+  lines.push('אנא התנהג כיועץ כלכלי הומוריסטי: סכם לנו את החודש, ציין מי ביזבז יותר ועל מה, והצע נקודות לשיפור לקראת החודש הבא.');
+  lines.push('בתוך כך:');
+  lines.push('1. פתח במונולוג קצר ומשעשע על מצבנו הפיננסי החודש, כאילו אתה מגיש חדשות כלכליות בפריים-טיים.');
+  lines.push('2. זהה 3 תובנות עומק אמיתיות: דפוסי צריכה חוזרים, קטגוריות שיצאו משליטה, והאם ההוצאות תואמות את ההכנסות.');
+  lines.push('3. ערוך "משפט שדה" הומוריסטי: מי מבין שנינו אחראי להוצאה המפתיעה של החודש, וגזור עליו "עונש" סמלי (למשל: שבוע בלי וולט).');
+  lines.push('4. סיים בתחזית דרמטית ומוגזמת לחודש הבא, בסגנון תחזית מזג אוויר.');
+  lines.push('כתוב הכל בעברית, בטון חם ומצחיק — אבל שהמספרים והתובנות יהיו מדויקים לחלוטין.');
+  return lines.join('\n');
+}
+async function copyAiReport(){
+  if(!state.rows.length){ toast('אין נתונים בחודש זה להפקת דוח',true); return; }
+  var txt=buildAiReport();
+  try{
+    await navigator.clipboard.writeText(txt);
+    toast('✓ הפרומפט הועתק בהצלחה!');
+  }catch(e){
+    /* Fallback לדפדפנים ללא Clipboard API */
+    var ta=document.createElement('textarea');
+    ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); toast('✓ הפרומפט הועתק בהצלחה!'); }
+    catch(err){ toast('העתקה נכשלה — נסו שוב',true); }
+    document.body.removeChild(ta);
+  }
+  haptic(15);
+}
+
+/* ── ניווט וחיווט ─────────────────────────────────────── */
+function switchPane(name){
+  document.querySelectorAll('section.pane').forEach(function(p){ p.classList.remove('on'); });
+  $('pane-'+name).classList.add('on');
+  document.querySelectorAll('nav.bottom button').forEach(function(b){
+    b.classList.toggle('on',b.dataset.pane===name);
+  });
+  $('fab').style.display=(name==='cats')?'none':'grid';
+}
+
+function init(){
+  /* מנועי רשת */
+  lockGrid=PatternGrid($('pl-svg'),onLockPattern);
+  setupGrid=PatternGrid($('ps-svg'),onSetupPattern);
+
+  /* מסך נעילה */
+  $('pl-to-pw').addEventListener('click',function(){ showPasswordMode(); });
+  $('pl-to-pattern').addEventListener('click',function(){ showPatternMode(); });
+  $('pw-go').addEventListener('click',tryPassword);
+  $('pw-in').addEventListener('keydown',function(e){ if(e.key==='Enter') tryPassword(); });
+  $('pl-setup-link').addEventListener('click',openPatternSetup);
+  $('ps-reset').addEventListener('click',function(){
+    psMode='draw1'; setupFirst=null; setupGrid.reset();
+    setPsMsg('ציירו סימון חדש (לפחות '+MIN_DOTS+' נקודות)');
+  });
+
+  /* ניווט */
+  document.querySelector('nav.bottom').addEventListener('click',function(ev){
+    var b=ev.target.closest('button'); if(b) switchPane(b.dataset.pane);
+  });
+  $('m-prev').addEventListener('click',function(){ shiftMonth(-1); });
+  $('m-next').addEventListener('click',function(){ shiftMonth(1); });
+  $('refresh-btn').addEventListener('click',loadMonth);
+  $('lock-btn').addEventListener('click',function(){ lockOut('המערכת ננעלה'); });
+
+  /* תנועות */
+  $('fab').addEventListener('click',openTxModal);
+  $('tx-save').addEventListener('click',saveTx);
+  segInit('tx-type-seg',function(v){ txForm.type=v; fillCatSelect(); });
+  segInit('tx-who-seg',function(v){ txForm.who=v; });
+  $('tx-list').addEventListener('click',function(ev){
+    var b=ev.target.closest('[data-del]'); if(b) deleteTx(b.dataset.del);
+  });
+
+  /* קטגוריות */
+  document.addEventListener('click',function(ev){
+    var add=ev.target.closest('[data-add-cat]');
+    if(add){ addCat(add.dataset.addCat); return; }
+    var rm=ev.target.closest('[data-rm-cat]');
+    if(rm){ var p=rm.dataset.rmCat.split(':'); rmCat(p[0],parseInt(p[1],10)); return; }
+    var cl=ev.target.closest('[data-close]');
+    if(cl){ $(cl.dataset.close).classList.remove('on'); }
+  });
+  ['expense','income'].forEach(function(kind){
+    $('new-cat-'+kind).addEventListener('keydown',function(e){
+      if(e.key==='Enter') addCat(kind);
+    });
+  });
+  $('sync-cats-btn').addEventListener('click',syncCats);
+
+  /* סגירת מודאל בלחיצה על הרקע */
+  document.querySelectorAll('.modal-bg').forEach(function(bg){
+    bg.addEventListener('click',function(ev){ if(ev.target===bg) bg.classList.remove('on'); });
+  });
+
+  /* AI */
+  $('ai-btn').addEventListener('click',copyAiReport);
+
+  /* ── Boot ── */
+  monthLabel();
+  renderCats();
+  if(getSecret()){ bootApp(); return; }
+  if(vaultExists()) showPatternMode();
+  else showPasswordMode();
+}
+
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
+else init();
+
+})();
+</script>
+<script>
+/* ── רישום Service Worker (PWA) — בלוק מבודד, אינו נוגע בלוגיקת האפליקציה ── */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').catch(function (err) {
+      console.warn('SW registration failed:', err);
+    });
+  });
+}
+</script>
+</body>
+</html>

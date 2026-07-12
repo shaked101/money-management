@@ -1,0 +1,35 @@
+{
+  "id": "/",
+  "name": "הכסף שלנו — ניהול פיננסי משפחתי",
+  "short_name": "הכסף שלנו",
+  "description": "דשבורד הכנסות והוצאות משפחתי: מעקב חודשי, קטגוריות, גרפים ודוחות AI.",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07211A",
+  "theme_color": "#0B2E23",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
