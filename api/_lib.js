@@ -26,7 +26,13 @@ function safeEqual(a, b) {
 /* ── שער כניסה אחיד: מתודה + אימות ──────────────────────
    מחזיר true אם הבקשה עברה; אחרת כבר כתב את התשובה וסיים. */
 function guard(req, res) {
-  /* CORS preflight (לא נדרש ב-Same-Origin, אך לא מזיק) */
+  /* CORS: מאפשר קריאות מכלים חיצוניים (ווידג'טים, Shortcuts).
+     זו אינה שכבת אבטחה — האימות האמיתי הוא X-App-Secret. */
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-App-Secret');
+  res.setHeader('Access-Control-Max-Age', '86400');
+
   if (req.method === 'OPTIONS') {
     res.status(204).end();
     return false;

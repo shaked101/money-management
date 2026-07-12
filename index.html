@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0B2E23">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="הכסף שלנו">
 <meta name="application-name" content="הכסף שלנו">
@@ -430,8 +431,8 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
       <button class="ai-btn" id="ai-btn">
         <span class="ic">🤖</span>
         <span>
-          <b>הפקת דוח ל-NotebookLM</b>
-          <span>ניתוח עמוק (ומצחיק) של הרגלי הצריכה של שקד ואביטל</span>
+          <b>הפקת דוח חכם ל-AI</b>
+          <span>מעתיק פרומפט מוכן ללוח — הדביקו ב-ChatGPT / Claude / NotebookLM</span>
         </span>
       </button>
     </section>
@@ -512,6 +513,12 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
         <button data-v="שקד" class="on">שקד</button>
         <button data-v="אביטל">אביטל</button>
       </div>
+    </div>
+    <div class="fg">
+      <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.86rem;font-weight:500;color:var(--ink)">
+        <input type="checkbox" id="tx-recurring" style="width:19px;height:19px;accent-color:var(--g-700)">
+        🔁 תנועה קבועה — חוזרת אוטומטית כל חודש
+      </label>
     </div>
     <button class="btn full" id="tx-save">💾 שמירת תנועה</button>
   </div>
@@ -1041,7 +1048,7 @@ function renderTx(){
       '<div class="cat-ic" style="background:'+color+'">'+esc(initial)+'</div>'+
       '<div class="mid">'+
         '<div class="cat">'+esc(r.category||'ללא קטגוריה')+(r.note?' · <span style="font-weight:400;color:var(--gray-700)">'+esc(r.note)+'</span>':'')+'</div>'+
-        '<div class="meta">'+fmtDate(r.date)+' '+whoChip(r.who)+'</div>'+
+        '<div class="meta">'+(r.recurring?'<span title="תנועה קבועה">🔁</span> ':'')+fmtDate(r.date)+' '+whoChip(r.who)+'</div>'+
       '</div>'+
       '<div class="amt">'+(isExp?'−':'+')+fmt(Math.abs(Number(r.amount)||0))+'</div>'+
       '<button class="del" data-del="'+esc(r.uid)+'" aria-label="מחיקת תנועה">🗑</button>'+
@@ -1082,6 +1089,7 @@ function openTxModal(){
   var d=inMonth?now:new Date(state.y,state.m-1,1);
   $('tx-date').value=d.toISOString().slice(0,10);
   $('tx-amount').value=''; $('tx-note').value='';
+  $('tx-recurring').checked=false;
   fillCatSelect();
   $('tx-modal').classList.add('on');
   setTimeout(function(){ $('tx-amount').focus(); },120);
@@ -1099,6 +1107,7 @@ async function saveTx(){
     amount:amount,
     note:$('tx-note').value.trim(),
     who:txForm.who,
+    recurring:$('tx-recurring').checked,
     month:state.m, year:state.y
   };
   var btn=$('tx-save'); btn.disabled=true; btn.textContent='שומר…';

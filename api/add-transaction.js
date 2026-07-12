@@ -53,7 +53,8 @@ module.exports = async function handler(req, res) {
       user,
       category,
       amount,
-      notes
+      notes,
+      recurring: body.recurring === true || body.recurring === 'true'
     };
 
     const { status, data } = await forwardToMake('MAKE_ADD_URL', row);
