@@ -759,12 +759,13 @@ function toast(msg,isErr){
 var SS_KEY='ff_secret';
 function getSecret(){ try{ return sessionStorage.getItem(SS_KEY)||''; }catch(e){ return ''; } }
 
-async function apiFetch(path, payload, secretOverride){
+async function apiFetch(path, payload, secretOverride, signal){
   var secret = (secretOverride!=null) ? secretOverride : getSecret();
   var res = await fetch(path,{
     method:'POST',
     headers:{ 'Content-Type':'application/json', 'X-App-Secret':secret },
-    body: JSON.stringify(payload||{})
+    body: JSON.stringify(payload||{}),
+    signal: signal||undefined
   });
   if(res.status===401 || res.status===403){
     if(secretOverride==null) lockOut('פג תוקף ההרשאה — נדרשת כניסה מחדש');
@@ -1144,6 +1145,7 @@ function scheduleRenderAll(){
 /* Debounce למעברי חודשים: הקלקות מהירות מרנדרות רק את היעד הסופי */
 var shiftTimer=null;
 function shiftMonth(d){
+  if(navLocked) return; /* משיכה באוויר — אין מעבר עד שתסתיים */
   var m=state.m+d, y=state.y;
   if(m<1){ m=12; y--; } if(m>12){ m=1; y++; }
   state.m=m; state.y=y;
@@ -1207,6 +1209,19 @@ function applyCategories(data){
    התצוגה — זה היה מקור הקפיאות והדריסות.                  */
 var loadSeq=0, lastLoadFromCache=false;
 
+/* ═══ הגנה כפולה נגד קריאות מקבילות ═══════════════════════
+   1. AbortController: בקשה חדשה מבטלת אקטיבית כל בקשה תלויה
+      — לעולם לא ירוצו שתי קריאות get-data במקביל.
+   2. נעילת ממשק: בזמן שמשיכת רשת באוויר, כפתורי החודשים
+      מנוטרלים והחלקות נבלעות. פגיעות Cache לא נועלות דבר. */
+var inflightCtrl=null, navLocked=false;
+function setNavLock(on){
+  navLocked=on;
+  var p=$('m-prev'), n=$('m-next');
+  if(p) p.disabled=on;
+  if(n) n.disabled=on;
+}
+
 /* רענון שקט חד-פעמי של החודש המוצג בעליית האפליקציה:
    ה-Cache מוצג מיידית, וברקע נמשכת גרסה טרייה (לקליטת
    שינויים שנעשו ממכשיר אחר) — בלי Skeleton ובלי קפיאה.   */
@@ -1245,10 +1260,14 @@ async function loadMonth(force){
 
   var seq=++loadSeq;
   var y=state.y, m=state.m;
+  /* ביטול אקטיבי של בקשה קודמת שעדיין באוויר */
+  if(inflightCtrl){ try{ inflightCtrl.abort(); }catch(e){} }
+  inflightCtrl=(typeof AbortController!=='undefined')?new AbortController():null;
+  setNavLock(true);
   showMonthSkeleton(); /* משוב מיידי — המסך לא "קופא" בזמן ההמתנה לשרת */
   $('refresh-btn').style.opacity='.4';
   try{
-    var data=await apiFetch('/api/get-data',{month:m,year:y});
+    var data=await apiFetch('/api/get-data',{month:m,year:y},null,inflightCtrl&&inflightCtrl.signal);
     var rows=Array.isArray(data.rows)?data.rows:(Array.isArray(data)?data:[]);
 
     /* פיוס שורות אופטימיות של אותו חודש */
@@ -1270,9 +1289,14 @@ async function loadMonth(force){
     }
     cacheSave();
   }catch(e){
+    if(e && e.name==='AbortError') return; /* בוטלה ע"י בקשה חדשה — שקט */
     if(seq===loadSeq && e.code!==401) toast('שגיאה בטעינת נתונים: '+e.message,true);
   }finally{
-    if(seq===loadSeq) $('refresh-btn').style.opacity='';
+    if(seq===loadSeq){
+      $('refresh-btn').style.opacity='';
+      setNavLock(false);
+      inflightCtrl=null;
+    }
   }
 }
 
@@ -2248,6 +2272,7 @@ function init(){
   },{passive:true});
   mainEl.addEventListener('touchend',function(ev){
     if(!sw.on) return; sw.on=false;
+    if(navLocked) return; /* משיכה באוויר — החלקה נבלעת */
     var dx=ev.changedTouches[0].clientX-sw.x;
     var dy=ev.changedTouches[0].clientY-sw.y;
     if(Math.abs(dx)<60 || Math.abs(dy)>Math.abs(dx)) return;
