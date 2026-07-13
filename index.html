@@ -346,9 +346,9 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 .hidden{display:none!important}
 
 /* גריד קטגוריות במודאל ההזנה */
-.cat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:246px;overflow:auto;padding:2px}
-.cat-tile{position:relative;border:2px solid transparent;border-radius:13px;padding:9px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:.67rem;font-weight:600;color:var(--ink);cursor:pointer;transition:transform .12s,border .12s;text-align:center;min-height:62px;min-width:0;overflow:hidden}
-.cat-tile .em{font-size:1.35rem;line-height:1;max-width:100%;overflow:hidden;white-space:nowrap}
+.cat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;max-height:200px;overflow:auto;padding:2px}
+.cat-tile{position:relative;border:2px solid transparent;border-radius:11px;padding:6px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:.6rem;font-weight:600;color:var(--ink);cursor:pointer;transition:transform .12s,border .12s;text-align:center;min-height:50px;min-width:0;overflow:hidden}
+.cat-tile .em{font-size:1.05rem;line-height:1;max-width:100%;overflow:hidden;white-space:nowrap}
 .cat-tile .star,.cat-block .star{position:absolute;top:3px;right:4px;font-size:.62rem}
 .cat-tile .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .cat-tile.on{border-color:var(--g-700);box-shadow:0 0 0 2px rgba(20,80,60,.14);transform:scale(1.04)}
@@ -375,6 +375,40 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 .cmp-row{display:flex;gap:8px;align-items:center;margin-bottom:11px}
 .cmp-row .ifield{flex:1;min-width:0}
 .cmp-vs{font-size:.78rem;color:var(--gray-500);flex:0 0 auto}
+/* מודאל הזנה קומפקטי */
+.modal.compact{padding:14px 14px calc(16px + var(--safe-b))}
+.modal.compact h3{font-size:.95rem;margin-bottom:10px}
+.modal.compact .fg{margin-bottom:8px}
+.modal.compact .fg label{font-size:.68rem;margin-bottom:3px}
+.modal.compact .ifield{padding:8px 11px;font-size:.9rem}
+.modal.compact .seg{padding:3px;gap:3px}
+.modal.compact .seg button{padding:6px 4px;font-size:.78rem}
+.modal.compact .btn.full{padding:10px;font-size:.88rem}
+.modal.compact .grid-2{gap:8px}
+/* טוגל פיצול תצוגה */
+.tx-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 0 8px}
+.tx-toolbar .seg{flex:1}
+#split-toggle{flex:0 0 auto;white-space:nowrap}
+#split-toggle.on{background:var(--g-700);color:#fff;border-color:var(--g-700)}
+/* Drag & Drop קטגוריות */
+.cat-blocks{touch-action:pan-y}
+.cat-block.dragging{opacity:.35}
+.cat-block.drop-target{outline:2.5px dashed var(--g-700);outline-offset:2px}
+#drag-ghost{position:fixed;z-index:130;pointer-events:none;width:94px;transform:translate(-50%,-65%);opacity:.93;box-shadow:var(--shadow-lg)}
+/* פאנל אימוג'ים עם לשוניות */
+.emoji-tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:6px;margin-bottom:2px;-webkit-overflow-scrolling:touch}
+.emoji-tabs button{flex:0 0 auto;font-size:.68rem;font-weight:600;color:var(--gray-500);background:var(--gray-100);border-radius:99px;padding:5px 11px}
+.emoji-tabs button.on{background:var(--g-700);color:#fff}
+.emoji-grid{max-height:132px;overflow:auto}
+/* רשימת תקציר מהיר */
+#ins-period{margin:4px 0 10px}
+.ins-list{max-height:216px;overflow:auto;margin-top:2px;text-align:right}
+.ins-tx{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.8rem;padding:8px 2px;border-bottom:1px solid var(--gray-100)}
+.ins-tx:last-child{border-bottom:0}
+.ins-tx .d{color:var(--gray-500);flex:0 0 auto;font-size:.72rem}
+.ins-tx .w{flex:1;color:var(--gray-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem}
+.ins-tx b{font-variant-numeric:tabular-nums;flex:0 0 auto}
+#ins-more{width:100%;margin-top:9px}
 /* קונטיינר גרפים — גודל מרוסן וממורכז */
 .chart-box{position:relative;max-width:300px;height:280px;margin:0 auto}
 .chart-box.wide{max-width:100%;height:280px}
@@ -503,10 +537,13 @@ nav.bottom button{font-size:.6rem}
     <!-- ── תנועות ── -->
     <section class="pane" id="pane-tx">
       <h2 class="sec">תנועות החודש <span id="tx-count" style="color:var(--gray-500);font-weight:400"></span></h2>
-      <div class="seg" id="tx-filter">
-        <button data-v="all" class="on">הכל</button>
-        <button data-v="שקד">שקד</button>
-        <button data-v="אביטל">אביטל</button>
+      <div class="tx-toolbar">
+        <div class="seg" id="tx-filter">
+          <button data-v="all" class="on">הכל</button>
+          <button data-v="שקד">שקד</button>
+          <button data-v="אביטל">אביטל</button>
+        </div>
+        <button class="btn sm ghost" id="split-toggle" type="button">▦ פיצול</button>
       </div>
       <div class="tx-totals" id="tx-totals"></div>
       <div class="tx-list" id="tx-list"></div>
@@ -590,7 +627,7 @@ nav.bottom button{font-size:.6rem}
 
 <!-- ═══════════ מודאל הוספת תנועה ═══════════ -->
 <div class="modal-bg" id="tx-modal">
-  <div class="modal">
+  <div class="modal compact">
     <h3>תנועה חדשה <button class="close" data-close="tx-modal">✕</button></h3>
     <div class="fg">
       <div class="seg type" id="tx-type-seg">
@@ -663,21 +700,15 @@ nav.bottom button{font-size:.6rem}
       </label>
     </div>
     <div class="fg">
-      <label>אימוג'י — הקלידו כל אימוג'י מהמקלדת, או בחרו מהמאגר</label>
+      <label>אימוג'י — בחרו מהפאנל לפי נושא (או הקלידו חופשי)</label>
       <input class="ifield" id="cat-emoji-input" maxlength="8" inputmode="text" autocomplete="off"
-             style="text-align:center;font-size:1.45rem;padding:7px">
-      <div class="emoji-grid" id="emoji-grid" style="margin-top:9px"></div>
+             style="text-align:center;font-size:1.45rem;padding:6px">
+      <div class="emoji-tabs" id="emoji-tabs" style="margin-top:8px"></div>
+      <div class="emoji-grid" id="emoji-grid"></div>
     </div>
     <div class="fg">
       <label>צבע רקע</label>
       <div class="swatches" id="swatches"></div>
-    </div>
-    <div class="fg">
-      <label>סדר תצוגה</label>
-      <div style="display:flex;gap:8px">
-        <button class="btn sm ghost" id="cat-move-up" type="button" style="flex:1">⬆️ הקדם</button>
-        <button class="btn sm ghost" id="cat-move-down" type="button" style="flex:1">⬇️ אחֵר</button>
-      </div>
     </div>
     <button class="btn full" id="cat-save">💾 שמירה</button>
   </div>
@@ -1036,7 +1067,18 @@ var HE_MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יו�
 
 /* ═══ קטגוריות כאובייקטים: {name, emoji, color} ═══════════ */
 var CAT_COLORS=['#DCEDE5','#FDE8D7','#E3EEFA','#F6EAF3','#FFF3D6','#E8E6FA','#FBE3E3','#E0F2F1','#EFEADF','#ECEFF1'];
-var CAT_EMOJIS=['🛒','🍔','☕','⛽','🚗','🏠','🧾','💡','🧸','👶','💊','🏥','🎬','🎮','✈️','👕','🎁','📦','💼','🏢','📈','💰','🐶','📱','🍰','💪','🎓','➕'];
+/* ספריית אימוג'ים מובנית, מחולקת לנושאים — בלי תלות במקלדת המכשיר */
+var EMOJI_SETS=[
+  {n:'אוכל',   e:['🍔','🍕','🌮','🍣','🍜','🥗','🍩','🍰','☕','🫖','🍺','🍷','🥐','🍞','🥩','🍿','🧃','🍦']},
+  {n:'קניות',  e:['🛒','🛍️','👕','👗','👟','👜','🎒','💄','🧴','💍','🕶️','⌚','🧦','🧢']},
+  {n:'בית',    e:['🏠','🛋️','🛏️','🪑','🧹','🧺','🧼','🔧','🔨','🪴','💡','🚿','🧯','🔌']},
+  {n:'רכב',    e:['🚗','⛽','🅿️','🛞','🚕','🚌','🚆','🚲','🛵','✈️','🚦','🧭']},
+  {n:'בילוי',  e:['🎬','🎮','🎤','🎧','🎳','⚽','🏀','🎾','🏊','🏕️','🎢','🎨','🎭','📚','🎪','🎯']},
+  {n:'כסף',    e:['💰','💳','🏦','💵','🪙','📈','📉','🧾','💼','🏢','🖥️','📊','🤝']},
+  {n:'בריאות', e:['💊','🏥','🩺','💉','🦷','👓','🧠','❤️','🧘','🏃','💪','🛌']},
+  {n:'שונות',  e:['🧸','👶','🎁','🎉','🐶','🐱','📱','💻','📦','✂️','🎓','✏️','⭐','➕','🔁','❓']}
+];
+var emojiTab=0;
 var DEFAULT_EMOJI={'סופר':'🛒','אוכל בחוץ':'🍔','רכב ודלק':'⛽','דיור':'🏠','חשבונות':'🧾','ילדים':'🧸','בריאות':'💊','פנאי':'🎬','ביגוד':'👕','שונות':'📦','משכורת שקד':'💼','משכורת אביטל':'💼','עסק':'🏢','מתנות':'🎁','אחר':'➕'};
 function safeEmoji(e,name){
   e=String(e||'').trim();
@@ -1080,6 +1122,7 @@ var state={
   rows:[],
   cats:JSON.parse(JSON.stringify(DEFAULT_CATS)),
   whoFilter:'all',               /* הכל | שקד | אביטל */
+  splitView:(function(){ try{ return localStorage.getItem('ff_split')==='1'; }catch(e){ return false; } })(),
   loading:false
 };
 
@@ -1150,12 +1193,15 @@ function applyCategories(data){
   console.warn('[categories] מבנה categories לא מזוהה:',JSON.stringify(c).slice(0,300));
 }
 
+/* טוקן-בקשה: כל fetch מקבל מספר רץ. תשובה "מאחרת" (שהחודש
+   על המסך כבר השתנה) נשמרת ל-Cache אך לעולם לא דורסת את
+   התצוגה — זה היה מקור הקפיאות והדריסות.                  */
+var loadSeq=0;
 async function loadMonth(force){
-  if(state.loading) return;
   monthLabel();
   var key=mKey(state.y,state.m);
 
-  /* ── פגיעת Cache: אפס קריאות רשת ── */
+  /* ── פגיעת Cache: מיידי (0ms רשת), עוקף כל בקשה פתוחה ── */
   if(!force && monthCache[key]){
     state.rows=(monthCache[key].rows||[]).slice();
     if(monthCache[key].cats) state.cats=monthCache[key].cats;
@@ -1163,30 +1209,35 @@ async function loadMonth(force){
     return;
   }
 
-  state.loading=true;
+  var seq=++loadSeq;
+  var y=state.y, m=state.m;
   $('refresh-btn').style.opacity='.4';
   try{
-    var data=await apiFetch('/api/get-data',{month:state.m,year:state.y});
-    state.rows=Array.isArray(data.rows)?data.rows:(Array.isArray(data)?data:[]);
-    applyCategories(data);
+    var data=await apiFetch('/api/get-data',{month:m,year:y});
+    var rows=Array.isArray(data.rows)?data.rows:(Array.isArray(data)?data:[]);
 
-    /* פיוס שורות אופטימיות: אם שורה שהוספנו עדיין לא הגיעה
-       מהשרת (Make טרם כתב לגיליון) — משאירים אותה בתצוגה. */
+    /* פיוס שורות אופטימיות של אותו חודש */
     pendingRows=pendingRows.filter(function(p){
-      if(p.key!==key) return true; /* שייכת לחודש אחר — ממתינה */
-      var confirmed=state.rows.some(function(r){ return String(r.uid)===String(p.row.uid); });
-      if(!confirmed) state.rows.push(p.row);
+      if(p.key!==key) return true;
+      var confirmed=rows.some(function(r){ return String(r.uid)===String(p.row.uid); });
+      if(!confirmed) rows.push(p.row);
       return !confirmed;
     });
 
-    monthCache[key]={rows:state.rows,cats:state.cats,t:Date.now()};
+    monthCache[key]={rows:rows,cats:(monthCache[key]&&monthCache[key].cats)||null,t:Date.now()};
+
+    /* מחילים על המסך רק אם זו הבקשה האחרונה והחודש עדיין מוצג */
+    if(seq===loadSeq && key===mKey(state.y,state.m)){
+      state.rows=rows.slice();
+      applyCategories(data);
+      monthCache[key].cats=state.cats;
+      scheduleRenderAll();
+    }
     cacheSave();
-    scheduleRenderAll();
   }catch(e){
-    if(e.code!==401) toast('שגיאה בטעינת נתונים: '+e.message,true);
+    if(seq===loadSeq && e.code!==401) toast('שגיאה בטעינת נתונים: '+e.message,true);
   }finally{
-    state.loading=false;
-    $('refresh-btn').style.opacity='';
+    if(seq===loadSeq) $('refresh-btn').style.opacity='';
   }
 }
 
@@ -1208,8 +1259,13 @@ function renderAll(){
   b.className='val '+(s.bal<0?'neg':'pos');
   renderPie();
   renderTx();
-  renderCats();
+  renderCatsIfChanged();
   if($('pane-an').classList.contains('on')) renderAnalyticsPie();
+}
+var lastCatsSig='';
+function renderCatsIfChanged(){
+  var sig=JSON.stringify(state.cats);
+  if(sig!==lastCatsSig) renderCats();
 }
 
 /* ── גרף פאי (SVG טהור, ללא תלות חיצונית) ── */
@@ -1323,14 +1379,39 @@ function renderTx(){
     return;
   }
 
-  /* "הכל" = תצוגה מפוצלת: עמודת שקד מול עמודת אביטל.
-     בחירת משתמש בפילטר = רשימה בודדת ברוחב מלא.        */
-  if(state.whoFilter==='all'){
+  /* ברירת מחדל: רשימה מאוחדת. Split רק כשהטוגל דלוק
+     (ורק במצב "הכל" — פילטר משתמש גובר).                 */
+  if(state.splitView && state.whoFilter==='all'){
+    txRenderToken++; /* מבטל רינדור-בנתחים תלוי ועומד */
     list.innerHTML='<div class="split">'+splitCol('שקד',rows)+splitCol('אביטל',rows)+'</div>'+
       otherRowsSection(rows);
   }else{
-    list.innerHTML=rows.map(function(r){ return txRowHTML(r,false); }).join('');
+    renderRowsChunked(list,rows,false);
   }
+}
+
+/* רינדור רשימות ארוכות בנתחים (DocumentFragment + rAF) —
+   ה-Main Thread לא נחסם, המסך לא קופא.                   */
+var txRenderToken=0;
+function renderRowsChunked(container,rows,compact){
+  var token=++txRenderToken;
+  if(rows.length<=80){
+    container.innerHTML=rows.map(function(r){ return txRowHTML(r,compact); }).join('');
+    return;
+  }
+  container.innerHTML='';
+  var i=0, tmp=document.createElement('div');
+  (function step(){
+    if(token!==txRenderToken) return; /* רינדור חדש התחיל — נטישה */
+    var frag=document.createDocumentFragment();
+    var end=Math.min(i+40,rows.length);
+    for(; i<end; i++){
+      tmp.innerHTML=txRowHTML(rows[i],compact);
+      frag.appendChild(tmp.firstChild);
+    }
+    container.appendChild(frag);
+    if(i<rows.length) requestAnimationFrame(step);
+  })();
 }
 function txRowHTML(r,compact){
   var isExp=r.type!=='income';
@@ -1371,32 +1452,56 @@ function weekRangeOf(ref){
   var end=new Date(start); end.setDate(start.getDate()+7);
   return [start,end];
 }
+var insight=null;
+var INS_PAGE=5;
 function showInsight(type,category,refDate){
-  var isExp=type!=='income';
-  var now=new Date();
-  var isCurMonth=(now.getFullYear()===state.y && now.getMonth()+1===state.m);
-  var ref=isCurMonth?now:(refDate?new Date(refDate):new Date(state.y,state.m-1,1));
-  var wr=weekRangeOf(ref);
-  var week=0,month=0,count=0;
-  state.rows.forEach(function(r){
-    if((r.type!=='income')!==isExp) return;
-    if((r.category||'ללא קטגוריה')!==category) return;
-    var a=Number(r.amount)||0;
-    month+=a; count++;
-    var d=new Date(r.date);
-    if(d>=wr[0]&&d<wr[1]) week+=a;
-  });
-  var meta=catMeta(type,category);
-  var kindWord=isExp?'הוצאות על':'הכנסות מ';
-  var weekLabel=isCurMonth?'השבוע':'בשבוע של התנועה';
-  $('ins-body').innerHTML=
-    '<span class="big-em">'+esc(meta?meta.emoji:'🏷️')+'</span>'+
-    '<div class="ins-cat">'+esc(kindWord)+' "'+esc(category)+'"</div>'+
-    '<div class="ins-row"><span>'+weekLabel+'</span><b>'+fmt(week)+'</b></div>'+
-    '<div class="ins-row"><span>החודש ('+HE_MONTHS[state.m-1]+' '+state.y+')</span><b>'+fmt(month)+'</b></div>'+
-    '<div class="ins-row"><span>מס׳ תנועות החודש</span><b>'+count+'</b></div>';
+  insight={type:type,category:category,refDate:refDate,period:'month',shown:INS_PAGE};
+  renderInsight();
   $('insight-modal').classList.add('on');
   haptic(8);
+}
+function insightRows(){
+  var isExp=insight.type!=='income';
+  var rows=state.rows.filter(function(r){
+    return ((r.type!=='income')===isExp) && (r.category||'ללא קטגוריה')===insight.category;
+  });
+  if(insight.period==='week'){
+    var now=new Date();
+    var isCurMonth=(now.getFullYear()===state.y && now.getMonth()+1===state.m);
+    var ref=isCurMonth?now:(insight.refDate?new Date(insight.refDate):new Date(state.y,state.m-1,1));
+    var wr=weekRangeOf(ref);
+    rows=rows.filter(function(r){ var d=new Date(r.date); return d>=wr[0]&&d<wr[1]; });
+  }
+  return rows.sort(function(a,b){ return new Date(b.date||0)-new Date(a.date||0); });
+}
+function renderInsight(){
+  if(!insight) return;
+  var isExp=insight.type!=='income';
+  var rows=insightRows();
+  var total=rows.reduce(function(t,r){ return t+(Number(r.amount)||0); },0);
+  var meta=catMeta(insight.type,insight.category);
+  var now=new Date();
+  var isCurMonth=(now.getFullYear()===state.y && now.getMonth()+1===state.m);
+  var weekWord=isCurMonth?'השבוע':'שבוע התנועה';
+  var shown=rows.slice(0,insight.shown);
+  var listHtml=shown.map(function(r){
+    return '<div class="ins-tx">'+
+      '<span class="d">'+fmtDate(r.date)+'</span>'+
+      '<span class="w">'+esc(r.who||'—')+(r.note?' · '+esc(r.note):'')+'</span>'+
+      '<b>'+(isExp?'−':'+')+fmt(Math.abs(Number(r.amount)||0))+'</b></div>';
+  }).join('')||'<div class="split-empty">אין תנועות בתקופה זו 🍃</div>';
+  $('ins-body').innerHTML=
+    '<span class="big-em">'+esc(meta?meta.emoji:'🏷️')+'</span>'+
+    '<div class="ins-cat">'+esc(isExp?'הוצאות על':'הכנסות מ')+' "'+esc(insight.category)+'"</div>'+
+    '<div class="seg" id="ins-period">'+
+      '<button data-v="week" class="'+(insight.period==='week'?'on':'')+'">'+weekWord+'</button>'+
+      '<button data-v="month" class="'+(insight.period==='month'?'on':'')+'">החודש</button>'+
+    '</div>'+
+    '<div class="ins-row"><span>סה״כ '+(insight.period==='week'?weekWord:'החודש')+' ('+rows.length+' תנועות)</span><b>'+fmt(total)+'</b></div>'+
+    '<div class="ins-list">'+listHtml+'</div>'+
+    (rows.length>insight.shown
+      ? '<button class="btn sm ghost" id="ins-more">טען עוד ('+(rows.length-insight.shown)+' נוספות)</button>'
+      : '');
 }
 
 async function deleteTx(uid){
@@ -1505,6 +1610,7 @@ async function saveTx(){
 /* ── קטגוריות ── */
 var catsDirty=false;
 function renderCats(){
+  lastCatsSig=JSON.stringify(state.cats);
   ['expense','income'].forEach(function(kind){
     var wrap=$('chips-'+kind);
     wrap.className='cat-blocks';
@@ -1542,22 +1648,96 @@ function openCatEditor(kind,i){
   $('cat-modal').classList.add('on');
 }
 function renderCatEditor(){
-  $('emoji-grid').innerHTML=CAT_EMOJIS.map(function(e){
+  $('emoji-tabs').innerHTML=EMOJI_SETS.map(function(s,i){
+    return '<button type="button" data-tab="'+i+'" class="'+(i===emojiTab?'on':'')+'">'+esc(s.n)+'</button>';
+  }).join('');
+  $('emoji-grid').innerHTML=EMOJI_SETS[emojiTab].e.map(function(e){
     return '<button type="button" data-em="'+e+'" class="'+(e===catEdit.emoji?'on':'')+'">'+e+'</button>';
   }).join('');
   $('swatches').innerHTML=CAT_COLORS.map(function(c){
     return '<button type="button" data-sw="'+c+'" class="'+(c===catEdit.color?'on':'')+'" style="background:'+c+'" aria-label="'+c+'"></button>';
   }).join('');
 }
-function moveCat(dir){
-  if(!catEdit) return;
-  var list=state.cats[catEdit.kind]||[];
-  var j=catEdit.i+dir;
-  if(j<0||j>=list.length) return;
-  var tmp=list[catEdit.i]; list[catEdit.i]=list[j]; list[j]=tmp;
-  catEdit.i=j; catsDirty=true;
-  renderCats(); haptic(8);
-  toast(dir<0?'הוקדם ⬆️':'הוזז אחורה ⬇️');
+
+/* ═══ Drag & Drop לסידור קטגוריות (Pointer Events, לחיצה ארוכה) ═══ */
+var drag=null, dragGhost=null, dragTimer=null, suppressCatClick=false;
+function catDragDown(ev){
+  var block=ev.target.closest('.cat-block');
+  if(!block || ev.target.closest('.x')) return;
+  var wrap=block.parentElement;
+  if(!wrap || (wrap.id!=='chips-expense' && wrap.id!=='chips-income')) return;
+  var blocks=[].slice.call(wrap.querySelectorAll('.cat-block'));
+  drag={
+    kind:(wrap.id==='chips-income'?'income':'expense'),
+    from:blocks.indexOf(block), to:null,
+    block:block, wrap:wrap,
+    x:ev.clientX, y:ev.clientY, lastX:ev.clientX, lastY:ev.clientY,
+    engaged:false
+  };
+  clearTimeout(dragTimer);
+  dragTimer=setTimeout(engageDrag,230); /* לחיצה ארוכה = גרירה; הקשה קצרה = עריכה */
+}
+function engageDrag(){
+  if(!drag) return;
+  drag.engaged=true;
+  drag.block.classList.add('dragging');
+  document.body.style.overflow='hidden'; /* בלי גלילת עמוד בזמן גרירה */
+  haptic(14);
+  dragGhost=document.createElement('div');
+  dragGhost.id='drag-ghost';
+  dragGhost.className='cat-block';
+  dragGhost.style.background=drag.block.style.background;
+  dragGhost.innerHTML=drag.block.innerHTML;
+  dragGhost.style.left=drag.lastX+'px';
+  dragGhost.style.top=drag.lastY+'px';
+  document.body.appendChild(dragGhost);
+}
+function catDragMove(ev){
+  if(!drag) return;
+  drag.lastX=ev.clientX; drag.lastY=ev.clientY;
+  if(!drag.engaged){
+    /* תזוזה לפני שהגרירה נדרכה = גלילה רגילה — ביטול */
+    if(Math.abs(ev.clientX-drag.x)>10 || Math.abs(ev.clientY-drag.y)>10){
+      clearTimeout(dragTimer); drag=null;
+    }
+    return;
+  }
+  ev.preventDefault();
+  dragGhost.style.left=ev.clientX+'px';
+  dragGhost.style.top=ev.clientY+'px';
+  var el=document.elementFromPoint(ev.clientX,ev.clientY);
+  var over=el && el.closest ? el.closest('.cat-block') : null;
+  drag.wrap.querySelectorAll('.drop-target').forEach(function(b){ b.classList.remove('drop-target'); });
+  if(over && over.parentElement===drag.wrap && over!==drag.block){
+    over.classList.add('drop-target');
+    drag.to=[].slice.call(drag.wrap.querySelectorAll('.cat-block')).indexOf(over);
+  }else{
+    drag.to=null;
+  }
+}
+function catDragUp(){
+  clearTimeout(dragTimer);
+  if(!drag) return;
+  if(drag.engaged){
+    document.body.style.overflow='';
+    if(dragGhost){ dragGhost.remove(); dragGhost=null; }
+    drag.block.classList.remove('dragging');
+    if(drag.to!=null && drag.to!==drag.from){
+      var list=state.cats[drag.kind]||[];
+      var item=list.splice(drag.from,1)[0];
+      list.splice(drag.to,0,item);
+      catsDirty=true;
+      renderCats();
+      haptic(10);
+      toast('✓ הסדר עודכן — זכרו לסנכרן לגיליון');
+    }else{
+      renderCats(); /* ניקוי מחלקות drop-target */
+    }
+    /* בולע את ה-click שנורה מיד אחרי הגרירה (שלא ייפתח העורך) */
+    suppressCatClick=true;
+    setTimeout(function(){ suppressCatClick=false; },350);
+  }
+  drag=null;
 }
 function saveCatEdit(){
   if(!catEdit) return;
@@ -1693,7 +1873,7 @@ function renderAnalyticsPie(){
       backgroundColor:labels.map(function(l,i){ return PIE_COLORS[i%PIE_COLORS.length]; }),
       borderColor:'#fff',borderWidth:2
     }]},
-    options:{responsive:true,maintainAspectRatio:false,
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:250},
       plugins:{legend:{position:'bottom',rtl:true,labels:{font:{family:'Heebo',size:11},boxWidth:12}}}}
   });
 }
@@ -1841,7 +2021,7 @@ function init(){
     var rm=ev.target.closest('[data-rm-cat]');
     if(rm){ var p=rm.dataset.rmCat.split(':'); rmCat(p[0],parseInt(p[1],10)); return; }
     var ed=ev.target.closest('[data-edit-cat]');
-    if(ed){ var q=ed.dataset.editCat.split(':'); openCatEditor(q[0],parseInt(q[1],10)); return; }
+    if(ed){ if(suppressCatClick) return; var q=ed.dataset.editCat.split(':'); openCatEditor(q[0],parseInt(q[1],10)); return; }
     var cl=ev.target.closest('[data-close]');
     if(cl){ $(cl.dataset.close).classList.remove('on'); }
   });
@@ -1868,8 +2048,51 @@ function init(){
     $('cat-emoji-input').value=b.dataset.em;
     renderCatEditor();
   });
-  $('cat-move-up').addEventListener('click',function(){ moveCat(-1); });
-  $('cat-move-down').addEventListener('click',function(){ moveCat(1); });
+  $('emoji-tabs').addEventListener('click',function(ev){
+    var b=ev.target.closest('[data-tab]'); if(!b) return;
+    emojiTab=parseInt(b.dataset.tab,10)||0;
+    renderCatEditor();
+  });
+
+  /* Drag & Drop קטגוריות */
+  $('pane-cats').addEventListener('pointerdown',catDragDown);
+  document.addEventListener('pointermove',catDragMove,{passive:false});
+  document.addEventListener('pointerup',catDragUp);
+  document.addEventListener('pointercancel',catDragUp);
+
+  /* טוגל פיצול תצוגה */
+  var st=$('split-toggle');
+  st.classList.toggle('on',state.splitView);
+  st.addEventListener('click',function(){
+    state.splitView=!state.splitView;
+    try{ localStorage.setItem('ff_split',state.splitView?'1':'0'); }catch(e){}
+    st.classList.toggle('on',state.splitView);
+    renderTx(); haptic(8);
+  });
+
+  /* מחוות החלקה: שמאלה = חודש הבא, ימינה = חודש קודם */
+  var sw={x:0,y:0,on:false};
+  var mainEl=document.querySelector('#app main.wrap');
+  mainEl.addEventListener('touchstart',function(ev){
+    if(ev.touches.length!==1){ sw.on=false; return; }
+    var p=document.querySelector('section.pane.on');
+    sw.on=!!p&&(p.id==='pane-dash'||p.id==='pane-tx');
+    sw.x=ev.touches[0].clientX; sw.y=ev.touches[0].clientY;
+  },{passive:true});
+  mainEl.addEventListener('touchend',function(ev){
+    if(!sw.on) return; sw.on=false;
+    var dx=ev.changedTouches[0].clientX-sw.x;
+    var dy=ev.changedTouches[0].clientY-sw.y;
+    if(Math.abs(dx)<60 || Math.abs(dy)>Math.abs(dx)) return;
+    shiftMonth(dx<0?1:-1); haptic(8);
+  },{passive:true});
+
+  /* תקציר מהיר: טוגל תקופה + טען עוד (האזנה מואצלת) */
+  $('insight-modal').addEventListener('click',function(ev){
+    var pb=ev.target.closest('#ins-period button');
+    if(pb){ insight.period=pb.dataset.v; insight.shown=INS_PAGE; renderInsight(); return; }
+    if(ev.target.closest('#ins-more')){ insight.shown=Infinity; renderInsight(); }
+  });
   $('swatches').addEventListener('click',function(ev){
     var b=ev.target.closest('[data-sw]'); if(!b||!catEdit) return;
     catEdit.color=b.dataset.sw; renderCatEditor();
