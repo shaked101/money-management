@@ -169,11 +169,11 @@ h2.sec::after{content:'';flex:1;height:1px;background:var(--gray-300)}
 .tx .amt{font-weight:800;font-variant-numeric:tabular-nums;font-size:.95rem;white-space:nowrap}
 .tx.expense .amt{color:var(--red)}
 .tx.income .amt{color:var(--g-400)}
-.tx .del{
-  width:32px;height:32px;border-radius:9px;color:var(--gray-500);font-size:.95rem;
+.tx .edit{
+  width:32px;height:32px;border-radius:9px;color:var(--gray-500);font-size:.85rem;
   display:grid;place-items:center;transition:all .15s;flex:0 0 auto;
 }
-.tx .del:active{background:var(--red-bg);color:var(--red)}
+.tx .edit:active{background:var(--g-100);color:var(--g-700)}
 .list-empty{
   background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);
   padding:34px 16px;text-align:center;color:var(--gray-500);font-size:.88rem;
@@ -388,7 +388,12 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 .emoji-tabs button.on{background:var(--g-700);color:#fff}
 .emoji-grid{max-height:132px;overflow:auto}
 .list-sentinel{text-align:center;color:var(--gray-500);padding:10px 0;font-size:.7rem}
-/* רשימת תקציר מהיר */
+.pie-pcts{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
+.pct-chip{font-size:.7rem;background:var(--gray-100);border-radius:99px;padding:4px 11px;font-weight:500;cursor:pointer}
+.pct-chip b{font-variant-numeric:tabular-nums}
+/* רשימת תקציר מהיר + מודאל הכנסות */
+.mini-edit{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:var(--g-700);font-size:.78rem;flex:0 0 auto}
+.mini-edit:active{background:var(--g-100)}
 #ins-period{margin:4px 0 10px}
 .ins-list{max-height:216px;overflow:auto;margin-top:2px;text-align:right}
 .ins-tx{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.8rem;padding:8px 2px;border-bottom:1px solid var(--gray-100)}
@@ -413,7 +418,7 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 .tx.tx-sm .cat{font-size:.76rem}
 .tx.tx-sm .meta{font-size:.62rem}
 .tx.tx-sm .amt{font-size:.8rem}
-.tx.tx-sm .del{display:none}
+.tx.tx-sm .edit{display:none}
 .split-empty{font-size:.74rem;color:var(--gray-500);text-align:center;padding:14px 0}
 /* תקציר מהיר */
 #ins-body{text-align:center}
@@ -488,8 +493,8 @@ nav.bottom button{font-size:.6rem}
     <!-- ── דשבורד ── -->
     <section class="pane on" id="pane-dash">
       <div class="cards">
-        <div class="card income">
-          <div class="lbl">הכנסות החודש</div>
+        <div class="card income" id="card-income" role="button" tabindex="0" style="cursor:pointer">
+          <div class="lbl">הכנסות החודש <span style="font-size:.62rem">👁</span></div>
           <div class="val" id="c-income">—</div>
         </div>
         <div class="card expense">
@@ -509,7 +514,10 @@ nav.bottom button{font-size:.6rem}
       <div class="chart-card">
         <div id="chart-flex">
           <div class="legend" id="pie-legend"></div>
-          <div class="pie-wrap"><svg id="pie-svg" viewBox="0 0 120 120"></svg></div>
+          <div class="pie-wrap">
+            <svg id="pie-svg" viewBox="0 0 120 120"></svg>
+            <div class="pie-pcts" id="pie-pcts"></div>
+          </div>
         </div>
         <div class="chart-empty hidden" id="chart-empty">אין עדיין הוצאות בחודש זה 🎉</div>
       </div>
@@ -610,7 +618,7 @@ nav.bottom button{font-size:.6rem}
 <!-- ═══════════ מודאל הוספת תנועה ═══════════ -->
 <div class="modal-bg" id="tx-modal">
   <div class="modal compact">
-    <h3>תנועה חדשה <button class="close" data-close="tx-modal">✕</button></h3>
+    <h3><span id="tx-modal-title">תנועה חדשה</span> <button class="close" data-close="tx-modal">✕</button></h3>
     <div class="fg">
       <div class="seg type" id="tx-type-seg">
         <button data-v="expense" class="on">📉 הוצאה</button>
@@ -670,7 +678,12 @@ nav.bottom button{font-size:.6rem}
 <!-- ═══════════ מודאל עריכת קטגוריה ═══════════ -->
 <div class="modal-bg" id="cat-modal">
   <div class="modal">
-    <h3><span id="cat-modal-title">עריכת קטגוריה</span> <button class="close" data-close="cat-modal">✕</button></h3>
+    <h3><span id="cat-modal-title">עריכת קטגוריה</span>
+      <span style="display:flex;gap:4px">
+        <button class="close" id="cat-delete" title="מחיקת הקטגוריה" aria-label="מחיקת הקטגוריה" style="color:var(--red)">🗑</button>
+        <button class="close" data-close="cat-modal">✕</button>
+      </span>
+    </h3>
     <div class="fg">
       <label>שם הקטגוריה</label>
       <input class="ifield" id="cat-name-input" maxlength="40">
@@ -693,7 +706,14 @@ nav.bottom button{font-size:.6rem}
       <div class="swatches" id="swatches"></div>
     </div>
     <button class="btn full" id="cat-save">💾 שמירה</button>
-    <button class="btn full ghost" id="cat-delete" style="margin-top:8px;color:var(--red);border-color:#F3D4CE">🗑 מחיקת הקטגוריה</button>
+  </div>
+</div>
+
+<!-- ═══════════ מודאל הכנסות החודש ═══════════ -->
+<div class="modal-bg" id="income-modal">
+  <div class="modal" style="max-width:380px">
+    <h3><span id="income-modal-title">הכנסות החודש</span> <button class="close" data-close="income-modal">✕</button></h3>
+    <div id="income-body"></div>
   </div>
 </div>
 
@@ -1329,6 +1349,16 @@ function renderPie(){
       '<span class="amt">'+fmt(e[1])+'</span>'+
       '<span class="pct">'+pct+'%</span></div>';
   }).join('');
+
+  /* מקרא אחוזים מדויק מתחת לעוגה: 🛒 סופר · 35.4% */
+  $('pie-pcts').innerHTML=entries.map(function(e,i){
+    var pctStr=(Math.round(e[1]/total*1000)/10).toFixed(1).replace(/\.0$/,'');
+    var meta=catMeta('expense',e[0]);
+    var ic=meta
+      ? esc(meta.emoji)
+      : '<span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:'+PIE_COLORS[i%PIE_COLORS.length]+'"></span>';
+    return '<span class="pct-chip" data-cat="'+esc(e[0])+'">'+ic+' '+esc(e[0])+' · <b>'+pctStr+'%</b></span>';
+  }).join('');
 }
 
 /* ── רשימת תנועות ── */
@@ -1440,7 +1470,7 @@ function txRowHTML(r,compact){
       '<div class="meta">'+(r.recurring?'<span title="תנועה קבועה">🔁</span> ':'')+fmtDate(r.date)+(compact?'':' '+whoChip(r.who))+'</div>'+
     '</div>'+
     '<div class="amt">'+(isExp?'−':'+')+fmt(Math.abs(Number(r.amount)||0))+'</div>'+
-    '<button class="del" data-del="'+esc(r.uid)+'" aria-label="מחיקת תנועה">🗑</button>'+
+    '<button class="edit" data-edit="'+esc(r.uid)+'" aria-label="עריכת תנועה">✏️</button>'+
   '</div>';
 }
 function splitCol(who,rows){
@@ -1460,6 +1490,28 @@ function otherRowsSection(rows){
     others.map(function(r){ return txRowHTML(r,false); }).join('');
 }
 
+/* ═══ מודאל הכנסות החודש — צפייה ועריכה ═══════════════ */
+function openIncomeModal(){
+  var rows=state.rows.filter(function(r){ return r.type==='income'; })
+    .sort(function(a,b){ return new Date(b.date||0)-new Date(a.date||0); });
+  var total=rows.reduce(function(t,r){ return t+(Number(r.amount)||0); },0);
+  $('income-modal-title').textContent='הכנסות '+HE_MONTHS[state.m-1]+' '+state.y;
+  $('income-body').innerHTML=
+    '<div class="ins-row"><span>סה״כ ('+rows.length+' הכנסות)</span><b style="color:var(--g-400)">'+fmt(total)+'</b></div>'+
+    '<div class="ins-list">'+
+    (rows.length?rows.map(function(r){
+      return '<div class="ins-tx">'+
+        '<span class="d">'+fmtDate(r.date)+(r.recurring?' 🔁':'')+'</span>'+
+        '<span class="w">'+esc(r.category||'')+(r.note?' · '+esc(r.note):'')+' · '+esc(r.who||'')+'</span>'+
+        '<b style="color:var(--g-400)">+'+fmt(Math.abs(Number(r.amount)||0))+'</b>'+
+        '<button class="mini-edit" data-editinc="'+esc(r.uid)+'" aria-label="עריכת הכנסה">✏️</button>'+
+      '</div>';
+    }).join(''):'<div class="split-empty">אין הכנסות בחודש זה 🍃</div>')+
+    '</div>';
+  $('income-modal').classList.add('on');
+  haptic(8);
+}
+
 /* ═══ תקציר מהיר (Quick Insights) ═══════════════════════ */
 function weekRangeOf(ref){
   var d=new Date(ref); d.setHours(0,0,0,0);
@@ -1470,7 +1522,7 @@ function weekRangeOf(ref){
 var insight=null;
 var INS_PAGE=5;
 function showInsight(type,category,refDate,uid){
-  insight={type:type,category:category,refDate:refDate,uid:uid||null,period:'month',shown:INS_PAGE};
+  insight={type:type,category:category,refDate:refDate,uid:uid||null,period:'week',shown:INS_PAGE};
   renderInsight();
   $('insight-modal').classList.add('on');
   haptic(8);
@@ -1568,12 +1620,42 @@ function todayLocalISO(){
   var d=new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
+var editingUid=null;
+function setSeg(id,v){
+  document.querySelectorAll('#'+id+' button').forEach(function(b){
+    b.classList.toggle('on',b.dataset.v===v);
+  });
+}
 function openTxModal(){
+  editingUid=null;
+  $('tx-modal-title').textContent='תנועה חדשה';
+  $('tx-save').textContent='💾 שמירת תנועה';
   /* תאריך ברירת מחדל: תמיד היום (זמן מקומי, פורמט YYYY-MM-DD) */
   $('tx-date').value=todayLocalISO();
   $('tx-amount').value=''; $('tx-note').value='';
   $('tx-recurring').checked=false;
+  txForm.type='expense'; txForm.who=txForm.who||'שקד';
+  setSeg('tx-type-seg','expense'); setSeg('tx-who-seg',txForm.who);
   fillCatGrid();
+  $('tx-modal').classList.add('on');
+  setTimeout(function(){ $('tx-amount').focus(); },120);
+}
+function openTxEdit(uid){
+  var r=state.rows.filter(function(x){ return String(x.uid)===String(uid); })[0];
+  if(!r){ toast('התנועה לא נמצאה',true); return; }
+  editingUid=String(uid);
+  $('tx-modal-title').textContent='עריכת תנועה';
+  $('tx-save').textContent='💾 עדכון תנועה';
+  txForm.type=(r.type==='income')?'income':'expense';
+  txForm.who=(r.who==='אביטל')?'אביטל':'שקד';
+  txForm.cat=r.category||'';
+  setSeg('tx-type-seg',txForm.type);
+  setSeg('tx-who-seg',txForm.who);
+  fillCatGrid();
+  $('tx-amount').value=Number(r.amount)||'';
+  $('tx-date').value=String(r.date||todayLocalISO()).slice(0,10);
+  $('tx-note').value=r.note||'';
+  $('tx-recurring').checked=!!r.recurring;
   $('tx-modal').classList.add('on');
   setTimeout(function(){ $('tx-amount').focus(); },120);
 }
@@ -1582,8 +1664,9 @@ async function saveTx(){
   if(!(amount>0)){ toast('נא להזין סכום תקין',true); $('tx-amount').focus(); return; }
   var cat=txForm.cat;
   if(!cat){ toast('נא לבחור קטגוריה',true); return; }
+  var isEdit=!!editingUid;
   var payload={
-    uid:'tx_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),
+    uid:isEdit?editingUid:('tx_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)),
     date:$('tx-date').value||todayLocalISO(),
     type:txForm.type,
     category:cat,
@@ -1593,34 +1676,55 @@ async function saveTx(){
     recurring:$('tx-recurring').checked,
     month:state.m, year:state.y
   };
+  var wasRecurring=false;
+  if(isEdit){
+    var orig=state.rows.filter(function(r){ return String(r.uid)===String(editingUid); })[0];
+    wasRecurring=!!(orig&&orig.recurring);
+  }
   var btn=$('tx-save'); btn.disabled=true; btn.textContent='שומר…';
   try{
-    await apiFetch('/api/add-transaction',payload);
+    await apiFetch(isEdit?'/api/update-transaction':'/api/add-transaction',payload);
     $('tx-modal').classList.remove('on');
+    $('income-modal').classList.remove('on');
 
-    /* 1. הצגה אופטימית מיידית — השורה מופיעה בלי לחכות לרשת */
     var pd=new Date(payload.date);
     var txKey=mKey(pd.getFullYear(),pd.getMonth()+1);
-    pendingRows.push({key:txKey,row:payload});
-    if(txKey===mKey(state.y,state.m)){
-      state.rows.push(payload);
-      renderAll();
-    }
-    /* 2. עדכון Cache של חודש היעד (אם קיים) */
-    if(monthCache[txKey]){
-      monthCache[txKey].rows=(monthCache[txKey].rows||[]).concat([payload]);
-      cacheSave();
-    }
-    /* 3. סנכרון רקע מושהה: משיכה טרייה מהשרת אחרי ש-Make
-       הספיק לכתוב לגיליון. אם השורה טרם הופיעה — הפיוס
-       ב-loadMonth משאיר אותה בתצוגה עד לאישור.            */
-    setTimeout(function(){
-      if(txKey===mKey(state.y,state.m)) loadMonth(true);
-      else cacheInvalidate(pd.getFullYear(),pd.getMonth()+1);
-    },2000);
 
-    toast('✓ התנועה נשמרה');
+    if(isEdit){
+      /* הסרת הגרסה הישנה מהמסך ומכל ה-Cache */
+      state.rows=state.rows.filter(function(r){ return String(r.uid)!==String(editingUid); });
+      pendingRows=pendingRows.filter(function(p){ return String(p.row.uid)!==String(editingUid); });
+      Object.keys(monthCache).forEach(function(k){
+        if(monthCache[k].rows) monthCache[k].rows=monthCache[k].rows.filter(function(r){ return String(r.uid)!==String(editingUid); });
+      });
+    }
+
+    if(payload.recurring||wasRecurring){
+      /* תנועה קבועה משפיעה על *כל* החודשים — ריקון Cache מלא
+         כדי שההשלכה תופיע בכל חודש שנצפה בעבר.               */
+      monthCache={};
+      cacheSave();
+      loadMonth(true);
+    }else{
+      pendingRows.push({key:txKey,row:payload});
+      if(txKey===mKey(state.y,state.m)){
+        state.rows.push(payload);
+        renderAll();
+      }
+      if(monthCache[txKey]){
+        monthCache[txKey].rows=(monthCache[txKey].rows||[]).concat([payload]);
+      }
+      cacheSave();
+      /* סנכרון רקע מושהה מול השרת */
+      setTimeout(function(){
+        if(txKey===mKey(state.y,state.m)) loadMonth(true);
+        else cacheInvalidate(pd.getFullYear(),pd.getMonth()+1);
+      },2000);
+    }
+
+    toast(isEdit?'✓ התנועה עודכנה':'✓ התנועה נשמרה');
     haptic(15);
+    editingUid=null;
   }catch(e){ if(e.code!==401) toast('שגיאה בשמירה: '+e.message,true); }
   finally{ btn.disabled=false; btn.textContent='💾 שמירת תנועה'; }
 }
@@ -2015,8 +2119,8 @@ function init(){
   segInit('tx-type-seg',function(v){ txForm.type=v; fillCatGrid(); });
   segInit('tx-who-seg',function(v){ txForm.who=v; });
   $('tx-list').addEventListener('click',function(ev){
-    var b=ev.target.closest('[data-del]');
-    if(b){ deleteTx(b.dataset.del); return; }
+    var b=ev.target.closest('[data-edit]');
+    if(b){ openTxEdit(b.dataset.edit); return; }
     var rowEl=ev.target.closest('[data-ins]');
     if(rowEl){
       var r=state.rows.filter(function(x){ return String(x.uid)===String(rowEl.dataset.ins); })[0];
@@ -2100,6 +2204,20 @@ function init(){
     if(Math.abs(dx)<60 || Math.abs(dy)>Math.abs(dx)) return;
     shiftMonth(dx<0?-1:1); haptic(8);
   },{passive:true});
+
+  /* משבצת ההכנסות פותחת מודאל צפייה ועריכה */
+  $('card-income').addEventListener('click',openIncomeModal);
+  $('income-modal').addEventListener('click',function(ev){
+    var b=ev.target.closest('[data-editinc]');
+    if(b){ $('income-modal').classList.remove('on'); openTxEdit(b.dataset.editinc); }
+  });
+
+  /* מקרא האחוזים מתחת לעוגה — לחיצה פותחת תקציר */
+  $('pie-pcts').addEventListener('click',function(ev){
+    var chip=ev.target.closest('[data-cat]'); if(!chip) return;
+    if(chip.dataset.cat==='אחר'){ toast('"אחר" מאגד כמה קטגוריות — פתחו את לשונית התנועות לפירוט'); return; }
+    showInsight('expense',chip.dataset.cat);
+  });
 
   /* תקציר מהיר: טוגל תקופה + טען עוד (האזנה מואצלת) */
   $('insight-modal').addEventListener('click',function(ev){
