@@ -14,7 +14,7 @@
    ════════════════════════════════════════════════════════════ */
 'use strict';
 
-const VERSION = 'v6';
+const VERSION = 'v7';
 const CACHE_NAME = 'family-finance-' + VERSION;
 
 const APP_SHELL = [

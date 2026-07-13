@@ -975,6 +975,8 @@ function bootApp(){
   $('lock').classList.add('off');
   $('app').classList.add('on');
   loadMonth();
+  /* אם החודש הגיע מה-Cache — משיכת עדכונים שקטה אחת ברקע */
+  setTimeout(function(){ if(lastLoadFromCache) revalidateCurrentMonth(); },1200);
 }
 
 async function onLockPattern(key,len){
@@ -1150,18 +1152,22 @@ function shiftMonth(d){
   shiftTimer=setTimeout(function(){ loadMonth(); },140);
 }
 
-/* ═══ מנגנון Caching — עצירת שריפת קרדיטים ב-Make ═══════
-   כל חודש שנטען נשמר ב-Cache (זיכרון + sessionStorage).
-   מעבר בין חודשים = אפס קריאות רשת אם החודש כבר נטען.
-   קריאת רשת מתבצעת אך ורק כאשר:
-   1. חודש נפתח בפעם הראשונה בסשן.
-   2. נוספה תנועה (סנכרון רקע מושהה — ראו saveTx).
-   3. המשתמש לחץ על כפתור הריענון (⟳) — force.          */
-var CACHE_SS='ff_month_cache_v1';
+/* ═══ מנגנון Caching עמיד ═══════════════════════════════
+   ה-Cache חי ב-localStorage (לא sessionStorage!) — כך הוא
+   שורד סגירה ופתיחה מחדש של ה-PWA ממסך הבית, שזה בדיוק
+   התרחיש שבו sessionStorage נמחק וגרם לטעינות חוזרות.
+   כללים:
+   • כל חודש שנטען מהשרת נשמר במלואו במטמון.
+   • מעבר לחודש שקיים ב-Cache = תצוגה מיידית, אפס רשת.
+   • הזרקה/עדכון של תנועה מתחזקים את ה-Cache במקום (GAS
+     כותב לגיליון לפני שהוא עונה — התשובה היא האישור).
+   • ריקון מלא רק בתנועה קבועה (משפיעה על כל החודשים)
+     או בריענון ידני (⟳) של החודש המוצג.                  */
+var CACHE_KEY='ff_month_cache_v2';
 var monthCache={};
-try{ monthCache=JSON.parse(sessionStorage.getItem(CACHE_SS)||'{}')||{}; }catch(e){ monthCache={}; }
+try{ monthCache=JSON.parse(localStorage.getItem(CACHE_KEY)||'{}')||{}; }catch(e){ monthCache={}; }
 function mKey(y,m){ return y+'-'+String(m).padStart(2,'0'); }
-function cacheSave(){ try{ sessionStorage.setItem(CACHE_SS,JSON.stringify(monthCache)); }catch(e){} }
+function cacheSave(){ try{ localStorage.setItem(CACHE_KEY,JSON.stringify(monthCache)); }catch(e){} }
 function cacheInvalidate(y,m){ delete monthCache[mKey(y,m)]; cacheSave(); }
 
 /* תנועות אופטימיות שממתינות לאישור מהשרת (מרוץ מול Make) */
@@ -1199,18 +1205,43 @@ function applyCategories(data){
 /* טוקן-בקשה: כל fetch מקבל מספר רץ. תשובה "מאחרת" (שהחודש
    על המסך כבר השתנה) נשמרת ל-Cache אך לעולם לא דורסת את
    התצוגה — זה היה מקור הקפיאות והדריסות.                  */
-var loadSeq=0;
+var loadSeq=0, lastLoadFromCache=false;
+
+/* רענון שקט חד-פעמי של החודש המוצג בעליית האפליקציה:
+   ה-Cache מוצג מיידית, וברקע נמשכת גרסה טרייה (לקליטת
+   שינויים שנעשו ממכשיר אחר) — בלי Skeleton ובלי קפיאה.   */
+var revalidatedOnce=false;
+async function revalidateCurrentMonth(){
+  if(revalidatedOnce) return;
+  revalidatedOnce=true;
+  var y=state.y, m=state.m, key=mKey(y,m);
+  try{
+    var data=await apiFetch('/api/get-data',{month:m,year:y});
+    var rows=Array.isArray(data.rows)?data.rows:[];
+    monthCache[key]={rows:rows,cats:(monthCache[key]&&monthCache[key].cats)||null,t:Date.now()};
+    if(key===mKey(state.y,state.m)){
+      state.rows=rows.slice();
+      applyCategories(data);
+      monthCache[key].cats=state.cats;
+      scheduleRenderAll();
+    }
+    cacheSave();
+  }catch(e){ /* רענון רקע — כישלון שקט */ }
+}
+
 async function loadMonth(force){
   monthLabel();
   var key=mKey(state.y,state.m);
 
   /* ── פגיעת Cache: מיידי (0ms רשת), עוקף כל בקשה פתוחה ── */
   if(!force && monthCache[key]){
+    lastLoadFromCache=true;
     state.rows=(monthCache[key].rows||[]).slice();
     if(monthCache[key].cats) state.cats=monthCache[key].cats;
     scheduleRenderAll();
     return;
   }
+  lastLoadFromCache=false;
 
   var seq=++loadSeq;
   var y=state.y, m=state.m;
@@ -1373,12 +1404,32 @@ function fmtDate(d){
   if(isNaN(dt)) return esc(d);
   return dt.toLocaleDateString('he-IL',{day:'numeric',month:'numeric'});
 }
+
+/* ═══ מיון כרונולוגי מלא ═════════════════════════════════
+   השרת מחזיר תאריך יומי בלבד, אבל רגע היצירה המדויק (עד
+   אלפית שנייה) מקודד בכל UID: tx_<timestamp-base36>_...
+   מיון: קודם לפי יום (יורד), ובתוך אותו יום — לפי רגע
+   ההזנה בפועל. תנועה שהוזנה כרגע תמיד ראשונה ביומה.      */
+function uidTs(r){
+  var m=/^tx_([0-9a-z]+)/.exec(String((r&&r.uid)||''));
+  if(!m) return 0;
+  var s=m[1];
+  var t=parseInt(s,36);
+  if(t>1e12 && t<4e12) return t;      /* טווח שפיות: 2001–2096 */
+  t=parseInt(s.slice(0,8),36);        /* UID ישן ללא מפריד: 8 תווי חותמת + רנדום */
+  return (t>1e12 && t<4e12)?t:0;
+}
+function txCmp(a,b){
+  var d=(new Date(b.date||0))-(new Date(a.date||0));
+  if(d) return d;
+  return uidTs(b)-uidTs(a);
+}
 function renderTx(){
   var list=$('tx-list');
   var rows=(state.whoFilter==='all'
     ? state.rows.slice()
     : state.rows.filter(function(r){ return r.who===state.whoFilter; }))
-    .sort(function(a,b){ return new Date(b.date||0)-new Date(a.date||0); });
+    .sort(txCmp);
 
   /* סיכומי הסינון הנוכחי */
   var inc=0,exp=0;
@@ -1493,7 +1544,7 @@ function otherRowsSection(rows){
 /* ═══ מודאל הכנסות החודש — צפייה ועריכה ═══════════════ */
 function openIncomeModal(){
   var rows=state.rows.filter(function(r){ return r.type==='income'; })
-    .sort(function(a,b){ return new Date(b.date||0)-new Date(a.date||0); });
+    .sort(txCmp);
   var total=rows.reduce(function(t,r){ return t+(Number(r.amount)||0); },0);
   $('income-modal-title').textContent='הכנסות '+HE_MONTHS[state.m-1]+' '+state.y;
   $('income-body').innerHTML=
@@ -1539,7 +1590,7 @@ function insightRows(){
     var wr=weekRangeOf(ref);
     rows=rows.filter(function(r){ var d=new Date(r.date); return d>=wr[0]&&d<wr[1]; });
   }
-  return rows.sort(function(a,b){ return new Date(b.date||0)-new Date(a.date||0); });
+  return rows.sort(txCmp);
 }
 function renderInsight(){
   if(!insight) return;
@@ -1666,7 +1717,7 @@ async function saveTx(){
   if(!cat){ toast('נא לבחור קטגוריה',true); return; }
   var isEdit=!!editingUid;
   var payload={
-    uid:isEdit?editingUid:('tx_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)),
+    uid:isEdit?editingUid:('tx_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7)),
     date:$('tx-date').value||todayLocalISO(),
     type:txForm.type,
     category:cat,
@@ -1706,20 +1757,18 @@ async function saveTx(){
       cacheSave();
       loadMonth(true);
     }else{
-      pendingRows.push({key:txKey,row:payload});
+      /* GAS כותב לגיליון *לפני* שהוא עונה — התשובה שהתקבלה
+         היא האישור. לכן: עדכון מסך + Cache במקום, ואפס
+         קריאות רשת נוספות (אין יותר סנכרון-רקע מיותר).     */
       if(txKey===mKey(state.y,state.m)){
         state.rows.push(payload);
         renderAll();
       }
       if(monthCache[txKey]){
         monthCache[txKey].rows=(monthCache[txKey].rows||[]).concat([payload]);
+        cacheSave();
       }
-      cacheSave();
-      /* סנכרון רקע מושהה מול השרת */
-      setTimeout(function(){
-        if(txKey===mKey(state.y,state.m)) loadMonth(true);
-        else cacheInvalidate(pd.getFullYear(),pd.getMonth()+1);
-      },2000);
+      /* חודש שאינו ב-Cache יימשך מהשרת (כולל השורה החדשה) בביקור הבא */
     }
 
     toast(isEdit?'✓ התנועה עודכנה':'✓ התנועה נשמרה');
