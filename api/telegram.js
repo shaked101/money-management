@@ -1,10 +1,10 @@
 export default async function handler(req, res) {
-  // מוודאים שטלגרם שולח בקשת POST
+  // 1. חסימת גישה מדפדפנים (מה שראית שעובד)
   if (req.method !== 'POST') {
     return res.status(405).send('Method Not Allowed');
   }
 
-  // שולף את הכתובת של גוגל מתוך משתני הסביבה שלך בורסל
+  // 2. משיכת הכתובת של גוגל ממשתני הסביבה
   const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL;
 
   if (!GOOGLE_SCRIPT_URL) {
@@ -13,22 +13,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. משדרים את המידע לגוגל סקריפט
-    // שים לב: אנחנו לא מחכים שגוגל יסיים כדי לענות לטלגרם
-    fetch(GOOGLE_SCRIPT_URL, {
+    // 3. השליחה לגוגל - הוספנו await! 
+    // עכשיו ורסל יחכה שהבקשה תצא לפני שהוא סוגר את הפונקציה.
+    await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(req.body) // מעבירים את ה-Payload של טלגרם בדיוק כמו שהוא
+      body: JSON.stringify(req.body)
     });
 
-    // 2. חותכים את הלופ! מחזירים 200 לטלגרם מיד.
+    // 4. החזרת 200 לטלגרם כדי לשחרר את התור
     return res.status(200).json({ status: 'ok' });
 
   } catch (error) {
     console.error('Error forwarding to Google:', error);
-    // גם אם משהו קרס, מחזירים 200 לטלגרם כדי שהתור לא ייתקע לעולם
     return res.status(200).json({ status: 'ok', error: 'Forwarding failed but acknowledged' });
   }
 }
