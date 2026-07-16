@@ -7,9 +7,10 @@
 <title>הזנה מהירה — הכסף שלנו</title>
 
 <!-- ── PWA: התקנה כאפליקציה עצמאית (ללא שורת כתובת) ──
-     Manifest ייעודי לווידג'ט — נפרד מזה של הדשבורד הראשי,
-     עם start_url משלו (/quick-add.html) ו-display: standalone. -->
-<link rel="manifest" href="./quick-add-manifest.json">
+     Manifest ייעודי לווידג'ט — נפרד מזה של הדשבורד הראשי:
+     id: /quick-add-widget · scope: /quick-add · start_url: /quick-add
+     נתיב אבסולוטי — זהה בין אם הדף הוגש כ-/quick-add או /quick-add.html. -->
+<link rel="manifest" href="/quick-add-manifest.json">
 
 <!-- iOS / Safari: "הוספה למסך הבית" כאפליקציה במסך מלא -->
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -611,7 +612,9 @@ refreshCats();  /* רענון קטגוריות+תיוגים ברקע כשיש ר
 flushQueue();   /* שידור תור שנשאר מפעם קודמת */
 
 /* ה-Service Worker הקיים של האפליקציה שומר גם את הדף הזה ב-Cache —
-   כך הווידג'ט נפתח גם בלי קליטה (ראו sw.js גרסה v9). */
+   כך הווידג'ט נפתח גם בלי קליטה.
+   ⚠️ quick-add-manifest.json מוגש Cache-First מה-SW: כל שינוי בו
+   מחייב העלאת VERSION ב-sw.js, אחרת Chrome ימשיך לקרוא מניפסט ישן. */
 if('serviceWorker' in navigator){
   window.addEventListener('load',function(){
     navigator.serviceWorker.register('./sw.js').catch(function(){});

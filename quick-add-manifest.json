@@ -5,7 +5,7 @@
   "description": "ווידג'ט הזנת הוצאות מהיר: סכום ← קטגוריה ← תיוג. עובד גם בלי קליטה — התור משודר אוטומטית כשהאינטרנט חוזר.",
   "lang": "he",
   "dir": "rtl",
-  "start_url": "/quick-add.html",
+  "start_url": "/quick-add",
   "scope": "/quick-add",
   "display": "standalone",
   "orientation": "portrait",
