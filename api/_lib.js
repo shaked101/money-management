@@ -23,14 +23,31 @@ function safeEqual(a, b) {
   return crypto.timingSafeEqual(ha, hb);
 }
 
+/* ── חילוץ הטוקן מהבקשה — שלוש כותרות נתמכות ─────────────
+   כולן מאומתות מול *אותו* משתנה סביבה: APP_SECRET_TOKEN.
+   1. X-App-Secret            (הדשבורד הראשי)
+   2. Authorization: Bearer … (הווידג'ט / כלים חיצוניים)
+   3. X-Api-Key               (Shortcuts / Tasker וכו')
+   trim מנקה רווחים/ירידות שורה שמגיעים מהעתק-הדבק של הטוקן. */
+function extractToken(req) {
+  var h = req.headers || {};
+  var v = h['x-app-secret'];
+  if (!v) {
+    var auth = String(h['authorization'] || '');
+    if (/^Bearer\s+/i.test(auth)) v = auth.replace(/^Bearer\s+/i, '');
+  }
+  if (!v) v = h['x-api-key'];
+  return String(v || '').trim();
+}
+
 /* ── שער כניסה אחיד: מתודה + אימות ──────────────────────
    מחזיר true אם הבקשה עברה; אחרת כבר כתב את התשובה וסיים. */
 function guard(req, res) {
   /* CORS: מאפשר קריאות מכלים חיצוניים (ווידג'טים, Shortcuts).
-     זו אינה שכבת אבטחה — האימות האמיתי הוא X-App-Secret. */
+     זו אינה שכבת אבטחה — האימות האמיתי הוא הטוקן שבכותרת. */
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-App-Secret');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-App-Secret, Authorization, X-Api-Key');
   res.setHeader('Access-Control-Max-Age', '86400');
 
   if (req.method === 'OPTIONS') {
@@ -43,7 +60,7 @@ function guard(req, res) {
     return false;
   }
 
-  const expected = process.env.APP_SECRET_TOKEN;
+  const expected = String(process.env.APP_SECRET_TOKEN || '').trim();
   if (!expected) {
     /* תקלת תצורה בשרת — לא באשמת הלקוח, אבל אסור להכניס אף אחד */
     console.error('[auth] APP_SECRET_TOKEN is not configured in Vercel env');
@@ -51,7 +68,7 @@ function guard(req, res) {
     return false;
   }
 
-  const provided = req.headers['x-app-secret'] || '';
+  const provided = extractToken(req);
   if (!safeEqual(provided, expected)) {
     res.status(401).json({ ok: false, error: 'Unauthorized' });
     return false;
@@ -135,4 +152,4 @@ function fail(res, err) {
   return res.status(502).json({ ok: false, error: 'Upstream (Google Script) request failed' });
 }
 
-module.exports = { safeEqual, guard, readBody, forwardToScript, fail };
+module.exports = { safeEqual, extractToken, guard, readBody, forwardToScript, fail };
