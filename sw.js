@@ -14,6 +14,8 @@
 
    ⚠️ בכל פריסה שמשנה את index.html או quick-add.html — העלו את VERSION,
       וה-SW הישן על כל המכשירים יוחלף וינקה את ה-Cache שלו.
+      (קובצי ה-Manifest מוגשים Network-First — הם מתעדכנים מיד
+       עם כל פריסה, בלי צורך בהעלאת VERSION.)
    ════════════════════════════════════════════════════════════ */
 'use strict';
 
@@ -76,6 +78,24 @@ self.addEventListener('fetch', (event) => {
           return res;
         }).catch(() => hit) /* אופליין ואין ב-Cache — נכשל בשקט */
       )
+    );
+    return;
+  }
+
+  /* 3.5 קובצי Manifest (manifest.json / quick-add-manifest.json) —
+        Network-First: שינויי id/scope/start_url נקלטים בכרום מיד
+        עם הפריסה, בלי תלות בהעלאת VERSION. באופליין — Cache.   */
+  if (url.pathname.endsWith('manifest.json')) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(req, copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match(req))
     );
     return;
   }

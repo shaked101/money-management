@@ -425,7 +425,9 @@ async function postTx(payload){
   return res.json();
 }
 var flushing=false;
-async function flushQueue(){
+/* quiet=true (מנתיב השמירה): בלי טוסט "שודרו" על ההוצאה שזה
+   עתה נשמרה — טוסט מוצג רק אם התרוקנו גם שאריות תור ישנות.  */
+async function flushQueue(quiet){
   if(flushing || !navigator.onLine) return;
   var q=readQueue();
   if(!q.length) return;
@@ -440,11 +442,12 @@ async function flushQueue(){
     }
   }catch(e){
     if(e.code===401){ toast('טוקן שגוי — התור ממתין',true); }
+    else if(quiet){ toast('📥 השרת לא זמין — ההוצאה נשמרה בתור ותשודר אוטומטית',true); }
     /* שגיאת רשת/שרת — ננסה שוב ב-online הבא */
   }finally{
     flushing=false;
     renderBadges();
-    if(sent) toast('📤 שודרו '+sent+' הוצאות מהתור');
+    if(sent && !(quiet && sent===1)) toast('📤 שודרו '+sent+' הוצאות מהתור');
   }
 }
 
@@ -583,27 +586,16 @@ $('save-btn').addEventListener('click',function(){
   };
   var offline=!navigator.onLine;
 
-  /* ═══ Optimistic UI ═══════════════════════════════════════
-     אנימציית "נשמר" ואיפוס האשף — מיידית, ברגע הלחיצה.
-     ה-fetch רץ ברקע; כשל מכל סוג ⇒ ההוצאה נכנסת לתור האופליין
-     ותשודר אוטומטית (online / פתיחה הבאה / שמירה הבאה).      */
-  if(offline){
-    var q=readQueue(); q.push(payload); writeQueue(q);
-  }
+  /* ═══ Queue-First + Optimistic UI ═════════════════════════
+     ההוצאה נכתבת ל-localStorage *לפני* כל ניסיון שידור — כך גם
+     סגירת הווידג'ט שנייה אחרי השמירה לא מאבדת אותה לעולם.
+     אנימציית "נשמר" ואיפוס האשף מיידיים; השידור בפועל נעשה
+     דרך flushQueue הקיים (מסלול שידור אחד ויחיד), שמוחק את
+     ההוצאה מהתור רק אחרי תשובת הצלחה מהשרת.                */
+  var q=readQueue(); q.push(payload); writeQueue(q);
   haptic(18);
   showDone(offline);
-
-  if(!offline){
-    postTx(payload).then(function(){
-      flushQueue(); /* הזדמנות לרוקן שאריות תור ישנות */
-    }).catch(function(e){
-      /* לתור — בלי כפילויות (UID קבוע מגן גם בשידור חוזר) */
-      var q2=readQueue();
-      if(!q2.some(function(p){ return p.uid===payload.uid; })){ q2.push(payload); writeQueue(q2); }
-      if(e.code===401) toast('🔑 טוקן שגוי — ההוצאה ממתינה בתור',true);
-      else toast('📥 השרת לא זמין — ההוצאה נשמרה בתור',true);
-    });
-  }
+  if(!offline) flushQueue(true); /* quiet — בלי טוסט על השמירה הרגילה */
 });
 
 /* ═══ 7. Boot ═════════════════════════════════════════════ */
