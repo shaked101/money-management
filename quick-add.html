@@ -7,10 +7,9 @@
 <title>הזנה מהירה — הכסף שלנו</title>
 
 <!-- ── PWA: התקנה כאפליקציה עצמאית (ללא שורת כתובת) ──
-     Manifest ייעודי לווידג'ט — נפרד מזה של הדשבורד הראשי:
-     id: /quick-add-widget · scope: /quick-add · start_url: /quick-add
-     נתיב אבסולוטי — זהה בין אם הדף הוגש כ-/quick-add או /quick-add.html. -->
-<link rel="manifest" href="/quick-add-manifest.json">
+     Manifest ייעודי לווידג'ט — נפרד מזה של הדשבורד הראשי,
+     עם start_url משלו (/quick-add.html) ו-display: standalone. -->
+<link rel="manifest" href="./quick-add-manifest.json">
 
 <!-- iOS / Safari: "הוספה למסך הבית" כאפליקציה במסך מלא -->
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -560,7 +559,7 @@ function showDone(queued){
   $('done-msg').textContent=queued?'נשמר בתור':'נשמר!';
   $('done-sub').textContent=queued
     ? 'אין קליטה כרגע — ההוצאה תשודר אוטומטית ברגע שהאינטרנט יחזור.'
-    : 'ההוצאה נרשמה בגיליון.';
+    : 'ההוצאה משודרת לגיליון ברקע.';
   $('done').classList.add('on');
   setTimeout(function(){
     $('done').classList.remove('on');
@@ -570,10 +569,8 @@ function showDone(queued){
     gotoStep(1);
   },1400);
 }
-$('save-btn').addEventListener('click',async function(){
+$('save-btn').addEventListener('click',function(){
   if(!wiz.category || !(parseFloat(wiz.amount)>0)) return;
-  var btn=$('save-btn');
-  btn.disabled=true; btn.textContent='שומר…';
   var payload={
     type:'expense',
     who:user,
@@ -584,24 +581,29 @@ $('save-btn').addEventListener('click',async function(){
     date:todayISO(),
     uid:makeUid() /* UID בצד הלקוח — שידור חוזר מהתור לא יכפיל שורה בזיהוי */
   };
-  var queued=false;
-  if(navigator.onLine){
-    try{
-      await postTx(payload);
-    }catch(e){
-      if(e.code===401){ toast('טוקן שגוי — אין הרשאה',true); btn.disabled=false; btn.textContent='💾 שמור'; return; }
-      queued=true; /* השרת לא זמין — לתור */
-    }
-  }else{
-    queued=true;
-  }
-  if(queued){
+  var offline=!navigator.onLine;
+
+  /* ═══ Optimistic UI ═══════════════════════════════════════
+     אנימציית "נשמר" ואיפוס האשף — מיידית, ברגע הלחיצה.
+     ה-fetch רץ ברקע; כשל מכל סוג ⇒ ההוצאה נכנסת לתור האופליין
+     ותשודר אוטומטית (online / פתיחה הבאה / שמירה הבאה).      */
+  if(offline){
     var q=readQueue(); q.push(payload); writeQueue(q);
   }
   haptic(18);
-  btn.disabled=false; btn.textContent='💾 שמור';
-  showDone(queued);
-  if(!queued) flushQueue(); /* הזדמנות לרוקן שאריות תור ישנות */
+  showDone(offline);
+
+  if(!offline){
+    postTx(payload).then(function(){
+      flushQueue(); /* הזדמנות לרוקן שאריות תור ישנות */
+    }).catch(function(e){
+      /* לתור — בלי כפילויות (UID קבוע מגן גם בשידור חוזר) */
+      var q2=readQueue();
+      if(!q2.some(function(p){ return p.uid===payload.uid; })){ q2.push(payload); writeQueue(q2); }
+      if(e.code===401) toast('🔑 טוקן שגוי — ההוצאה ממתינה בתור',true);
+      else toast('📥 השרת לא זמין — ההוצאה נשמרה בתור',true);
+    });
+  }
 });
 
 /* ═══ 7. Boot ═════════════════════════════════════════════ */
@@ -612,9 +614,7 @@ refreshCats();  /* רענון קטגוריות+תיוגים ברקע כשיש ר
 flushQueue();   /* שידור תור שנשאר מפעם קודמת */
 
 /* ה-Service Worker הקיים של האפליקציה שומר גם את הדף הזה ב-Cache —
-   כך הווידג'ט נפתח גם בלי קליטה.
-   ⚠️ quick-add-manifest.json מוגש Cache-First מה-SW: כל שינוי בו
-   מחייב העלאת VERSION ב-sw.js, אחרת Chrome ימשיך לקרוא מניפסט ישן. */
+   כך הווידג'ט נפתח גם בלי קליטה (ראו sw.js גרסה v9). */
 if('serviceWorker' in navigator){
   window.addEventListener('load',function(){
     navigator.serviceWorker.register('./sw.js').catch(function(){});

@@ -395,6 +395,9 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
   padding:1px 8px;font-size:.62rem;font-weight:700;line-height:1.5;white-space:nowrap;
 }
 .tx.tx-sm .row-tag{padding:0 6px;font-size:.56rem;margin-inline-start:4px}
+/* Chip תיוג לחיץ (בשורות התנועות) — מזמין מגע */
+.row-tag.tag-link{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .1s}
+.row-tag.tag-link:active{transform:scale(.92);filter:brightness(.92)}
 /* השוואה ממוקדת באנליטיקס */
 #cmp-cat,#cmp-tag{appearance:auto;-webkit-appearance:menulist;padding:9px 11px}
 #cmp-summary{margin-top:12px;background:var(--gray-100);border-radius:var(--r-sm);padding:11px 14px;font-size:.8rem;line-height:1.7}
@@ -1093,8 +1096,11 @@ function bootApp(){
   $('lock').classList.add('off');
   $('app').classList.add('on');
   loadMonth();
-  /* אם החודש הגיע מה-Cache — משיכת עדכונים שקטה אחת ברקע */
-  setTimeout(function(){ if(lastLoadFromCache) revalidateCurrentMonth(); },1200);
+  /* ═══ Stale-While-Revalidate ═══
+     החודש צויר הרגע מה-Cache (localStorage) ללא מסך טעינה —
+     ומיד, ברקע וללא Skeleton, נמשכת גרסה טרייה מהשרת שתחליף
+     את התצוגה בשקט כשתגיע (קליטת שינויים ממכשירים אחרים). */
+  if(lastLoadFromCache) revalidateCurrentMonth();
 }
 
 async function onLockPattern(key,len){
@@ -1780,8 +1786,8 @@ function txRowHTML(r,compact){
   var meta=catMeta(r.type,r.category);
   var icBg=meta?meta.color:(isExp?'var(--red-bg)':'var(--g-100)');
   var ic=meta?meta.emoji:(r.category||'?').trim().charAt(0);
-  /* תיוג (תת-קטגוריה): Chip קטן עם # צמוד לשם הקטגוריה */
-  var tagChip=r.tag?('<span class="row-tag">#'+esc(r.tag)+'</span>'):'';
+  /* תיוג (תת-קטגוריה): Chip לחיץ — פותח "הוצאות דומות" לפי התיוג */
+  var tagChip=r.tag?('<span class="row-tag tag-link" data-instag="'+esc(r.tag)+'" role="button" tabindex="0" title="הצגת תנועות דומות עם התיוג הזה">#'+esc(r.tag)+'</span>'):'';
   return '<div class="tx '+(isExp?'expense':'income')+(compact?' tx-sm':'')+'" data-ins="'+esc(r.uid)+'">'+
     '<div class="cat-ic" style="background:'+esc(icBg)+';color:var(--ink)">'+esc(ic)+'</div>'+
     '<div class="mid">'+
@@ -1840,8 +1846,9 @@ function weekRangeOf(ref){
 }
 var insight=null;
 var INS_PAGE=5;
-function showInsight(type,category,refDate,uid){
-  insight={type:type,category:category,refDate:refDate,uid:uid||null,period:'week',shown:INS_PAGE};
+/* tag (אופציונלי): מצב "לפי תיוג" — הסינון עובר מהקטגוריה לתיוג */
+function showInsight(type,category,refDate,uid,tag){
+  insight={type:type,category:category,refDate:refDate,uid:uid||null,tag:tag||'',period:'week',shown:INS_PAGE};
   renderInsight();
   $('insight-modal').classList.add('on');
   haptic(8);
@@ -1849,7 +1856,10 @@ function showInsight(type,category,refDate,uid){
 function insightRows(){
   var isExp=insight.type!=='income';
   var rows=displayRows().filter(function(r){
-    return ((r.type!=='income')===isExp) && (r.category||'ללא קטגוריה')===insight.category;
+    if((r.type!=='income')!==isExp) return false;
+    /* מצב תיוג: אך ורק תנועות עם אותו תיוג זהה (חוצה קטגוריות) */
+    if(insight.tag) return String(r.tag||'')===insight.tag;
+    return (r.category||'ללא קטגוריה')===insight.category;
   });
   if(insight.period==='week'){
     var now=new Date();
@@ -1863,22 +1873,30 @@ function insightRows(){
 function renderInsight(){
   if(!insight) return;
   var isExp=insight.type!=='income';
+  var tagMode=!!insight.tag;
   var rows=insightRows();
   var total=rows.reduce(function(t,r){ return t+(Number(r.amount)||0); },0);
-  var meta=catMeta(insight.type,insight.category);
+  var meta=(!tagMode&&insight.category)?catMeta(insight.type,insight.category):null;
   var now=new Date();
   var isCurMonth=(now.getFullYear()===state.y && now.getMonth()+1===state.m);
   var weekWord=isCurMonth?'השבוע':'שבוע התנועה';
   var shown=rows.slice(0,insight.shown);
   var listHtml=shown.map(function(r){
+    /* במצב תיוג — התיוג קבוע, אז מציגים את הקטגוריה של כל תנועה */
+    var mid=tagMode
+      ? esc(r.category||'ללא קטגוריה')+' · '+esc(r.who||'—')+(r.note?' · '+esc(r.note):'')
+      : esc(r.who||'—')+(r.tag?' <span class="row-tag">#'+esc(r.tag)+'</span>':'')+(r.note?' · '+esc(r.note):'');
     return '<div class="ins-tx">'+
       '<span class="d">'+fmtDate(r.date)+'</span>'+
-      '<span class="w">'+esc(r.who||'—')+(r.tag?' <span class="row-tag">#'+esc(r.tag)+'</span>':'')+(r.note?' · '+esc(r.note):'')+'</span>'+
+      '<span class="w">'+mid+'</span>'+
       '<b>'+(isExp?'−':'+')+fmt(Math.abs(Number(r.amount)||0))+'</b></div>';
   }).join('')||'<div class="split-empty">אין תנועות בתקופה זו 🍃</div>';
+  var titleHtml=tagMode
+    ? esc(isExp?'הוצאות עם התיוג':'הכנסות עם התיוג')+' <span class="row-tag" style="font-size:.75rem;vertical-align:2px">#'+esc(insight.tag)+'</span>'
+    : esc(isExp?'הוצאות על':'הכנסות מ')+' "'+esc(insight.category)+'"';
   $('ins-body').innerHTML=
-    '<span class="big-em">'+esc(meta?meta.emoji:'🏷️')+'</span>'+
-    '<div class="ins-cat">'+esc(isExp?'הוצאות על':'הכנסות מ')+' "'+esc(insight.category)+'"</div>'+
+    '<span class="big-em">'+(tagMode?'🏷️':esc(meta?meta.emoji:'🏷️'))+'</span>'+
+    '<div class="ins-cat">'+titleHtml+'</div>'+
     '<div class="seg" id="ins-period">'+
       '<button data-v="week" class="'+(insight.period==='week'?'on':'')+'">'+weekWord+'</button>'+
       '<button data-v="month" class="'+(insight.period==='month'?'on':'')+'">החודש</button>'+
@@ -2004,8 +2022,9 @@ async function saveTx(){
   var cat=txForm.cat;
   if(!cat){ toast('נא לבחור קטגוריה',true); return; }
   var isEdit=!!editingUid;
+  var uid=isEdit?editingUid:('tx_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7));
   var payload={
-    uid:isEdit?editingUid:('tx_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7)),
+    uid:uid,
     date:$('tx-date').value||todayLocalISO(),
     type:txForm.type,
     category:cat,
@@ -2016,57 +2035,85 @@ async function saveTx(){
     recurring:$('tx-recurring').checked,
     month:state.m, year:state.y
   };
-  var wasRecurring=false;
+  /* צילום הגרסה המקורית — Rollback אם הסנכרון ברקע ייכשל */
+  var origRow=null, wasRecurring=false;
   if(isEdit){
     var orig=findRowByUidLocal(editingUid);
-    wasRecurring=!!(orig&&orig.recurring);
+    if(orig){
+      try{ origRow=JSON.parse(JSON.stringify(orig)); }catch(e){ origRow=orig; }
+      wasRecurring=!!orig.recurring;
+    }
   }
-  var btn=$('tx-save'); btn.disabled=true; btn.textContent='שומר…';
+
+  /* ═══ Optimistic UI ═══════════════════════════════════════
+     המסך, ה-State וה-Cache מתעדכנים ברגע הלחיצה — בלי להמתין
+     לתשובת GAS האיטי. הבקשה רצה ברקע; כשל ⇒ Rollback + הודעה. */
+  $('tx-modal').classList.remove('on');
+  $('income-modal').classList.remove('on');
+  editingUid=null;
+
+  var pd=new Date(payload.date);
+  var txKey=mKey(pd.getFullYear(),pd.getMonth()+1);
+
+  if(isEdit){
+    /* הסרת הגרסה הישנה מהמסך, ממצב הטווח ומכל ה-Cache */
+    state.rows=state.rows.filter(function(r){ return String(r.uid)!==String(uid); });
+    if(filter.rangeRows) filter.rangeRows=filter.rangeRows.filter(function(r){ return String(r.uid)!==String(uid); });
+    pendingRows=pendingRows.filter(function(p){ return String(p.row.uid)!==String(uid); });
+    Object.keys(monthCache).forEach(function(k){
+      if(monthCache[k].rows) monthCache[k].rows=monthCache[k].rows.filter(function(r){ return String(r.uid)!==String(uid); });
+    });
+  }
+  if(txKey===mKey(state.y,state.m)) state.rows.push(payload);
+  if(filter.rangeRows) filter.rangeRows.push(payload); /* passesFilter יכריע בתצוגה */
+  if(monthCache[txKey]){
+    monthCache[txKey].rows=(monthCache[txKey].rows||[]).concat([payload]);
+    cacheSave();
+  }
+  /* רישום כשורה תלויה: אם loadMonth ירוץ לפני אישור השרת —
+     מנגנון הפיוס הקיים ישמר אותה עד שתאושר.                */
+  pendingRows.push({key:txKey,row:payload});
+  renderAll();
+  toast(isEdit?'✓ התנועה עודכנה':'✓ התנועה נשמרה');
+  haptic(15);
+
+  /* ── סנכרון רקע מול השרת ── */
+  function dropOptimistic(){
+    pendingRows=pendingRows.filter(function(p){ return String(p.row.uid)!==String(uid); });
+    state.rows=state.rows.filter(function(r){ return String(r.uid)!==String(uid); });
+    if(filter.rangeRows) filter.rangeRows=filter.rangeRows.filter(function(r){ return String(r.uid)!==String(uid); });
+    Object.keys(monthCache).forEach(function(k){
+      if(monthCache[k].rows) monthCache[k].rows=monthCache[k].rows.filter(function(r){ return String(r.uid)!==String(uid); });
+    });
+  }
   try{
     await apiFetch(isEdit?'/api/update-transaction':'/api/add-transaction',payload);
-    $('tx-modal').classList.remove('on');
-    $('income-modal').classList.remove('on');
-
-    var pd=new Date(payload.date);
-    var txKey=mKey(pd.getFullYear(),pd.getMonth()+1);
-
-    if(isEdit){
-      /* הסרת הגרסה הישנה מהמסך, ממצב הטווח ומכל ה-Cache */
-      state.rows=state.rows.filter(function(r){ return String(r.uid)!==String(editingUid); });
-      if(filter.rangeRows) filter.rangeRows=filter.rangeRows.filter(function(r){ return String(r.uid)!==String(editingUid); });
-      pendingRows=pendingRows.filter(function(p){ return String(p.row.uid)!==String(editingUid); });
-      Object.keys(monthCache).forEach(function(k){
-        if(monthCache[k].rows) monthCache[k].rows=monthCache[k].rows.filter(function(r){ return String(r.uid)!==String(editingUid); });
-      });
-    }
-
+    /* אושר — השורה בגיליון; אינה "תלויה" עוד */
+    pendingRows=pendingRows.filter(function(p){ return String(p.row.uid)!==String(uid); });
     if(payload.recurring||wasRecurring){
       /* תנועה קבועה משפיעה על *כל* החודשים — ריקון Cache מלא
-         כדי שההשלכה תופיע בכל חודש שנצפה בעבר.               */
+         ומשיכה טרייה, ברקע, אחרי שהמשתמש כבר קיבל משוב מיידי. */
       monthCache={};
       cacheSave();
       loadMonth(true);
-    }else{
-      /* GAS כותב לגיליון *לפני* שהוא עונה — התשובה שהתקבלה
-         היא האישור. לכן: עדכון מסך + Cache במקום, ואפס
-         קריאות רשת נוספות (אין יותר סנכרון-רקע מיותר).     */
-      if(txKey===mKey(state.y,state.m)){
-        state.rows.push(payload);
-      }
-      if(filter.rangeRows) filter.rangeRows.push(payload); /* passesFilter יכריע בתצוגה */
-      renderAll();
-      if(monthCache[txKey]){
-        monthCache[txKey].rows=(monthCache[txKey].rows||[]).concat([payload]);
-        cacheSave();
-      }
-      /* חודש שאינו ב-Cache יימשך מהשרת (כולל השורה החדשה) בביקור הבא */
     }
-
-    toast(isEdit?'✓ התנועה עודכנה':'✓ התנועה נשמרה');
-    haptic(15);
-    editingUid=null;
-  }catch(e){ if(e.code!==401) toast('שגיאה בשמירה: '+e.message,true); }
-  finally{ btn.disabled=false; btn.textContent='💾 שמירת תנועה'; }
+  }catch(e){
+    /* Rollback מלא: הסרת השורה האופטימית והשבת המקור בעריכה */
+    dropOptimistic();
+    if(origRow){
+      var od=new Date(origRow.date);
+      var oKey=mKey(od.getFullYear(),od.getMonth()+1);
+      if(oKey===mKey(state.y,state.m)) state.rows.push(origRow);
+      if(filter.rangeRows) filter.rangeRows.push(origRow);
+      if(monthCache[oKey]) monthCache[oKey].rows=(monthCache[oKey].rows||[]).concat([origRow]);
+    }
+    cacheSave();
+    renderAll();
+    toast(e.code===401
+      ? '⚠️ אין הרשאה — השינוי בוטל'
+      : '⚠️ השמירה נכשלה והשינוי בוטל: '+e.message,true);
+    haptic([28,40,28]);
+  }
 }
 
 /* ── קטגוריות ── */
@@ -2615,6 +2662,18 @@ function init(){
   segInit('tx-type-seg',function(v){ txForm.type=v; fillCatGrid(); });
   segInit('tx-who-seg',function(v){ txForm.who=v; });
   $('tx-list').addEventListener('click',function(ev){
+    /* לחיצה על Chip של תיוג — "הוצאות דומות" מסוננות לפי התיוג בלבד.
+       stopPropagation + return מבטיחים שלחיצת התיוג לא תפעיל את
+       לחיצת השורה הכללית (שפותחת תקציר לפי קטגוריה).            */
+    var tg=ev.target.closest('[data-instag]');
+    if(tg){
+      ev.stopPropagation();
+      var host=tg.closest('[data-ins]');
+      var row=host?findRowByUidLocal(host.dataset.ins):null;
+      showInsight(row?row.type:'expense',row?(row.category||'ללא קטגוריה'):null,
+                  row?row.date:null,row?row.uid:null,tg.dataset.instag);
+      return;
+    }
     var b=ev.target.closest('[data-edit]');
     if(b){ openTxEdit(b.dataset.edit); return; }
     var rowEl=ev.target.closest('[data-ins]');
