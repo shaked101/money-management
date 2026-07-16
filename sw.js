@@ -9,17 +9,21 @@
    • ‎/api/‎ וכל בקשה שאינה GET — עוקפים את ה-SW לחלוטין.
      לעולם לא שומרים ב-Cache נתונים פיננסיים או תשובות API.
 
-   ⚠️ בכל פריסה שמשנה את index.html — העלו את VERSION,
+   • ‎/quick-add.html‎ (הווידג'ט להזנה מהירה) חלק מה-App Shell —
+     נטען גם אופליין, עם גיבוי Cache נפרד מ-index.html.
+
+   ⚠️ בכל פריסה שמשנה את index.html או quick-add.html — העלו את VERSION,
       וה-SW הישן על כל המכשירים יוחלף וינקה את ה-Cache שלו.
    ════════════════════════════════════════════════════════════ */
 'use strict';
 
-const VERSION = 'v8';
+const VERSION = 'v9';
 const CACHE_NAME = 'family-finance-' + VERSION;
 
 const APP_SHELL = [
   './',
   './index.html',
+  './quick-add.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
@@ -75,19 +79,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  /* 4. ניווט / HTML — Network-First, Cache כגיבוי אופליין */
-  if (req.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('/index.html')) {
+  /* 4. ניווט / HTML — Network-First, Cache כגיבוי אופליין.
+        ‎/quick-add‎ מקבל גיבוי משלו — שלא יוגש index.html בטעות. */
+  if (req.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.html')) {
+    const isQuickAdd = url.pathname === '/quick-add' || url.pathname.endsWith('/quick-add.html');
+    const shellKey = isQuickAdd ? './quick-add.html' : './index.html';
     event.respondWith(
       fetch(req)
         .then((res) => {
           if (res && res.ok) {
             const copy = res.clone();
-            caches.open(CACHE_NAME).then((c) => c.put('./index.html', copy));
+            caches.open(CACHE_NAME).then((c) => c.put(shellKey, copy));
           }
           return res;
         })
         .catch(() =>
-          caches.match('./index.html').then((hit) => hit || caches.match('./'))
+          caches.match(shellKey).then((hit) => hit || caches.match('./'))
         )
     );
     return;

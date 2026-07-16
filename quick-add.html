@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#07211A">
+<title>הזנה מהירה — הכסף שלנו</title>
+<!-- ════════════════════════════════════════════════════════════
+     quick-add.html — ווידג'ט הזנה מהירה · "הכסף שלנו"
+     ▸ נפתח כ-Webview במסך מלא מהטלפון: ‎/quick-add.html?t=TOKEN‎
+       (אופציונלי: ‎&u=שקד‎ לקיבוע המשתמש).
+     ▸ אשף 3 שלבים: סכום → קטגוריה ראשית → הערות + תיוג → שמירה.
+     ▸ Offline-First:
+       • קטגוריות + תיוגים נשמרים ב-localStorage בכל רענון מוצלח.
+       • הוצאה שנשלחה בלי קליטה נכנסת ל"תור" ב-localStorage,
+         ומשודרת אוטומטית ברגע שאירוע 'online' נורה (או בטעינה).
+     ▸ אבטחה בסיסית: הדף חסום ללא Query Param‏ ?t= — הטוקן נשמר
+       פעם אחת ב-localStorage ומשמש כ-X-App-Secret מול ה-API,
+       כך שאפשר להצמיד את הווידג'ט גם ל-URL בלי הטוקן בהמשך.
+     ════════════════════════════════════════════════════════════ -->
+<style>
+:root{
+  --bg:#07211A; --card:#0B2E23; --card-2:#0F3A2C;
+  --ink:#F2F7F4; --dim:rgba(242,247,244,.55); --faint:rgba(242,247,244,.14);
+  --accent:#2E9B74; --accent-dn:#237A5B; --gold:#C9A85C; --red:#E06A5A;
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:-apple-system,'Segoe UI','Heebo',Roboto,Arial,sans-serif;
+  display:flex; flex-direction:column;
+  padding:calc(10px + var(--safe-t)) 16px calc(14px + var(--safe-b));
+  overscroll-behavior:none; user-select:none; -webkit-user-select:none;
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:active{transform:scale(.97)}
+
+/* ── כותרת עליונה ── */
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+header .title{font-size:.82rem;font-weight:700;color:var(--dim);letter-spacing:.02em}
+#net-badge{font-size:.66rem;font-weight:700;border-radius:99px;padding:4px 10px;background:var(--card-2);color:var(--dim)}
+#net-badge.off{background:rgba(224,106,90,.16);color:var(--red)}
+#queue-badge{font-size:.66rem;font-weight:700;border-radius:99px;padding:4px 10px;background:rgba(201,168,92,.15);color:var(--gold);display:none}
+
+/* בורר משתמש */
+.user-seg{display:flex;gap:6px;background:var(--card);border-radius:99px;padding:4px;margin-bottom:10px}
+.user-seg button{flex:1;border-radius:99px;padding:9px 0;font-size:.86rem;font-weight:700;color:var(--dim)}
+.user-seg button.on{background:var(--accent);color:#fff}
+
+/* ── שלבים ── */
+.step{display:none;flex:1;flex-direction:column;min-height:0;animation:slideIn .16s ease}
+.step.on{display:flex}
+@keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.step-label{font-size:.74rem;font-weight:700;color:var(--dim);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.step-label .dots{display:flex;gap:5px}
+.step-label .dots i{width:7px;height:7px;border-radius:50%;background:var(--faint)}
+.step-label .dots i.on{background:var(--accent)}
+
+/* שלב 1: סכום + מקלדת */
+#amount-view{
+  text-align:center;font-size:3.2rem;font-weight:800;letter-spacing:.01em;
+  padding:14px 0 10px;font-variant-numeric:tabular-nums;min-height:78px;direction:ltr;
+}
+#amount-view small{font-size:1.6rem;color:var(--dim);font-weight:700;margin-inline-end:4px}
+#amount-view.empty{color:var(--faint)}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;flex:1;align-content:end;margin-bottom:10px}
+.keypad button{
+  background:var(--card);border-radius:18px;font-size:1.7rem;font-weight:700;
+  padding:0;height:min(17vh,74px);
+}
+.keypad button.fn{font-size:1.3rem;color:var(--dim)}
+
+/* שלב 2: רשת קטגוריות */
+.cat-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+  overflow-y:auto;flex:1;align-content:start;padding-bottom:8px;
+}
+.cat-tile{
+  background:var(--card);border-radius:18px;border:2px solid transparent;
+  display:flex;flex-direction:column;align-items:center;gap:7px;
+  padding:16px 4px 13px;font-size:.78rem;font-weight:700;
+}
+.cat-tile .em{font-size:1.9rem;line-height:1}
+.cat-tile .nm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cat-tile .star{position:absolute;font-size:.6rem}
+.cat-tile:active{border-color:var(--accent)}
+
+/* שלב 3: תיוגים + הערות */
+#chosen-line{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:16px;padding:12px 14px;margin-bottom:12px}
+#chosen-line .em{font-size:1.5rem}
+#chosen-line .nm{font-weight:800;font-size:1rem}
+#chosen-line .amt{margin-inline-start:auto;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums;direction:ltr}
+.sec-label{font-size:.72rem;font-weight:700;color:var(--dim);margin:2px 0 8px}
+#tag-wrap{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;max-height:31vh;overflow-y:auto}
+.tag-pill{
+  background:var(--card);border:1.5px solid var(--faint);border-radius:99px;
+  padding:11px 18px;font-size:.88rem;font-weight:700;
+}
+.tag-pill.on{background:var(--accent);border-color:var(--accent);color:#fff}
+#no-tags{font-size:.76rem;color:var(--dim)}
+#note-input{
+  width:100%;background:var(--card);border:1.5px solid var(--faint);border-radius:16px;
+  color:var(--ink);font:inherit;font-size:1rem;padding:14px;outline:none;
+  user-select:text;-webkit-user-select:text;
+}
+#note-input:focus{border-color:var(--accent)}
+#note-input::placeholder{color:var(--dim)}
+
+/* כפתורי ניווט תחתונים */
+.actions{display:flex;gap:9px;margin-top:auto;padding-top:12px}
+.btn{
+  border-radius:18px;padding:17px 0;font-size:1.05rem;font-weight:800;text-align:center;
+}
+.btn.primary{flex:1;background:var(--accent);color:#fff}
+.btn.primary:disabled{opacity:.35}
+.btn.back{flex:0 0 86px;background:var(--card);color:var(--dim);font-size:.9rem}
+
+/* מסך הצלחה */
+#done{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:50}
+#done.on{display:flex;animation:slideIn .18s ease}
+#done .big{width:92px;height:92px;border-radius:50%;background:var(--accent);display:grid;place-items:center;font-size:2.6rem;color:#fff}
+#done .big.q{background:var(--gold);color:var(--bg)}
+#done .msg{font-size:1.05rem;font-weight:800}
+#done .sub{font-size:.78rem;color:var(--dim);text-align:center;padding:0 30px;line-height:1.5}
+
+/* מסך חסימה (אין טוקן) */
+#blocked{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:60;padding:0 34px;text-align:center}
+#blocked.on{display:flex}
+#blocked .ico{font-size:2.6rem}
+#blocked p{font-size:.86rem;color:var(--dim);line-height:1.6}
+
+#toast{
+  position:fixed;bottom:calc(20px + var(--safe-b));right:50%;transform:translateX(50%);
+  background:var(--card-2);color:var(--ink);border-radius:99px;padding:10px 20px;
+  font-size:.8rem;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s;z-index:70;
+  max-width:88vw;text-align:center;
+}
+#toast.on{opacity:1}
+#toast.err{background:rgba(224,106,90,.25);color:#FFB3A8}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="title">⚡ הזנה מהירה</span>
+  <span style="display:flex;gap:6px">
+    <span id="queue-badge"></span>
+    <span id="net-badge">מקוון</span>
+  </span>
+</header>
+
+<div class="user-seg" id="user-seg">
+  <button type="button" data-user="שקד">שקד</button>
+  <button type="button" data-user="אביטל">אביטל</button>
+</div>
+
+<!-- ── שלב 1: סכום ── -->
+<section class="step on" id="step-1">
+  <div class="step-label">
+    <span>כמה שילמתם?</span>
+    <span class="dots"><i class="on"></i><i></i><i></i></span>
+  </div>
+  <div id="amount-view" class="empty"><small>₪</small>0</div>
+  <div class="keypad" id="keypad">
+    <button type="button" data-k="1">1</button>
+    <button type="button" data-k="2">2</button>
+    <button type="button" data-k="3">3</button>
+    <button type="button" data-k="4">4</button>
+    <button type="button" data-k="5">5</button>
+    <button type="button" data-k="6">6</button>
+    <button type="button" data-k="7">7</button>
+    <button type="button" data-k="8">8</button>
+    <button type="button" data-k="9">9</button>
+    <button type="button" class="fn" data-k=".">.</button>
+    <button type="button" data-k="0">0</button>
+    <button type="button" class="fn" data-k="del">⌫</button>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn primary" id="to-step-2" disabled>הבא ←</button>
+  </div>
+</section>
+
+<!-- ── שלב 2: קטגוריה ראשית ── -->
+<section class="step" id="step-2">
+  <div class="step-label">
+    <span>על מה?</span>
+    <span class="dots"><i class="on"></i><i class="on"></i><i></i></span>
+  </div>
+  <div class="cat-grid" id="cat-grid"></div>
+  <div class="actions">
+    <button type="button" class="btn back" id="back-1">→ חזרה</button>
+  </div>
+</section>
+
+<!-- ── שלב 3: תיוג + הערות ── -->
+<section class="step" id="step-3">
+  <div class="step-label">
+    <span>עוד פרטים? (רשות)</span>
+    <span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i></span>
+  </div>
+  <div id="chosen-line">
+    <span class="em" id="chosen-em">🏷️</span>
+    <span class="nm" id="chosen-nm"></span>
+    <span class="amt" id="chosen-amt"></span>
+  </div>
+  <div class="sec-label" id="tags-label">תיוג</div>
+  <div id="tag-wrap"></div>
+  <div class="sec-label">הערה חופשית</div>
+  <input id="note-input" maxlength="120" placeholder="למשל: קניות לשבת…" enterkeyhint="done" autocomplete="off">
+  <div class="actions">
+    <button type="button" class="btn back" id="back-2">→ חזרה</button>
+    <button type="button" class="btn primary" id="save-btn">💾 שמור</button>
+  </div>
+</section>
+
+<!-- מסך הצלחה -->
+<div id="done">
+  <div class="big" id="done-ico">✓</div>
+  <div class="msg" id="done-msg">נשמר!</div>
+  <div class="sub" id="done-sub"></div>
+</div>
+
+<!-- מסך חסימה -->
+<div id="blocked">
+  <div class="ico">🔒</div>
+  <p><b>אין הרשאת גישה.</b><br>
+     יש לפתוח את הדף עם טוקן בכתובת:<br>
+     <code dir="ltr">/quick-add.html?t=הטוקן_הסודי</code></p>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+var $=function(id){ return document.getElementById(id); };
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function haptic(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms||10); }catch(e){} }
+var toastTimer=null;
+function toast(msg,isErr){
+  var t=$('toast'); t.textContent=msg;
+  t.className='on'+(isErr?' err':'');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){ t.className=''; },2600);
+}
+
+/* ═══ 1. אבטחה בסיסית: טוקן חובה ═══════════════════════════
+   ?t= ב-URL נשמר ל-localStorage; ביקור חוזר תקף גם בלי הפרמטר.
+   הטוקן משמש כ-X-App-Secret — השרת (Vercel) מאמת אותו בכל קריאה,
+   כך שגם מי שמצא את הדף בלי טוקן תקין לא יכול לשמור או למשוך דבר. */
+var LS_TOKEN='qa_token';
+var TOKEN=(function(){
+  var fromUrl='';
+  try{ fromUrl=new URLSearchParams(location.search).get('t')||''; }catch(e){}
+  if(fromUrl){
+    try{ localStorage.setItem(LS_TOKEN,fromUrl); }catch(e){}
+    return fromUrl;
+  }
+  try{ return localStorage.getItem(LS_TOKEN)||''; }catch(e){ return ''; }
+})();
+if(!TOKEN){
+  $('blocked').classList.add('on');
+  return; /* הדף נעצר כאן — אין טוקן, אין ווידג'ט */
+}
+
+/* ═══ 2. משתמש ═══════════════════════════════════════════ */
+var LS_USER='qa_user';
+var user=(function(){
+  var u='';
+  try{ u=new URLSearchParams(location.search).get('u')||''; }catch(e){}
+  if(!u){ try{ u=localStorage.getItem(LS_USER)||''; }catch(e){} }
+  return (u==='שקד'||u==='אביטל')?u:'שקד';
+})();
+function renderUser(){
+  [].forEach.call(document.querySelectorAll('#user-seg button'),function(b){
+    b.classList.toggle('on',b.dataset.user===user);
+  });
+}
+$('user-seg').addEventListener('click',function(ev){
+  var b=ev.target.closest('[data-user]'); if(!b) return;
+  user=b.dataset.user;
+  try{ localStorage.setItem(LS_USER,user); }catch(e){}
+  renderUser(); haptic(8);
+});
+renderUser();
+
+/* ═══ 3. קטגוריות + תיוגים — localStorage עם רענון רשת ═══ */
+var LS_CATS='qa_cats_v1';
+var cats=[], tags={};
+function loadCatsFromStorage(){
+  try{
+    var raw=JSON.parse(localStorage.getItem(LS_CATS)||'null');
+    if(raw && Array.isArray(raw.expense)){ cats=raw.expense; tags=raw.tags||{}; return true; }
+  }catch(e){}
+  return false;
+}
+function saveCatsToStorage(){
+  try{ localStorage.setItem(LS_CATS,JSON.stringify({expense:cats,tags:tags,t:Date.now()})); }catch(e){}
+}
+async function refreshCats(){
+  if(!navigator.onLine) return;
+  try{
+    var res=await fetch('/api/get-categories',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-App-Secret':TOKEN},
+      body:'{}'
+    });
+    if(res.status===401||res.status===403){ toast('טוקן שגוי — אין הרשאה',true); return; }
+    if(!res.ok) return;
+    var data=await res.json();
+    if(data && data.categories && Array.isArray(data.categories.expense) && data.categories.expense.length){
+      cats=data.categories.expense;
+      tags=(data.tags && typeof data.tags==='object')?data.tags:{};
+      saveCatsToStorage();
+      renderCatGrid();
+    }
+  }catch(e){ /* אין רשת / שגיאה — נשארים עם ה-Cache */ }
+}
+
+var CAT_FALLBACK=[{name:'סופר',emoji:'🛒'},{name:'אוכל בחוץ',emoji:'🍔'},{name:'רכב ודלק',emoji:'⛽'},
+  {name:'דיור',emoji:'🏠'},{name:'חשבונות',emoji:'🧾'},{name:'ילדים',emoji:'🧸'},
+  {name:'בריאות',emoji:'💊'},{name:'פנאי',emoji:'🎬'},{name:'ביגוד',emoji:'👕'},{name:'שונות',emoji:'📦'}];
+if(!loadCatsFromStorage()) cats=CAT_FALLBACK;
+
+/* ═══ 4. תור אופליין ═══════════════════════════════════════
+   כל הוצאה שנכשלה בשידור (או הוזנה בלי רשת) נכנסת לתור,
+   ומשודרת אוטומטית: באירוע 'online', בטעינת הדף, ואחרי כל
+   שמירה מוצלחת — עד שהתור מתרוקן. UID נוצר בצד הלקוח, כך
+   ששידור כפול לעולם לא ייצור שורה כפולה בזיהוי אנושי.       */
+var LS_QUEUE='qa_queue_v1';
+function readQueue(){
+  try{ var q=JSON.parse(localStorage.getItem(LS_QUEUE)||'[]'); return Array.isArray(q)?q:[]; }catch(e){ return []; }
+}
+function writeQueue(q){
+  try{ localStorage.setItem(LS_QUEUE,JSON.stringify(q)); }catch(e){}
+  renderBadges();
+}
+function makeUid(){
+  return 'tx_'+Date.now().toString(36)+'_'+Math.floor(Math.random()*1e9).toString(36);
+}
+async function postTx(payload){
+  var res=await fetch('/api/add-transaction',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-App-Secret':TOKEN},
+    body:JSON.stringify(payload)
+  });
+  if(res.status===401||res.status===403){ var e=new Error('unauthorized'); e.code=401; throw e; }
+  if(!res.ok){ var e2=new Error('server '+res.status); e2.code=res.status; throw e2; }
+  return res.json();
+}
+var flushing=false;
+async function flushQueue(){
+  if(flushing || !navigator.onLine) return;
+  var q=readQueue();
+  if(!q.length) return;
+  flushing=true;
+  var sent=0;
+  try{
+    while(q.length){
+      await postTx(q[0]);   /* כשל → זריקה → השורה נשארת בראש התור */
+      q.shift();
+      writeQueue(q);
+      sent++;
+    }
+  }catch(e){
+    if(e.code===401){ toast('טוקן שגוי — התור ממתין',true); }
+    /* שגיאת רשת/שרת — ננסה שוב ב-online הבא */
+  }finally{
+    flushing=false;
+    renderBadges();
+    if(sent) toast('📤 שודרו '+sent+' הוצאות מהתור');
+  }
+}
+
+/* ═══ 5. מצב רשת + תגים בכותרת ════════════════════════════ */
+function renderBadges(){
+  var online=navigator.onLine;
+  var nb=$('net-badge');
+  nb.textContent=online?'מקוון':'אופליין';
+  nb.className=online?'':'off';
+  var q=readQueue();
+  var qb=$('queue-badge');
+  if(q.length){ qb.style.display='inline'; qb.textContent='בתור: '+q.length; }
+  else qb.style.display='none';
+}
+window.addEventListener('online',function(){ renderBadges(); refreshCats(); flushQueue(); });
+window.addEventListener('offline',renderBadges);
+
+/* ═══ 6. אשף ההזנה ════════════════════════════════════════ */
+var wiz={ amount:'', category:null, tag:'', note:'' };
+
+function gotoStep(n){
+  [1,2,3].forEach(function(i){ $('step-'+i).classList.toggle('on',i===n); });
+  if(n===3){ /* המקלדת של ההערה לא נפתחת לבד — הזנה באצבע אחת */ try{ document.activeElement.blur(); }catch(e){} }
+}
+
+/* — שלב 1: מקלדת סכום — */
+function renderAmount(){
+  var v=wiz.amount;
+  var av=$('amount-view');
+  av.classList.toggle('empty',!v);
+  av.innerHTML='<small>₪</small>'+esc(v||'0');
+  $('to-step-2').disabled=!(parseFloat(v)>0);
+}
+$('keypad').addEventListener('click',function(ev){
+  var b=ev.target.closest('[data-k]'); if(!b) return;
+  var k=b.dataset.k, v=wiz.amount;
+  haptic(6);
+  if(k==='del') v=v.slice(0,-1);
+  else if(k==='.'){ if(v && v.indexOf('.')===-1) v+='.'; }
+  else{
+    if(v.indexOf('.')!==-1 && v.length-v.indexOf('.')>2) return; /* 2 ספרות אחרי הנקודה */
+    if(v.replace('.','').length>=7) return;                       /* תקרה שפויה */
+    v=(v==='0'?'':v)+k;
+  }
+  wiz.amount=v;
+  renderAmount();
+});
+$('to-step-2').addEventListener('click',function(){ gotoStep(2); haptic(10); });
+$('back-1').addEventListener('click',function(){ gotoStep(1); });
+$('back-2').addEventListener('click',function(){ gotoStep(2); });
+
+/* — שלב 2: קטגוריות ראשיות (מועדפות קודם) — */
+function renderCatGrid(){
+  var list=cats.slice().sort(function(a,b){ return (b.fav?1:0)-(a.fav?1:0); });
+  $('cat-grid').innerHTML=list.map(function(c){
+    return '<button type="button" class="cat-tile" data-cat="'+esc(c.name)+'" style="position:relative">'+
+      (c.fav?'<span class="star">⭐</span>':'')+
+      '<span class="em">'+esc(c.emoji||'🏷️')+'</span>'+
+      '<span class="nm">'+esc(c.name)+'</span></button>';
+  }).join('')||'<span style="color:var(--dim);font-size:.8rem">אין קטגוריות — נדרש חיבור ראשון לרשת</span>';
+}
+$('cat-grid').addEventListener('click',function(ev){
+  var b=ev.target.closest('[data-cat]'); if(!b) return;
+  var name=b.dataset.cat;
+  wiz.category=null;
+  for(var i=0;i<cats.length;i++) if(cats[i].name===name){ wiz.category=cats[i]; break; }
+  if(!wiz.category) wiz.category={name:name,emoji:'🏷️'};
+  wiz.tag='';
+  haptic(10);
+  renderStep3();
+  gotoStep(3);
+});
+
+/* — שלב 3: תיוג לפי הקטגוריה שנבחרה + הערות — */
+function renderStep3(){
+  $('chosen-em').textContent=wiz.category.emoji||'🏷️';
+  $('chosen-nm').textContent=wiz.category.name;
+  $('chosen-amt').textContent='₪'+wiz.amount;
+  var list=(tags[wiz.category.name]||[]);
+  $('tags-label').style.display=list.length?'block':'none';
+  $('tag-wrap').innerHTML=list.length
+    ? list.map(function(t){
+        return '<button type="button" class="tag-pill'+(t===wiz.tag?' on':'')+'" data-tag="'+esc(t)+'">'+esc(t)+'</button>';
+      }).join('')
+    : '<span id="no-tags">אין תיוגים לקטגוריה זו</span>';
+}
+$('tag-wrap').addEventListener('click',function(ev){
+  var b=ev.target.closest('[data-tag]'); if(!b) return;
+  wiz.tag=(wiz.tag===b.dataset.tag)?'':b.dataset.tag; /* לחיצה חוזרת = ביטול */
+  haptic(8);
+  renderStep3();
+});
+
+/* — שמירה — */
+function todayISO(){
+  var d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function showDone(queued){
+  $('done-ico').textContent=queued?'📥':'✓';
+  $('done-ico').className='big'+(queued?' q':'');
+  $('done-msg').textContent=queued?'נשמר בתור':'נשמר!';
+  $('done-sub').textContent=queued
+    ? 'אין קליטה כרגע — ההוצאה תשודר אוטומטית ברגע שהאינטרנט יחזור.'
+    : 'ההוצאה נרשמה בגיליון.';
+  $('done').classList.add('on');
+  setTimeout(function(){
+    $('done').classList.remove('on');
+    wiz={ amount:'', category:null, tag:'', note:'' };
+    $('note-input').value='';
+    renderAmount();
+    gotoStep(1);
+  },1400);
+}
+$('save-btn').addEventListener('click',async function(){
+  if(!wiz.category || !(parseFloat(wiz.amount)>0)) return;
+  var btn=$('save-btn');
+  btn.disabled=true; btn.textContent='שומר…';
+  var payload={
+    type:'expense',
+    who:user,
+    category:wiz.category.name,
+    amount:parseFloat(wiz.amount),
+    note:$('note-input').value.trim(),
+    tag:wiz.tag,
+    date:todayISO(),
+    uid:makeUid() /* UID בצד הלקוח — שידור חוזר מהתור לא יכפיל שורה בזיהוי */
+  };
+  var queued=false;
+  if(navigator.onLine){
+    try{
+      await postTx(payload);
+    }catch(e){
+      if(e.code===401){ toast('טוקן שגוי — אין הרשאה',true); btn.disabled=false; btn.textContent='💾 שמור'; return; }
+      queued=true; /* השרת לא זמין — לתור */
+    }
+  }else{
+    queued=true;
+  }
+  if(queued){
+    var q=readQueue(); q.push(payload); writeQueue(q);
+  }
+  haptic(18);
+  btn.disabled=false; btn.textContent='💾 שמור';
+  showDone(queued);
+  if(!queued) flushQueue(); /* הזדמנות לרוקן שאריות תור ישנות */
+});
+
+/* ═══ 7. Boot ═════════════════════════════════════════════ */
+renderAmount();
+renderCatGrid();
+renderBadges();
+refreshCats();  /* רענון קטגוריות+תיוגים ברקע כשיש רשת */
+flushQueue();   /* שידור תור שנשאר מפעם קודמת */
+
+/* ה-Service Worker הקיים של האפליקציה שומר גם את הדף הזה ב-Cache —
+   כך הווידג'ט נפתח גם בלי קליטה (ראו sw.js גרסה v9). */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
+})();
+</script>
+</body>
+</html>

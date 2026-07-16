@@ -357,6 +357,29 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 .swatches{display:flex;gap:8px;flex-wrap:wrap}
 .swatches button{width:35px;height:35px;border-radius:11px;border:2.5px solid transparent}
 .swatches button.on{border-color:var(--g-900);transform:scale(1.08)}
+/* פופ-אפ קטגוריה קומפקטי: שם + אימוג'י באותה שורה */
+#cat-modal .modal{padding:14px 14px calc(16px + var(--safe-b))}
+#cat-modal h3{font-size:.98rem;margin-bottom:10px}
+#cat-modal .fg{margin-bottom:9px}
+#cat-modal .fg label{font-size:.68rem;margin-bottom:3px}
+.name-emoji-row{display:flex;gap:8px;align-items:flex-end}
+.name-emoji-row .ne-name{flex:1;min-width:0}
+.name-emoji-row .ne-emoji{flex:0 0 62px}
+#cat-name-input{padding:8px 11px;font-size:.9rem}
+#cat-emoji-input{padding:5px 4px;font-size:1.15rem;text-align:center}
+#cat-modal .emoji-grid{max-height:96px}
+#cat-modal .emoji-grid button{font-size:1.08rem;padding:5px 0}
+#cat-modal .fav-line{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem;font-weight:500;color:var(--ink)}
+/* תיוגים (תתי-קטגוריות) — Chips */
+.tag-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:7px;min-height:4px}
+.tag-chip{display:inline-flex;align-items:center;gap:6px;background:var(--g-100);color:var(--g-900);border:1px solid var(--g-700);border-radius:99px;padding:4px 11px;font-size:.75rem;font-weight:600;line-height:1.2}
+.tag-chip .x{display:grid;place-items:center;width:15px;height:15px;border-radius:50%;background:var(--g-700);color:#fff;font-size:.6rem;line-height:1;cursor:pointer;flex:0 0 auto}
+.tag-chip .x:active{transform:scale(.88)}
+.tag-empty{font-size:.72rem;color:var(--gray-500)}
+.tag-add-row{display:flex;gap:6px}
+.tag-add-row .ifield{flex:1;min-width:0;padding:7px 10px;font-size:.82rem}
+.tag-add-row button{flex:0 0 40px;border-radius:12px;background:var(--g-700);color:#fff;font-size:1.05rem;font-weight:700}
+.tag-add-row button:active{transform:scale(.95)}
 /* אנליטיקס */
 .an-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:15px;margin-bottom:4px}
 .cmp-row{display:flex;gap:8px;align-items:center;margin-bottom:11px}
@@ -685,25 +708,36 @@ nav.bottom button{font-size:.6rem}
       </span>
     </h3>
     <div class="fg">
-      <label>שם הקטגוריה</label>
-      <input class="ifield" id="cat-name-input" maxlength="40">
-    </div>
-    <div class="fg">
-      <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.86rem;font-weight:500;color:var(--ink)">
-        <input type="checkbox" id="cat-fav" style="width:19px;height:19px;accent-color:var(--g-700)">
-        ⭐ מועדפת — תופיע ראשונה במסך ההזנה
-      </label>
-    </div>
-    <div class="fg">
-      <label>אימוג'י — בחרו מהפאנל לפי נושא (או הקלידו חופשי)</label>
-      <input class="ifield" id="cat-emoji-input" maxlength="8" inputmode="text" autocomplete="off"
-             style="text-align:center;font-size:1.45rem;padding:6px">
-      <div class="emoji-tabs" id="emoji-tabs" style="margin-top:8px"></div>
+      <div class="name-emoji-row">
+        <div class="ne-name">
+          <label>שם הקטגוריה</label>
+          <input class="ifield" id="cat-name-input" maxlength="40">
+        </div>
+        <div class="ne-emoji">
+          <label>אימוג'י</label>
+          <input class="ifield" id="cat-emoji-input" maxlength="8" inputmode="text" autocomplete="off">
+        </div>
+      </div>
+      <div class="emoji-tabs" id="emoji-tabs" style="margin-top:7px"></div>
       <div class="emoji-grid" id="emoji-grid"></div>
+    </div>
+    <div class="fg">
+      <label>תיוגים (תתי-קטגוריות)</label>
+      <div class="tag-chips" id="tag-chips"></div>
+      <div class="tag-add-row">
+        <input class="ifield" id="tag-new-input" maxlength="30" placeholder="תיוג חדש…" enterkeyhint="done" autocomplete="off">
+        <button type="button" id="tag-add-btn" aria-label="הוספת תיוג">＋</button>
+      </div>
     </div>
     <div class="fg">
       <label>צבע רקע</label>
       <div class="swatches" id="swatches"></div>
+    </div>
+    <div class="fg">
+      <label class="fav-line">
+        <input type="checkbox" id="cat-fav" style="width:18px;height:18px;accent-color:var(--g-700)">
+        ⭐ מועדפת — תופיע ראשונה במסך ההזנה
+      </label>
     </div>
     <button class="btn full" id="cat-save">💾 שמירה</button>
   </div>
@@ -1127,6 +1161,7 @@ var state={
   m:(new Date()).getMonth()+1,   /* 1-12 */
   rows:[],
   cats:JSON.parse(JSON.stringify(DEFAULT_CATS)),
+  tags:{},                       /* { 'קטגוריה': ['תיוג1','תיוג2'] } — מגיליון 'תיוגים' */
   whoFilter:'all',               /* הכל | שקד | אביטל */
   splitView:(function(){ try{ return localStorage.getItem('ff_split')==='1'; }catch(e){ return false; } })(),
   loading:false
@@ -1178,6 +1213,10 @@ var pendingRows=[];
 /* ═══ חילוץ קטגוריות עמיד — תומך בכל מבנה תשובה ═══════
    {categories:{expense:[],income:[]}} | {categories:[...]} | ריק */
 function applyCategories(data){
+  /* תיוגים: מפה {קטגוריה:[...]} — נקלטת תמיד כשקיימת בתשובה */
+  if(data && data.tags && typeof data.tags==='object' && !Array.isArray(data.tags)){
+    state.tags=data.tags;
+  }
   var c=data ? data.categories : undefined;
   if(c===undefined || c===null){
     console.warn('[categories] לא התקבל שדה categories בתשובת get-data — נשארים עם הקטגוריות הקיימות. מבנה התשובה:',
@@ -1233,11 +1272,12 @@ async function revalidateCurrentMonth(){
   try{
     var data=await apiFetch('/api/get-data',{month:m,year:y});
     var rows=Array.isArray(data.rows)?data.rows:[];
-    monthCache[key]={rows:rows,cats:(monthCache[key]&&monthCache[key].cats)||null,t:Date.now()};
+    monthCache[key]={rows:rows,cats:(monthCache[key]&&monthCache[key].cats)||null,tags:(monthCache[key]&&monthCache[key].tags)||null,t:Date.now()};
     if(key===mKey(state.y,state.m)){
       state.rows=rows.slice();
       applyCategories(data);
       monthCache[key].cats=state.cats;
+      monthCache[key].tags=state.tags;
       scheduleRenderAll();
     }
     cacheSave();
@@ -1253,6 +1293,7 @@ async function loadMonth(force){
     lastLoadFromCache=true;
     state.rows=(monthCache[key].rows||[]).slice();
     if(monthCache[key].cats) state.cats=monthCache[key].cats;
+    if(monthCache[key].tags) state.tags=monthCache[key].tags;
     scheduleRenderAll();
     return;
   }
@@ -1278,13 +1319,14 @@ async function loadMonth(force){
       return !confirmed;
     });
 
-    monthCache[key]={rows:rows,cats:(monthCache[key]&&monthCache[key].cats)||null,t:Date.now()};
+    monthCache[key]={rows:rows,cats:(monthCache[key]&&monthCache[key].cats)||null,tags:(monthCache[key]&&monthCache[key].tags)||null,t:Date.now()};
 
     /* מחילים על המסך רק אם זו הבקשה האחרונה והחודש עדיין מוצג */
     if(seq===loadSeq && key===mKey(state.y,state.m)){
       state.rows=rows.slice();
       applyCategories(data);
       monthCache[key].cats=state.cats;
+      monthCache[key].tags=state.tags;
       scheduleRenderAll();
     }
     cacheSave();
@@ -1832,11 +1874,17 @@ var catEdit=null;
 function openCatEditor(kind,i){
   var c=(state.cats[kind]||[])[i];
   if(!c) return;
-  catEdit={kind:kind,i:i,emoji:c.emoji,color:c.color};
+  catEdit={
+    kind:kind,i:i,emoji:c.emoji,color:c.color,
+    origName:c.name,                              /* לזיהוי Rename בשמירה */
+    tags:(state.tags[c.name]||[]).slice(),        /* עותק עבודה של התיוגים */
+    tagsDirty:false
+  };
   $('cat-modal-title').textContent='עריכת "'+c.name+'"';
   $('cat-name-input').value=c.name;
   $('cat-fav').checked=!!c.fav;
   $('cat-emoji-input').value=c.emoji;
+  $('tag-new-input').value='';
   renderCatEditor();
   $('cat-modal').classList.add('on');
 }
@@ -1850,6 +1898,43 @@ function renderCatEditor(){
   $('swatches').innerHTML=CAT_COLORS.map(function(c){
     return '<button type="button" data-sw="'+c+'" class="'+(c===catEdit.color?'on':'')+'" style="background:'+c+'" aria-label="'+c+'"></button>';
   }).join('');
+  renderTagChips();
+}
+/* ── תיוגים בפופ-אפ: Chips + מחיקה ב-X + הוספה ─────────── */
+function renderTagChips(){
+  var tags=(catEdit&&catEdit.tags)||[];
+  $('tag-chips').innerHTML=tags.length
+    ? tags.map(function(t,i){
+        return '<span class="tag-chip">'+esc(t)+
+          '<span class="x" data-rmtag="'+i+'" role="button" aria-label="הסרת התיוג '+esc(t)+'">✕</span></span>';
+      }).join('')
+    : '<span class="tag-empty">אין תיוגים לקטגוריה זו — הוסיפו למטה</span>';
+}
+function addTagFromInput(){
+  if(!catEdit) return;
+  var inp=$('tag-new-input');
+  var v=inp.value.trim().slice(0,30);
+  if(!v) return;
+  if(catEdit.tags.indexOf(v)!==-1){ toast('התיוג כבר קיים',true); return; }
+  if(catEdit.tags.length>=40){ toast('הגעתם למקסימום תיוגים לקטגוריה',true); return; }
+  catEdit.tags.push(v);
+  catEdit.tagsDirty=true;
+  inp.value='';
+  renderTagChips();
+  haptic(8);
+}
+/* סנכרון תיוגים לגיליון 'תיוגים' — רץ ברקע אחרי שמירת הפופ-אפ */
+async function syncTagsFor(name,tags,renamedFrom){
+  try{
+    if(renamedFrom && renamedFrom!==name){
+      await apiFetch('/api/sync-tags',{op:'rename',from:renamedFrom,to:name});
+    }
+    await apiFetch('/api/sync-tags',{category:name,tags:tags});
+    /* עדכון ה-Cache של כל החודשים — לתיוגים אין הקשר חודשי */
+    Object.keys(monthCache).forEach(function(k){ monthCache[k].tags=state.tags; });
+    cacheSave();
+    toast('🏷️ התיוגים סונכרנו לגיליון');
+  }catch(e){ if(e.code!==401) toast('שגיאה בסנכרון תיוגים: '+e.message,true); }
 }
 
 /* ═══ Drag & Drop לסידור קטגוריות (Pointer Events, לחיצה ארוכה) ═══ */
@@ -1949,6 +2034,17 @@ function saveCatEdit(){
   var renamed=(newName!==c.name);
   c.name=newName; c.emoji=emoji; c.color=catEdit.color; c.fav=$('cat-fav').checked;
   catsDirty=true;
+
+  /* ── תיוגים: עדכון מקומי + סנכרון מיידי לגיליון 'תיוגים' ── */
+  var origName=catEdit.origName||newName;
+  if(renamed && state.tags[origName]){
+    delete state.tags[origName]; /* המפתח עובר לשם החדש */
+  }
+  if(catEdit.tagsDirty || renamed){
+    state.tags[newName]=catEdit.tags.slice();
+    syncTagsFor(newName,catEdit.tags.slice(),renamed?origName:null); /* רקע — לא חוסם את הסגירה */
+  }
+
   $('cat-modal').classList.remove('on');
   renderCats();
   toast(renamed?'✓ עודכן — שינוי השם חל על תנועות חדשות בלבד':'✓ עודכן — זכרו לסנכרן לגיליון');
@@ -2311,9 +2407,27 @@ function init(){
     var c=(state.cats[catEdit.kind]||[])[catEdit.i];
     if(!c) return;
     if(!confirm('למחוק את הקטגוריה "'+c.name+'"?')) return;
+    /* ניקוי התיוגים של הקטגוריה — מקומית ובגיליון 'תיוגים' */
+    if(state.tags[c.name]){
+      delete state.tags[c.name];
+      syncTagsFor(c.name,[],null); /* רשימה ריקה = מחיקת כל שורות הקטגוריה */
+    }
     rmCat(catEdit.kind,catEdit.i);
     $('cat-modal').classList.remove('on');
     toast('🗑 הקטגוריה נמחקה — זכרו לסנכרן לגיליון');
+  });
+
+  /* תיוגים בפופ-אפ: הוספה בכפתור / Enter, הסרה בלחיצה על ה-X */
+  $('tag-add-btn').addEventListener('click',addTagFromInput);
+  $('tag-new-input').addEventListener('keydown',function(e){
+    if(e.key==='Enter'){ e.preventDefault(); addTagFromInput(); }
+  });
+  $('tag-chips').addEventListener('click',function(ev){
+    var x=ev.target.closest('[data-rmtag]'); if(!x||!catEdit) return;
+    catEdit.tags.splice(Number(x.dataset.rmtag),1);
+    catEdit.tagsDirty=true;
+    renderTagChips();
+    haptic(8);
   });
 
   /* החלקה על שדה התאריך: ימין־לשמאל = יום אחורה, שמאל־לימין = יום קדימה */
