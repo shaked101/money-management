@@ -25,6 +25,7 @@ const APP_SHELL = [
   './index.html',
   './quick-add.html',
   './manifest.json',
+  './quick-add-manifest.json',
   './icon-192.png',
   './icon-512.png'
 ];

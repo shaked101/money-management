@@ -388,6 +388,19 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 }
 .tx-tags .tsel.on{background:var(--g-700);border-color:var(--g-700);color:#fff}
 .tx-tags .tsel:active{transform:scale(.96)}
+/* תיוג בשורת תנועה — Chip קטן עם # */
+.row-tag{
+  display:inline-block;margin-inline-start:6px;vertical-align:1px;
+  background:var(--g-100);color:var(--g-700);border-radius:99px;
+  padding:1px 8px;font-size:.62rem;font-weight:700;line-height:1.5;white-space:nowrap;
+}
+.tx.tx-sm .row-tag{padding:0 6px;font-size:.56rem;margin-inline-start:4px}
+/* השוואה ממוקדת באנליטיקס */
+#cmp-cat,#cmp-tag{appearance:auto;-webkit-appearance:menulist;padding:9px 11px}
+#cmp-summary{margin-top:12px;background:var(--gray-100);border-radius:var(--r-sm);padding:11px 14px;font-size:.8rem;line-height:1.7}
+#cmp-summary b{font-variant-numeric:tabular-nums}
+#cmp-summary .delta.up{color:var(--red);font-weight:700}
+#cmp-summary .delta.down{color:var(--g-700);font-weight:700}
 /* בר הסינון בדשבורד */
 .filter-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
 .filter-head{width:100%;display:flex;align-items:center;gap:9px;padding:13px 16px;font-size:.86rem;font-weight:700;color:var(--ink);text-align:right}
@@ -654,7 +667,18 @@ nav.bottom button{font-size:.6rem}
           <span class="cmp-vs">מול</span>
           <input type="month" class="ifield" id="cmp-b" aria-label="חודש ב'">
         </div>
-        <button class="btn full" id="cmp-go">📊 השוואת הוצאות לפי קטגוריות</button>
+        <div class="grid-2" style="margin-top:10px">
+          <div class="fg" style="margin-bottom:0">
+            <label>קטגוריה להשוואה</label>
+            <select class="ifield" id="cmp-cat"><option value="">כל הקטגוריות</option></select>
+          </div>
+          <div class="fg" id="cmp-tag-fg" style="margin-bottom:0;display:none">
+            <label>תיוג</label>
+            <select class="ifield" id="cmp-tag"><option value="">כל התיוגים</option></select>
+          </div>
+        </div>
+        <button class="btn full" id="cmp-go" style="margin-top:12px">📊 השוואת הוצאות</button>
+        <div id="cmp-summary" class="hidden"></div>
         <div class="chart-box wide" style="margin-top:14px"><canvas id="an-bar"></canvas></div>
       </div>
     </section>
@@ -1756,10 +1780,12 @@ function txRowHTML(r,compact){
   var meta=catMeta(r.type,r.category);
   var icBg=meta?meta.color:(isExp?'var(--red-bg)':'var(--g-100)');
   var ic=meta?meta.emoji:(r.category||'?').trim().charAt(0);
+  /* תיוג (תת-קטגוריה): Chip קטן עם # צמוד לשם הקטגוריה */
+  var tagChip=r.tag?('<span class="row-tag">#'+esc(r.tag)+'</span>'):'';
   return '<div class="tx '+(isExp?'expense':'income')+(compact?' tx-sm':'')+'" data-ins="'+esc(r.uid)+'">'+
     '<div class="cat-ic" style="background:'+esc(icBg)+';color:var(--ink)">'+esc(ic)+'</div>'+
     '<div class="mid">'+
-      '<div class="cat">'+esc(r.category||'ללא קטגוריה')+(r.note&&!compact?' · <span style="font-weight:400;color:var(--gray-700)">'+esc(r.note)+'</span>':'')+'</div>'+
+      '<div class="cat">'+esc(r.category||'ללא קטגוריה')+tagChip+(r.note&&!compact?' · <span style="font-weight:400;color:var(--gray-700)">'+esc(r.note)+'</span>':'')+'</div>'+
       '<div class="meta">'+(r.recurring?'<span title="תנועה קבועה">🔁</span> ':'')+fmtDate(r.date)+(compact?'':' '+whoChip(r.who))+'</div>'+
     '</div>'+
     '<div class="amt">'+(isExp?'−':'+')+fmt(Math.abs(Number(r.amount)||0))+'</div>'+
@@ -1795,7 +1821,7 @@ function openIncomeModal(){
     (rows.length?rows.map(function(r){
       return '<div class="ins-tx">'+
         '<span class="d">'+fmtDate(r.date)+(r.recurring?' 🔁':'')+'</span>'+
-        '<span class="w">'+esc(r.category||'')+(r.note?' · '+esc(r.note):'')+' · '+esc(r.who||'')+'</span>'+
+        '<span class="w">'+esc(r.category||'')+(r.tag?' <span class="row-tag">#'+esc(r.tag)+'</span>':'')+(r.note?' · '+esc(r.note):'')+' · '+esc(r.who||'')+'</span>'+
         '<b style="color:var(--g-400)">+'+fmt(Math.abs(Number(r.amount)||0))+'</b>'+
         '<button class="mini-edit" data-editinc="'+esc(r.uid)+'" aria-label="עריכת הכנסה">✏️</button>'+
       '</div>';
@@ -1847,7 +1873,7 @@ function renderInsight(){
   var listHtml=shown.map(function(r){
     return '<div class="ins-tx">'+
       '<span class="d">'+fmtDate(r.date)+'</span>'+
-      '<span class="w">'+esc(r.who||'—')+(r.note?' · '+esc(r.note):'')+'</span>'+
+      '<span class="w">'+esc(r.who||'—')+(r.tag?' <span class="row-tag">#'+esc(r.tag)+'</span>':'')+(r.note?' · '+esc(r.note):'')+'</span>'+
       '<b>'+(isExp?'−':'+')+fmt(Math.abs(Number(r.amount)||0))+'</b></div>';
   }).join('')||'<div class="split-empty">אין תנועות בתקופה זו 🍃</div>';
   $('ins-body').innerHTML=
@@ -2048,6 +2074,7 @@ var catsDirty=false;
 function renderCats(){
   lastCatsSig=JSON.stringify(state.cats);
   renderFilterOptions(); /* הקטגוריות בבר הסינון תמיד מסונכרנות */
+  renderCmpOptions();    /* וגם בוררי ההשוואה באנליטיקס */
   ['expense','income'].forEach(function(kind){
     var wrap=$('chips-'+kind);
     wrap.className='cat-blocks';
@@ -2380,44 +2407,120 @@ async function fetchMonthRows(y,m){
   cacheSave();
   return rows;
 }
+/* ── השוואה ממוקדת: בוררי קטגוריה/תיוג של לשונית האנליטיקס ──
+   ▸ ללא בחירה — השוואת כל הקטגוריות (כמו קודם).
+   ▸ קטגוריה בלבד — פירוק ההשוואה לפי התיוגים שבתוכה.
+   ▸ קטגוריה + תיוג — השוואת התיוג הבודד בלבד.
+   הבוררים כאן עצמאיים ואינם תלויים בבר הסינון של הדשבורד.   */
+function renderCmpOptions(){
+  var sel=$('cmp-cat');
+  if(!sel) return;
+  var cur=sel.value;
+  sel.innerHTML='<option value="">כל הקטגוריות</option>'+(state.cats.expense||[]).map(function(c){
+    return '<option value="'+esc(c.name)+'"'+(c.name===cur?' selected':'')+'>'+esc(c.emoji)+' '+esc(c.name)+'</option>';
+  }).join('');
+  renderCmpTagOptions();
+}
+function renderCmpTagOptions(){
+  var cat=$('cmp-cat').value;
+  var fg=$('cmp-tag-fg'), sel=$('cmp-tag');
+  var cur=sel.value;
+  var list=(cat && state.tags[cat])?state.tags[cat]:[];
+  fg.style.display=list.length?'':'none';
+  sel.innerHTML='<option value="">כל התיוגים</option>'+list.map(function(t){
+    return '<option value="'+esc(t)+'"'+(t===cur?' selected':'')+'>'+esc(t)+'</option>';
+  }).join('');
+  if(!list.length) sel.value='';
+}
 async function runCompare(){
   if(!window.Chart){ toast('רכיב הגרפים עדיין נטען — נסו שוב',true); return; }
   var a=$('cmp-a').value, b=$('cmp-b').value; /* YYYY-MM */
   if(!a||!b){ toast('בחרו שני חודשים להשוואה',true); return; }
+  var cmpCat=$('cmp-cat').value||'';
+  var cmpTag=($('cmp-tag-fg').style.display==='none')?'':($('cmp-tag').value||'');
   var btn=$('cmp-go'); btn.disabled=true; btn.textContent='טוען נתונים…';
   try{
     var pa=a.split('-').map(Number), pb=b.split('-').map(Number);
-    /* סינון קטגוריה/תיוג מבר הסינון חל גם על ההשוואה (MoM) */
-    var ea=expenseByCat((await fetchMonthRows(pa[0],pa[1])).filter(passesCatTag));
-    var eb=expenseByCat((await fetchMonthRows(pb[0],pb[1])).filter(passesCatTag));
-    var labels=[];
+    function pick(rows){
+      return rows.filter(function(r){
+        if(r.type==='income') return false;
+        if(cmpCat && (r.category||'ללא קטגוריה')!==cmpCat) return false;
+        if(cmpTag && String(r.tag||'')!==cmpTag) return false;
+        return true;
+      });
+    }
+    var rowsA=pick(await fetchMonthRows(pa[0],pa[1]));
+    var rowsB=pick(await fetchMonthRows(pb[0],pb[1]));
+
+    /* בניית התוויות והנתונים לפי מצב ההשוואה */
+    var labels=[], da=[], db=[];
+    function sumBy(rows,keyFn){
+      var m={};
+      rows.forEach(function(r){ var k=keyFn(r); m[k]=(m[k]||0)+(Number(r.amount)||0); });
+      return m;
+    }
+    var ea,eb;
+    if(!cmpCat){
+      /* כל הקטגוריות */
+      ea=sumBy(rowsA,function(r){ return r.category||'ללא קטגוריה'; });
+      eb=sumBy(rowsB,function(r){ return r.category||'ללא קטגוריה'; });
+    }else if(!cmpTag){
+      /* קטגוריה אחת — פירוק לפי תיוגים */
+      ea=sumBy(rowsA,function(r){ return r.tag?('#'+r.tag):'ללא תיוג'; });
+      eb=sumBy(rowsB,function(r){ return r.tag?('#'+r.tag):'ללא תיוג'; });
+    }else{
+      /* תיוג בודד */
+      ea={}; ea['#'+cmpTag]=rowsA.reduce(function(t,r){ return t+(Number(r.amount)||0); },0);
+      eb={}; eb['#'+cmpTag]=rowsB.reduce(function(t,r){ return t+(Number(r.amount)||0); },0);
+    }
     Object.keys(ea).concat(Object.keys(eb)).forEach(function(k){
       if(labels.indexOf(k)===-1) labels.push(k);
     });
     labels.sort(function(x,y){ return ((eb[y]||0)+(ea[y]||0))-((eb[x]||0)+(ea[x]||0)); });
-    if(!labels.length){
-      toast(filter.cat||filter.tag
-        ? 'אין הוצאות תואמות לסינון בחודשים שנבחרו'
-        : 'אין הוצאות באף אחד מהחודשים שנבחרו',true);
+    var totA=rowsA.reduce(function(t,r){ return t+(Number(r.amount)||0); },0);
+    var totB=rowsB.reduce(function(t,r){ return t+(Number(r.amount)||0); },0);
+    if(!labels.length || (!totA&&!totB)){
+      $('cmp-summary').classList.add('hidden');
+      toast(cmpCat?'אין הוצאות תואמות לבחירה בחודשים אלה':'אין הוצאות באף אחד מהחודשים שנבחרו',true);
       return;
     }
-    var suffix=(filter.tag?' · 🏷️ '+filter.tag:'');
-    var la=HE_MONTHS[pa[1]-1]+' '+pa[0]+suffix, lb=HE_MONTHS[pb[1]-1]+' '+pb[0]+suffix;
+    da=labels.map(function(l){ return ea[l]||0; });
+    db=labels.map(function(l){ return eb[l]||0; });
+
+    var la=HE_MONTHS[pa[1]-1]+' '+pa[0], lb=HE_MONTHS[pb[1]-1]+' '+pb[0];
     if(barChart){ barChart.destroy(); barChart=null; }
     barChart=new Chart($('an-bar'),{
       type:'bar',
       data:{labels:labels,datasets:[
-        {label:la,data:labels.map(function(l){ return ea[l]||0; }),backgroundColor:'#14503C',borderRadius:6},
-        {label:lb,data:labels.map(function(l){ return eb[l]||0; }),backgroundColor:'#C9A85C',borderRadius:6}
+        {label:la,data:da,backgroundColor:'#14503C',borderRadius:6},
+        {label:lb,data:db,backgroundColor:'#C9A85C',borderRadius:6}
       ]},
       options:{responsive:true,maintainAspectRatio:false,
         plugins:{legend:{position:'bottom',rtl:true,labels:{font:{family:'Heebo',size:11},boxWidth:12}}},
         scales:{y:{beginAtZero:true,ticks:{font:{family:'Heebo'}}},x:{ticks:{font:{family:'Heebo',size:10}}}}}
     });
+
+    /* ── סיכום מספרי: סה״כ לכל חודש + שינוי באחוזים ── */
+    var scope=cmpCat?(cmpCat+(cmpTag?' · #'+cmpTag:'')):'כל הקטגוריות';
+    var deltaHtml;
+    if(totA>0){
+      var pct=Math.round((totB-totA)/totA*1000)/10;
+      deltaHtml=pct===0
+        ? '<span>ללא שינוי בין החודשים</span>'
+        : '<span class="delta '+(pct>0?'up':'down')+'">'+(pct>0?'▲ עלייה':'▼ ירידה')+' של '+Math.abs(pct)+'%</span>';
+    }else{
+      deltaHtml='<span class="delta up">חדש — אין נתונים ב'+esc(la)+'</span>';
+    }
+    $('cmp-summary').innerHTML=
+      '<b>'+esc(scope)+'</b><br>'+
+      esc(la)+': <b>'+fmt(totA)+'</b> ('+rowsA.length+' תנועות) · '+
+      esc(lb)+': <b>'+fmt(totB)+'</b> ('+rowsB.length+' תנועות)<br>'+
+      deltaHtml;
+    $('cmp-summary').classList.remove('hidden');
   }catch(e){
     if(e.code!==401) toast('שגיאה בטעינת נתונים להשוואה',true);
   }finally{
-    btn.disabled=false; btn.textContent='📊 השוואת הוצאות לפי קטגוריות';
+    btn.disabled=false; btn.textContent='📊 השוואת הוצאות';
   }
 }
 
@@ -2500,6 +2603,9 @@ function init(){
   $('flt-cat').addEventListener('change',renderFilterTagOptions);
   $('flt-apply').addEventListener('click',applyFilter);
   $('flt-clear').addEventListener('click',clearFilter);
+
+  /* השוואה ממוקדת באנליטיקס: תיוגים דינמיים לפי הקטגוריה */
+  $('cmp-cat').addEventListener('change',renderCmpTagOptions);
   $('refresh-btn').addEventListener('click',function(){ loadMonth(true); }); /* ריענון ידני = משיכה טרייה מהשרת */
   $('lock-btn').addEventListener('click',function(){ lockOut('המערכת ננעלה'); });
 

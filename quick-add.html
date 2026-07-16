@@ -5,6 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#07211A">
 <title>הזנה מהירה — הכסף שלנו</title>
+
+<!-- ── PWA: התקנה כאפליקציה עצמאית (ללא שורת כתובת) ──
+     Manifest ייעודי לווידג'ט — נפרד מזה של הדשבורד הראשי,
+     עם start_url משלו (/quick-add.html) ו-display: standalone. -->
+<link rel="manifest" href="./quick-add-manifest.json">
+
+<!-- iOS / Safari: "הוספה למסך הבית" כאפליקציה במסך מלא -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="הזנה מהירה">
+<link rel="apple-touch-icon" href="./icon-192.png">
+
+<!-- Android / Chrome ישן: התנהגות אפליקציה -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="הזנה מהירה">
+
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <!-- ════════════════════════════════════════════════════════════
      quick-add.html — ווידג'ט הזנה מהירה · "הכסף שלנו"
      ▸ נפתח כ-Webview במסך מלא מהטלפון: ‎/quick-add.html?t=TOKEN‎

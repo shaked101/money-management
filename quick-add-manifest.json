@@ -1,0 +1,35 @@
+{
+  "id": "/quick-add",
+  "name": "הזנה מהירה — הכסף שלנו",
+  "short_name": "הזנה מהירה",
+  "description": "ווידג'ט הזנת הוצאות מהיר: סכום ← קטגוריה ← תיוג. עובד גם בלי קליטה — התור משודר אוטומטית כשהאינטרנט חוזר.",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "/quick-add.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07211A",
+  "theme_color": "#07211A",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
