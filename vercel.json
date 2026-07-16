@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/quick-add", "destination": "/quick-add.html" }
+  ]
+}
