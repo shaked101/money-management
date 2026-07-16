@@ -139,6 +139,19 @@ header .title{font-size:.82rem;font-weight:700;color:var(--dim);letter-spacing:.
 }
 #toast.on{opacity:1}
 #toast.err{background:rgba(224,106,90,.25);color:#FFB3A8}
+
+/* באנר שגיאת טוקן — קבוע עד לפתרון */
+#auth-error{
+  display:none;background:rgba(224,106,90,.14);border:1.5px solid rgba(224,106,90,.45);
+  border-radius:16px;padding:12px 14px;margin-bottom:10px;font-size:.76rem;line-height:1.55;color:#FFB3A8;
+}
+#auth-error.on{display:block;animation:slideIn .16s ease}
+#auth-error b{color:#fff}
+#auth-error code{direction:ltr;display:inline-block;background:rgba(0,0,0,.25);border-radius:6px;padding:1px 6px;font-size:.72rem}
+#auth-error .fix-btn{
+  display:block;width:100%;margin-top:9px;background:rgba(224,106,90,.25);color:#fff;
+  border-radius:12px;padding:9px 0;font-size:.78rem;font-weight:700;
+}
 </style>
 </head>
 <body>
@@ -154,6 +167,15 @@ header .title{font-size:.82rem;font-weight:700;color:var(--dim);letter-spacing:.
 <div class="user-seg" id="user-seg">
   <button type="button" data-user="שקד">שקד</button>
   <button type="button" data-user="אביטל">אביטל</button>
+</div>
+
+<!-- באנר שגיאת אימות: מוצג כשהשרת מחזיר 401 (טוקן שגוי) -->
+<div id="auth-error">
+  <b>🔑 הטוקן שגוי — השרת דחה את הבקשה.</b><br>
+  ודאו שהערך אחרי <code>?t=</code> בכתובת זהה <b>בדיוק</b> (כולל אותיות גדולות/קטנות, בלי רווחים)
+  ל-<code>APP_SECRET_TOKEN</code> שמוגדר ב-Environment Variables ב-Vercel,
+  ושבוצע Redeploy אחרי הגדרת המשתנה. פתחו שוב את הקישור עם הטוקן הנכון.
+  <button type="button" class="fix-btn" id="auth-reset">🔄 ניקוי הטוקן השמור ופתיחה מחדש</button>
 </div>
 
 <!-- ── שלב 1: סכום ── -->
@@ -250,22 +272,53 @@ function toast(msg,isErr){
 
 /* ═══ 1. אבטחה בסיסית: טוקן חובה ═══════════════════════════
    ?t= ב-URL נשמר ל-localStorage; ביקור חוזר תקף גם בלי הפרמטר.
-   הטוקן משמש כ-X-App-Secret — השרת (Vercel) מאמת אותו בכל קריאה,
-   כך שגם מי שמצא את הדף בלי טוקן תקין לא יכול לשמור או למשוך דבר. */
+   ▸ החילוץ נעשה ישירות מ-location.search (לא URLSearchParams) —
+     כך תו '+' בטוקן לא הופך לרווח, ו-trim מנקה רווחים/שורות
+     שנדבקים בהעתק-הדבק (הגורם הקלאסי ל"Token Error").
+   ▸ הטוקן חייב להיות זהה ל-APP_SECRET_TOKEN שב-Vercel — הוא
+     נשלח בכל בקשה גם כ-X-App-Secret וגם כ-Authorization: Bearer,
+     והשרת (api/_lib.js) מקבל כל אחת מהכותרות.                  */
 var LS_TOKEN='qa_token';
+function tokenFromUrl(){
+  var m=/[?&]t=([^&#]+)/.exec(location.search||'');
+  if(!m) return '';
+  var raw=m[1];
+  try{ raw=decodeURIComponent(raw); }catch(e){ /* טוקן לא מקודד — משתמשים כמו שהוא */ }
+  return String(raw).trim();
+}
 var TOKEN=(function(){
-  var fromUrl='';
-  try{ fromUrl=new URLSearchParams(location.search).get('t')||''; }catch(e){}
+  var fromUrl=tokenFromUrl();
   if(fromUrl){
     try{ localStorage.setItem(LS_TOKEN,fromUrl); }catch(e){}
     return fromUrl;
   }
-  try{ return localStorage.getItem(LS_TOKEN)||''; }catch(e){ return ''; }
+  try{ return String(localStorage.getItem(LS_TOKEN)||'').trim(); }catch(e){ return ''; }
 })();
 if(!TOKEN){
   $('blocked').classList.add('on');
   return; /* הדף נעצר כאן — אין טוקן, אין ווידג'ט */
 }
+
+/* כותרות אחידות לכל קריאה — אותו טוקן בשתי צורות נתמכות */
+function authHeaders(){
+  return {
+    'Content-Type':'application/json',
+    'X-App-Secret':TOKEN,
+    'Authorization':'Bearer '+TOKEN
+  };
+}
+
+/* מצב שגיאת אימות: באנר קבוע עד שהטוקן תקין */
+var authFailed=false;
+function setAuthError(on){
+  authFailed=!!on;
+  $('auth-error').classList.toggle('on',authFailed);
+  if(authFailed) renderCatGrid(); /* הרשת מציגה הסבר במקום קטגוריות */
+}
+$('auth-reset').addEventListener('click',function(){
+  try{ localStorage.removeItem(LS_TOKEN); }catch(e){}
+  location.href=location.pathname; /* פתיחה נקייה — מסך "אין הרשאה" ידריך להוסיף ?t= */
+});
 
 /* ═══ 2. משתמש ═══════════════════════════════════════════ */
 var LS_USER='qa_user';
@@ -306,13 +359,15 @@ async function refreshCats(){
   try{
     var res=await fetch('/api/get-categories',{
       method:'POST',
-      headers:{'Content-Type':'application/json','X-App-Secret':TOKEN},
+      headers:authHeaders(),
       body:'{}'
     });
-    if(res.status===401||res.status===403){ toast('טוקן שגוי — אין הרשאה',true); return; }
+    if(res.status===401||res.status===403){ setAuthError(true); return; }
     if(!res.ok) return;
     var data=await res.json();
-    if(data && data.categories && Array.isArray(data.categories.expense) && data.categories.expense.length){
+    setAuthError(false); /* הטוקן אומת — מכבים את הבאנר אם דלק */
+    if(data && data.categories && Array.isArray(data.categories.expense)){
+      /* דריסה מלאה: אך ורק הקטגוריות והתיוגים האמיתיים מהגיליון */
       cats=data.categories.expense;
       tags=(data.tags && typeof data.tags==='object')?data.tags:{};
       saveCatsToStorage();
@@ -321,10 +376,9 @@ async function refreshCats(){
   }catch(e){ /* אין רשת / שגיאה — נשארים עם ה-Cache */ }
 }
 
-var CAT_FALLBACK=[{name:'סופר',emoji:'🛒'},{name:'אוכל בחוץ',emoji:'🍔'},{name:'רכב ודלק',emoji:'⛽'},
-  {name:'דיור',emoji:'🏠'},{name:'חשבונות',emoji:'🧾'},{name:'ילדים',emoji:'🧸'},
-  {name:'בריאות',emoji:'💊'},{name:'פנאי',emoji:'🎬'},{name:'ביגוד',emoji:'👕'},{name:'שונות',emoji:'📦'}];
-if(!loadCatsFromStorage()) cats=CAT_FALLBACK;
+/* אין קטגוריות דמה: עד לחיבור מוצלח ראשון הרשת מציגה הנחיה בלבד,
+   ומאותו רגע — תמיד הקטגוריות האמיתיות (מהשרת או מה-Cache שלהן). */
+if(!loadCatsFromStorage()){ cats=[]; tags={}; }
 
 /* ═══ 4. תור אופליין ═══════════════════════════════════════
    כל הוצאה שנכשלה בשידור (או הוזנה בלי רשת) נכנסת לתור,
@@ -345,11 +399,12 @@ function makeUid(){
 async function postTx(payload){
   var res=await fetch('/api/add-transaction',{
     method:'POST',
-    headers:{'Content-Type':'application/json','X-App-Secret':TOKEN},
+    headers:authHeaders(),
     body:JSON.stringify(payload)
   });
-  if(res.status===401||res.status===403){ var e=new Error('unauthorized'); e.code=401; throw e; }
+  if(res.status===401||res.status===403){ setAuthError(true); var e=new Error('unauthorized'); e.code=401; throw e; }
   if(!res.ok){ var e2=new Error('server '+res.status); e2.code=res.status; throw e2; }
+  setAuthError(false);
   return res.json();
 }
 var flushing=false;
@@ -426,13 +481,23 @@ $('back-2').addEventListener('click',function(){ gotoStep(2); });
 
 /* — שלב 2: קטגוריות ראשיות (מועדפות קודם) — */
 function renderCatGrid(){
+  if(!cats.length){
+    $('cat-grid').innerHTML='<span style="grid-column:1/-1;color:var(--dim);font-size:.8rem;text-align:center;line-height:1.6;padding:18px 6px">'+
+      (authFailed
+        ? '🔑 הטוקן שגוי — תקנו את הכתובת (ראו את ההסבר למעלה) והקטגוריות האמיתיות יימשכו מהגיליון.'
+        : navigator.onLine
+          ? '⏳ מושך את הקטגוריות מהגיליון…'
+          : '📡 אין קליטה ואין עדיין Cache — נדרש חיבור ראשון לרשת.')+
+      '</span>';
+    return;
+  }
   var list=cats.slice().sort(function(a,b){ return (b.fav?1:0)-(a.fav?1:0); });
   $('cat-grid').innerHTML=list.map(function(c){
     return '<button type="button" class="cat-tile" data-cat="'+esc(c.name)+'" style="position:relative">'+
       (c.fav?'<span class="star">⭐</span>':'')+
       '<span class="em">'+esc(c.emoji||'🏷️')+'</span>'+
       '<span class="nm">'+esc(c.name)+'</span></button>';
-  }).join('')||'<span style="color:var(--dim);font-size:.8rem">אין קטגוריות — נדרש חיבור ראשון לרשת</span>';
+  }).join('');
 }
 $('cat-grid').addEventListener('click',function(ev){
   var b=ev.target.closest('[data-cat]'); if(!b) return;
