@@ -41,6 +41,11 @@ module.exports = async function handler(req, res) {
       date = new Date().toISOString().slice(0, 10);
     }
 
+    /* תיוג: undefined = לא נשלח כלל → ה-GAS ישמר את התיוג הקיים.
+       מחרוזת ריקה שנשלחה במפורש = מחיקת התיוג.                 */
+    const hasTag = body.tag !== undefined && body.tag !== null;
+    const tag = hasTag ? String(body.tag).trim().slice(0, 40) : undefined;
+
     const { status, data } = await forwardToScript({
       action: 'update',
       uid,
@@ -50,6 +55,7 @@ module.exports = async function handler(req, res) {
       category,
       amount,
       notes,
+      ...(hasTag ? { tag } : {}),
       recurring: body.recurring === true || body.recurring === 'true'
     });
 

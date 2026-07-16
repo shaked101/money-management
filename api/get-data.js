@@ -39,7 +39,18 @@ module.exports = async function handler(req, res) {
         ? data.categories
         : undefined;
 
-    return res.status(200).json({ ok: true, rows, ...(categories ? { categories } : {}) });
+    /* תיוגים: מפה { 'קטגוריה': ['תיוג1','תיוג2'] } מגיליון 'תיוגים' */
+    const tags =
+      data.tags && typeof data.tags === 'object' && !Array.isArray(data.tags)
+        ? data.tags
+        : undefined;
+
+    return res.status(200).json({
+      ok: true,
+      rows,
+      ...(categories ? { categories } : {}),
+      ...(tags ? { tags } : {})
+    });
   } catch (err) {
     return fail(res, err);
   }

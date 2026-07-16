@@ -20,6 +20,7 @@ module.exports = async function handler(req, res) {
     const user = String(body.user ?? body.who ?? '').trim();
     const category = String(body.category ?? '').trim();
     const notes = String(body.notes ?? body.note ?? '').trim();
+    const tag = String(body.tag ?? '').trim().slice(0, 40); /* תיוג — אופציונלי */
     const amount = Number(body.amount);
 
     if (!category) {
@@ -54,6 +55,7 @@ module.exports = async function handler(req, res) {
       category,
       amount,
       notes,
+      tag,
       recurring: body.recurring === true || body.recurring === 'true'
     };
 
