@@ -139,13 +139,12 @@ h2.sec::after{content:'';flex:1;height:1px;background:var(--gray-300)}
 .pie-wrap{margin-top:12px;border-top:1px solid var(--gray-100);padding-top:12px}
 #pie-svg{width:200px;height:200px;display:block;margin:0 auto}
 #pie-center-val{font-weight:800}
-.legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;
-  /* מקרא מלא (ללא "אחר") עלול להתארך — גובה מוגבל עם גלילה עדינה */
-  max-height:196px;overflow-y:auto;padding-inline-end:3px;
-  -webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.18) transparent}
-.legend::-webkit-scrollbar{width:4px}
-.legend::-webkit-scrollbar-track{background:transparent}
-.legend::-webkit-scrollbar-thumb{background:rgba(0,0,0,.18);border-radius:99px}
+.legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+/* "טען עוד" במקרא — שורת טקסט עדינה, לא כפתור בולט */
+.legend-more{align-self:flex-start;background:none;border:none;padding:2px 0;cursor:pointer;
+  color:var(--gray-500);font-size:.72rem;font-weight:600;font-family:inherit;
+  text-decoration:underline dotted;text-underline-offset:3px;-webkit-tap-highlight-color:transparent}
+.legend-more:active{opacity:.55}
 .legend .li{display:flex;align-items:center;gap:8px;font-size:.8rem;min-width:0}
 .legend .dot{width:10px;height:10px;border-radius:4px;flex:0 0 auto}
 .legend .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray-700)}
@@ -452,11 +451,7 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 .emoji-tabs button.on{background:var(--g-700);color:#fff}
 .emoji-grid{max-height:132px;overflow:auto}
 .list-sentinel{text-align:center;color:var(--gray-500);padding:10px 0;font-size:.7rem}
-.pie-pcts{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px;
-  max-height:96px;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.18) transparent}
-.pie-pcts::-webkit-scrollbar{width:4px}
-.pie-pcts::-webkit-scrollbar-thumb{background:rgba(0,0,0,.18);border-radius:99px}
+.pie-pcts{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
 .pct-chip{font-size:.7rem;background:var(--gray-100);border-radius:99px;padding:4px 11px;font-weight:500;cursor:pointer}
 .pct-chip b{font-variant-numeric:tabular-nums}
 /* רשימת תקציר מהיר + מודאל הכנסות */
@@ -1590,6 +1585,13 @@ function renderCatsIfChanged(){
 }
 
 /* ── גרף פאי (SVG טהור, ללא תלות חיצונית) ── */
+/* ── מקרא העוגה: מצב "טען עוד" ─────────────────────────────
+   הדונאט מציג תמיד את *כל* הפרוסות; רק רשימות הטקסט (מקרא +
+   פס אחוזים) נחתכות ל-6 הגדולות, עם שורת "טען עוד" שפותחת את
+   השאר. ההרחבה נשמרת בין רינדורים ומתאפסת בהחלפת חודש/תצוגה. */
+var LEGEND_LIMIT=6;
+var pieLegendExpanded=false, pieLegendKey='';
+
 function renderPie(){
   var byCat={};
   displayRows().forEach(function(r){
@@ -1614,6 +1616,12 @@ function renderPie(){
      בסדר יורד מוחלט (המיון נעשה למעלה) — ללא איגוד ל"אחר"
      וללא סף מינימום. גם הוצאה של שקלים בודדים מקבלת פרוסה
      ושורה במקרא.                                            */
+
+  /* איפוס ההרחבה במעבר חודש / כניסה-יציאה מטווח מסונן */
+  var viewKey=mKey(state.y,state.m)+(filter.rangeRows?':range':'');
+  if(viewKey!==pieLegendKey){ pieLegendKey=viewKey; pieLegendExpanded=false; }
+  var shownEntries=pieLegendExpanded?entries:entries.slice(0,LEGEND_LIMIT);
+  var hiddenCount=entries.length-shownEntries.length;
 
   var NSX='http://www.w3.org/2000/svg';
   svg.innerHTML='';
@@ -1651,24 +1659,30 @@ function renderPie(){
   t2.textContent='סה״כ הוצאות';
   svg.appendChild(t2);
 
-  legend.innerHTML=entries.map(function(e,i){
+  legend.innerHTML=shownEntries.map(function(e,i){
     var pct=Math.round(e[1]/total*100);
     return '<div class="li" data-cat="'+esc(e[0])+'" style="cursor:pointer">'+
       '<span class="dot" style="background:'+PIE_COLORS[i%PIE_COLORS.length]+'"></span>'+
       '<span class="nm">'+esc(e[0])+'</span>'+
       '<span class="amt">'+fmt(e[1])+'</span>'+
       '<span class="pct">'+pct+'%</span></div>';
-  }).join('');
+  }).join('')+
+  (hiddenCount>0
+    ? '<button class="legend-more" data-more="1">טען עוד '+hiddenCount+' קטגוריות…</button>'
+    : '');
 
   /* מקרא אחוזים מדויק מתחת לעוגה: 🛒 סופר · 35.4% */
-  $('pie-pcts').innerHTML=entries.map(function(e,i){
+  $('pie-pcts').innerHTML=shownEntries.map(function(e,i){
     var pctStr=(Math.round(e[1]/total*1000)/10).toFixed(1).replace(/\.0$/,'');
     var meta=catMeta('expense',e[0]);
     var ic=meta
       ? esc(meta.emoji)
       : '<span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:'+PIE_COLORS[i%PIE_COLORS.length]+'"></span>';
     return '<span class="pct-chip" data-cat="'+esc(e[0])+'">'+ic+' '+esc(e[0])+' · <b>'+pctStr+'%</b></span>';
-  }).join('');
+  }).join('')+
+  (hiddenCount>0
+    ? '<span class="pct-chip" data-more="1" title="הצגת כל הקטגוריות">+'+hiddenCount+' עוד…</span>'
+    : '');
 }
 
 /* ── רשימת תנועות ── */
@@ -1890,10 +1904,12 @@ function renderInsight(){
   var weekWord=isCurMonth?'השבוע':'שבוע התנועה';
   var shown=rows.slice(0,insight.shown);
   var listHtml=shown.map(function(r){
-    /* במצב תיוג — התיוג קבוע, אז מציגים את הקטגוריה של כל תנועה */
+    /* במצב תיוג — התיוג קבוע, אז מציגים את הקטגוריה של כל תנועה.
+       במצב קטגוריה — ה-Chip לחיץ ומחליף את תוכן הפופ-אפ לתקציר
+       של התיוג עצמו (Drill-Down באותו חלון).                    */
     var mid=tagMode
       ? esc(r.category||'ללא קטגוריה')+' · '+esc(r.who||'—')+(r.note?' · '+esc(r.note):'')
-      : esc(r.who||'—')+(r.tag?' <span class="row-tag">#'+esc(r.tag)+'</span>':'')+(r.note?' · '+esc(r.note):'');
+      : esc(r.who||'—')+(r.tag?' <span class="row-tag tag-link" data-instag="'+esc(r.tag)+'" data-date="'+esc(r.date||'')+'" role="button" title="תקציר לפי התיוג">#'+esc(r.tag)+'</span>':'')+(r.note?' · '+esc(r.note):'');
     return '<div class="ins-tx">'+
       '<span class="d">'+fmtDate(r.date)+'</span>'+
       '<span class="w">'+mid+'</span>'+
@@ -2693,6 +2709,8 @@ function init(){
   /* תקציר גם מלשונית הבית — לחיצה על כל שורת מקרא בעוגה
      פותחת את פירוט התנועות של הקטגוריה (אין עוד "אחר")     */
   $('pie-legend').addEventListener('click',function(ev){
+    /* "טען עוד" — הרחבת המקרא ופס האחוזים יחד */
+    if(ev.target.closest('[data-more]')){ pieLegendExpanded=true; renderPie(); return; }
     var li=ev.target.closest('[data-cat]'); if(!li) return;
     showInsight('expense',li.dataset.cat);
   });
@@ -2785,12 +2803,21 @@ function init(){
 
   /* מקרא האחוזים מתחת לעוגה — לחיצה על כל Chip פותחת תקציר */
   $('pie-pcts').addEventListener('click',function(ev){
+    if(ev.target.closest('[data-more]')){ pieLegendExpanded=true; renderPie(); return; }
     var chip=ev.target.closest('[data-cat]'); if(!chip) return;
     showInsight('expense',chip.dataset.cat);
   });
 
-  /* תקציר מהיר: טוגל תקופה + טען עוד (האזנה מואצלת) */
+  /* תקציר מהיר: טוגל תקופה + טען עוד + Drill-Down לתיוג (האזנה מואצלת) */
   $('insight-modal').addEventListener('click',function(ev){
+    /* לחיצה על Chip תיוג בתוך הרשימה — החלפת התוכן לתקציר התיוג.
+       stopPropagation שומר שהלחיצה לא תטופל כלחיצה על שורה/רקע.  */
+    var tg=ev.target.closest('[data-instag]');
+    if(tg){
+      ev.stopPropagation();
+      showInsight(insight.type,null,tg.dataset.date||insight.refDate,null,tg.dataset.instag);
+      return;
+    }
     var pb=ev.target.closest('#ins-period button');
     if(pb){ insight.period=pb.dataset.v; insight.shown=INS_PAGE; renderInsight(); return; }
     if(ev.target.closest('#ins-more')){ insight.shown=Infinity; renderInsight(); return; }
