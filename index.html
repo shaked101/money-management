@@ -139,7 +139,13 @@ h2.sec::after{content:'';flex:1;height:1px;background:var(--gray-300)}
 .pie-wrap{margin-top:12px;border-top:1px solid var(--gray-100);padding-top:12px}
 #pie-svg{width:200px;height:200px;display:block;margin:0 auto}
 #pie-center-val{font-weight:800}
-.legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+.legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;
+  /* מקרא מלא (ללא "אחר") עלול להתארך — גובה מוגבל עם גלילה עדינה */
+  max-height:196px;overflow-y:auto;padding-inline-end:3px;
+  -webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.18) transparent}
+.legend::-webkit-scrollbar{width:4px}
+.legend::-webkit-scrollbar-track{background:transparent}
+.legend::-webkit-scrollbar-thumb{background:rgba(0,0,0,.18);border-radius:99px}
 .legend .li{display:flex;align-items:center;gap:8px;font-size:.8rem;min-width:0}
 .legend .dot{width:10px;height:10px;border-radius:4px;flex:0 0 auto}
 .legend .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--gray-700)}
@@ -446,7 +452,11 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 .emoji-tabs button.on{background:var(--g-700);color:#fff}
 .emoji-grid{max-height:132px;overflow:auto}
 .list-sentinel{text-align:center;color:var(--gray-500);padding:10px 0;font-size:.7rem}
-.pie-pcts{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
+.pie-pcts{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px;
+  max-height:96px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.18) transparent}
+.pie-pcts::-webkit-scrollbar{width:4px}
+.pie-pcts::-webkit-scrollbar-thumb{background:rgba(0,0,0,.18);border-radius:99px}
 .pct-chip{font-size:.7rem;background:var(--gray-100);border-radius:99px;padding:4px 11px;font-weight:500;cursor:pointer}
 .pct-chip b{font-variant-numeric:tabular-nums}
 /* רשימת תקציר מהיר + מודאל הכנסות */
@@ -1600,12 +1610,10 @@ function renderPie(){
   $('chart-flex').classList.remove('hidden');
   $('chart-empty').classList.add('hidden');
 
-  /* איחוד זנב ל"אחר" */
-  if(entries.length>7){
-    var head=entries.slice(0,6);
-    var tail=entries.slice(6).reduce(function(t,e){ return t+e[1]; },0);
-    head.push(['אחר',tail]); entries=head;
-  }
+  /* שקיפות מלאה: כל קטגוריה שהיו בה הוצאות מוצגת אחת-אחת,
+     בסדר יורד מוחלט (המיון נעשה למעלה) — ללא איגוד ל"אחר"
+     וללא סף מינימום. גם הוצאה של שקלים בודדים מקבלת פרוסה
+     ושורה במקרא.                                            */
 
   var NSX='http://www.w3.org/2000/svg';
   svg.innerHTML='';
@@ -2682,10 +2690,10 @@ function init(){
       if(r) showInsight(r.type,r.category||'ללא קטגוריה',r.date,r.uid);
     }
   });
-  /* תקציר גם מלשונית הבית — לחיצה על שורת מקרא בעוגה */
+  /* תקציר גם מלשונית הבית — לחיצה על כל שורת מקרא בעוגה
+     פותחת את פירוט התנועות של הקטגוריה (אין עוד "אחר")     */
   $('pie-legend').addEventListener('click',function(ev){
     var li=ev.target.closest('[data-cat]'); if(!li) return;
-    if(li.dataset.cat==='אחר'){ toast('"אחר" מאגד כמה קטגוריות — פתחו את לשונית התנועות לפירוט'); return; }
     showInsight('expense',li.dataset.cat);
   });
 
@@ -2775,10 +2783,9 @@ function init(){
     if(b){ $('income-modal').classList.remove('on'); openTxEdit(b.dataset.editinc); }
   });
 
-  /* מקרא האחוזים מתחת לעוגה — לחיצה פותחת תקציר */
+  /* מקרא האחוזים מתחת לעוגה — לחיצה על כל Chip פותחת תקציר */
   $('pie-pcts').addEventListener('click',function(ev){
     var chip=ev.target.closest('[data-cat]'); if(!chip) return;
-    if(chip.dataset.cat==='אחר'){ toast('"אחר" מאגד כמה קטגוריות — פתחו את לשונית התנועות לפירוט'); return; }
     showInsight('expense',chip.dataset.cat);
   });
 
