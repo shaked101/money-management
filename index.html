@@ -1295,7 +1295,40 @@ function passesFilter(r){
 }
 function displayRows(){
   var base=filter.rangeRows?filter.rangeRows:state.rows;
+  base=dedupRecurringView(base);
   return filterActive()?base.filter(passesFilter):base;
+}
+/* ═══ Deduplication ויזואלי — הקרנות קבועות מול הוצאות אמיתיות ═══
+   רקע: תנועות קבועות ישנות שהוגדרו להתחיל בחודש שבו כבר קיימת
+   ההוצאה המקורית מייצרות כפילות בתצוגה. הסינון כאן חכם וקפדני:
+   הקרנה וירטואלית (recurring) מוסתרת *רק* אם קיימת בחודש תנועה
+   רגילה שחופפת לה במלואה בכל הפרמטרים יחד —
+   סוג + תאריך מדויק + קטגוריה + מי רשם + תיוג (השוואה מנורמלת,
+   כולל שני ריקים) + סכום זהה. כל סטייה באחד מהם ⇒ שתיהן מוצגות.
+   ▸ עדיפות לתנועה הרגילה (מגיליון ההוצאות) — היא זו שמוצגת.
+   ▸ שכבת תצוגה בלבד: state.rows, ה-Cache, עריכה ומחיקה — לא
+     נגעים. הנתונים המלאים נשארים שלמים מתחת למסך.              */
+function dedupRecurringView(rows){
+  if(!rows || !rows.length) return rows;
+  var SEP='\u0001';
+  function sig(r){
+    return (r.type==='income'?'income':'expense')+SEP+
+           String(r.date||'').slice(0,10)+SEP+
+           String(r.category||'')+SEP+
+           String(r.who||'')+SEP+
+           String(r.tag||'')+SEP+
+           (Number(r.amount)||0);
+  }
+  var real={}, hasRecurring=false;
+  for(var i=0;i<rows.length;i++){
+    if(rows[i].recurring){ hasRecurring=true; continue; }
+    real[sig(rows[i])]=true;
+  }
+  if(!hasRecurring) return rows; /* אין הקרנות — אפס עבודה נוספת */
+  return rows.filter(function(r){
+    if(!r.recurring) return true;      /* תנועה רגילה — תמיד מוצגת */
+    return !real[sig(r)];              /* הקרנה — רק בלי כפיל מלא   */
+  });
 }
 /* מאגר החיפוש לעריכה/מחיקה — כולל שורות טווח שאינן בחודש המוצג */
 function findRowByUidLocal(uid){
