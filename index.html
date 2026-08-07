@@ -486,16 +486,36 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 .status-pill.no{background:var(--red-bg);color:var(--red)}
 nav.bottom button{font-size:.6rem}
 
-/* ═══ חיפוש ואנליטיקה (דשבורד) ═══════════════════════════ */
-#dash-search{display:flex;gap:8px;margin-bottom:14px;align-items:stretch}
-#dash-search .search-wrap{position:relative;flex:1;min-width:0}
-#search-input{padding-inline-start:36px}
-#dash-search .search-ic{
-  position:absolute;top:50%;right:12px;transform:translateY(-50%);
-  font-size:.9rem;color:var(--gray-500);pointer-events:none;
+/* ═══ חיפוש ואנליטיקה — כפתור מתרחב ב-Header ═══════════════
+   מצב סגור: אייקון 🔍 קטן בסגנון .icon-btn, בין הרובוט למותג.
+   מצב פתוח: שדה קלט נפתח כשכבה על פני שורת ה-Header כולה —
+   כך אין דחיפה/שבירה של המותג והכפתורים גם במסכים צרים.      */
+.top-row{position:relative}
+#hsearch-field{
+  position:absolute;inset:-3px 0;z-index:5;display:flex;align-items:center;gap:8px;
+  background:var(--g-900);border-radius:13px;
+  opacity:0;pointer-events:none;transform:translateY(-6px);
+  transition:opacity .18s ease,transform .18s ease;
 }
-#search-btn{flex:0 0 auto}
-/* הצעות חיפוש — נפתחות מתחת לשדה */
+.top-row.searching #hsearch-field{opacity:1;pointer-events:auto;transform:none}
+#hsearch-field .fwrap{position:relative;flex:1;min-width:0}
+#search-input{
+  width:100%;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.18);
+  border-radius:11px;color:#fff;font-size:.88rem;padding:9px 13px;
+  padding-inline-end:36px; /* מקום ל-X בקצה השמאלי */
+  outline:none;appearance:none;-webkit-appearance:none;
+  transition:border .15s,background .15s;
+}
+#search-input::placeholder{color:rgba(255,255,255,.45)}
+#search-input:focus{border-color:rgba(255,255,255,.42);background:rgba(255,255,255,.17)}
+#search-input::-webkit-search-cancel-button{display:none}
+#search-close{
+  position:absolute;left:5px;top:50%;transform:translateY(-50%);
+  width:28px;height:28px;border-radius:9px;display:grid;place-items:center;
+  color:rgba(255,255,255,.6);font-size:.82rem;transition:background .15s;
+}
+#search-close:active{background:rgba(255,255,255,.18);color:#fff}
+/* הצעות חיפוש — נפתחות מתחת לשדה שב-Header */
 #search-sugg{
   position:absolute;top:calc(100% + 5px);right:0;left:0;z-index:50;
   background:#fff;border:1.5px solid var(--gray-300);border-radius:var(--r-sm);
@@ -606,12 +626,24 @@ nav.bottom button{font-size:.6rem}
 <div id="app">
   <header class="top">
     <div class="wrap">
-      <div class="top-row">
+      <div class="top-row" id="top-row">
         <div class="brand"><div class="coin">₪</div>הכסף שלנו</div>
         <div class="top-actions">
+          <button class="icon-btn" id="search-toggle" aria-label="חיפוש הוצאה או הכנסה" title="חיפוש">🔍</button>
           <button class="icon-btn" id="ai-btn" aria-label="הפקת דוח AI ללוח" title="דוח AI ללוח">🤖</button>
           <button class="icon-btn" id="refresh-btn" aria-label="רענון נתונים" title="רענון">⟳</button>
           <button class="icon-btn" id="lock-btn" aria-label="נעילת המערכת" title="נעילה">🔒</button>
+        </div>
+        <!-- שדה חיפוש מתרחב — שכבה על פני השורה, לא שובר את ה-Header -->
+        <div id="hsearch-field">
+          <button class="icon-btn" id="search-go" type="button" aria-label="הפעלת חיפוש">🔍</button>
+          <div class="fwrap">
+            <input id="search-input" type="search" inputmode="search"
+                   placeholder="חיפוש: קטגוריה, תיוג, הערה, רושם…"
+                   autocomplete="off" enterkeyhint="search">
+            <button id="search-close" type="button" aria-label="סגירת החיפוש">✕</button>
+            <div id="search-sugg"></div>
+          </div>
         </div>
       </div>
       <div class="month-nav">
@@ -626,18 +658,6 @@ nav.bottom button{font-size:.6rem}
 
     <!-- ── דשבורד ── -->
     <section class="pane on" id="pane-dash">
-
-      <!-- חיפוש ואנליטיקה: מלל חופשי על קטגוריה / תיוג / הערה / רושם -->
-      <div id="dash-search">
-        <div class="search-wrap">
-          <span class="search-ic">🔍</span>
-          <input class="ifield" id="search-input" type="search" inputmode="search"
-                 placeholder="חיפוש הוצאה או הכנסה… (סופר, חטיף חלבון, מילואים)"
-                 autocomplete="off" enterkeyhint="search">
-          <div id="search-sugg"></div>
-        </div>
-        <button class="btn sm" id="search-btn" type="button" aria-label="חיפוש">חפש</button>
-      </div>
 
       <div class="cards">
         <div class="card income" id="card-income" role="button" tabindex="0" style="cursor:pointer">
@@ -2658,6 +2678,21 @@ async function renderSearch(){
    נבנות מהדאטה שכבר בזיכרון (החודש המוצג + כל חודשי ה-Cache)
    — אפס קריאות רשת. לחיצה על הצעה פותחת את המודאל מיידית.   */
 function srchHideSugg(){ $('search-sugg').classList.remove('on'); }
+/* ═══ שדה החיפוש המתרחב ב-Header — שכבת UI בלבד ═══════════
+   פתיחה: focus() סינכרוני בתוך מחוות הלחיצה — חובה כדי
+   שהמקלדת תקפוץ אוטומטית במובייל (iOS חוסם focus מאוחר).   */
+function srchOpenField(){
+  $('top-row').classList.add('searching');
+  var inp=$('search-input');
+  try{ inp.focus({preventScroll:true}); }catch(e){ inp.focus(); }
+  if(inp.value.trim()) srchRenderSugg();
+  haptic(6);
+}
+function srchCloseField(){
+  $('top-row').classList.remove('searching');
+  srchHideSugg();
+  try{ $('search-input').blur(); }catch(e){}
+}
 function srchSuggestions(qRaw){
   var q=srchNorm(qRaw);
   if(!q) return [];
@@ -2883,11 +2918,22 @@ function init(){
   $('m-prev').addEventListener('click',function(){ shiftMonth(-1); });
   $('m-next').addEventListener('click',function(){ shiftMonth(1); });
 
-  /* ═══ חיפוש ואנליטיקה ═══ */
-  $('search-btn').addEventListener('click',function(){ openSearch($('search-input').value); });
+  /* ═══ חיפוש ואנליטיקה — כפתור מתרחב ב-Header ═══ */
+  $('search-toggle').addEventListener('click',function(ev){
+    ev.stopPropagation(); /* שלא ייתפס כלחיצה "מחוץ לשדה" */
+    srchOpenField();
+  });
+  /* 🔍 בתוך השדה הפתוח = הפעלת החיפוש (או פוקוס אם ריק) */
+  $('search-go').addEventListener('click',function(){
+    var v=$('search-input').value;
+    if(v.trim()){ openSearch(v); srchCloseField(); }
+    else $('search-input').focus({preventScroll:true});
+  });
+  /* X קטן בתוך השדה — חזרה למצב אייקון בלבד */
+  $('search-close').addEventListener('click',srchCloseField);
   $('search-input').addEventListener('keydown',function(e){
-    if(e.key==='Enter'){ e.preventDefault(); openSearch($('search-input').value); }
-    if(e.key==='Escape') srchHideSugg();
+    if(e.key==='Enter'){ e.preventDefault(); openSearch($('search-input').value); srchCloseField(); }
+    if(e.key==='Escape') srchCloseField();
   });
   /* הצעות תוך כדי הקלדה — Debounce קצר, אפס רשת */
   $('search-input').addEventListener('input',function(){
@@ -2897,15 +2943,16 @@ function init(){
   $('search-input').addEventListener('focus',function(){
     if($('search-input').value.trim()) srchRenderSugg();
   });
-  /* בחירת הצעה — פותחת את המודאל מיידית */
+  /* בחירת הצעה — פותחת את המודאל מיידית וסוגרת את השדה */
   $('search-sugg').addEventListener('click',function(ev){
     var b=ev.target.closest('[data-sq]'); if(!b) return;
     $('search-input').value=b.dataset.sq;
     openSearch(b.dataset.sq);
+    srchCloseField();
   });
-  /* לחיצה מחוץ לשדה — סגירת ההצעות */
+  /* לחיצה מחוץ לשורת ה-Header — סגירה אוטומטית של השדה */
   document.addEventListener('click',function(ev){
-    if(!ev.target.closest('#dash-search')) srchHideSugg();
+    if(!ev.target.closest('#top-row')) srchCloseField();
   });
   /* חצי ניווט: הזזת חלון 3 החודשים בחודש אחד */
   $('srch-prev').addEventListener('click',function(){ srchShift(-1); }); /* אחורה בזמן */
