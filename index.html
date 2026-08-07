@@ -409,17 +409,6 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 #cmp-summary b{font-variant-numeric:tabular-nums}
 #cmp-summary .delta.up{color:var(--red);font-weight:700}
 #cmp-summary .delta.down{color:var(--g-700);font-weight:700}
-/* בר הסינון בדשבורד */
-.filter-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
-.filter-head{width:100%;display:flex;align-items:center;gap:9px;padding:13px 16px;font-size:.86rem;font-weight:700;color:var(--ink);text-align:right}
-.filter-head .chev{margin-inline-start:auto;color:var(--gray-500);transition:transform .18s}
-.filter-head .chev.up{transform:rotate(180deg)}
-.fb-badge{display:inline-flex;align-items:center;background:var(--g-100);color:var(--g-700);border-radius:99px;padding:3px 11px;font-size:.68rem;font-weight:700;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#filter-body{padding:2px 16px 14px;border-top:1px solid var(--gray-100)}
-#filter-body .fg{margin-bottom:10px}
-#filter-body select.ifield{appearance:auto;-webkit-appearance:menulist;padding:9px 11px}
-.filter-actions{display:flex;gap:8px}
-.filter-actions .btn{flex:1}
 /* אנליטיקס */
 .an-card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:15px;margin-bottom:4px}
 .cmp-row{display:flex;gap:8px;align-items:center;margin-bottom:11px}
@@ -556,41 +545,6 @@ nav.bottom button{font-size:.6rem}
     <!-- ── דשבורד ── -->
     <section class="pane on" id="pane-dash">
 
-      <!-- בר סינון: טווח תאריכים + קטגוריה + תיוג -->
-      <div class="filter-card">
-        <button class="filter-head" id="filter-toggle" type="button">
-          <span>🔍 סינון וניתוח</span>
-          <span id="filter-badge" class="fb-badge" style="display:none"></span>
-          <span class="chev" id="filter-chev">▾</span>
-        </button>
-        <div id="filter-body" class="hidden">
-          <div class="grid-2">
-            <div class="fg">
-              <label>מתאריך</label>
-              <input type="date" class="ifield" id="flt-from">
-            </div>
-            <div class="fg">
-              <label>עד תאריך</label>
-              <input type="date" class="ifield" id="flt-to">
-            </div>
-          </div>
-          <div class="grid-2">
-            <div class="fg">
-              <label>קטגוריה</label>
-              <select class="ifield" id="flt-cat"><option value="">כל הקטגוריות</option></select>
-            </div>
-            <div class="fg" id="flt-tag-fg" style="display:none">
-              <label>תיוג</label>
-              <select class="ifield" id="flt-tag"><option value="">כל התיוגים</option></select>
-            </div>
-          </div>
-          <div class="filter-actions">
-            <button class="btn sm" id="flt-apply" type="button">✔ החלת הסינון</button>
-            <button class="btn sm ghost" id="flt-clear" type="button">✕ ניקוי</button>
-          </div>
-        </div>
-      </div>
-
       <div class="cards">
         <div class="card income" id="card-income" role="button" tabindex="0" style="cursor:pointer">
           <div class="lbl">הכנסות החודש <span style="font-size:.62rem">👁</span></div>
@@ -633,6 +587,7 @@ nav.bottom button{font-size:.6rem}
           <button data-v="אביטל">אביטל</button>
         </div>
         <button class="btn sm ghost" id="split-toggle" type="button">▦ פיצול</button>
+        <button class="btn sm ghost" id="recurring-btn" type="button">🔁 הוצאות קבועות</button>
       </div>
       <div class="tx-totals" id="tx-totals"></div>
       <div class="tx-list" id="tx-list"></div>
@@ -839,6 +794,14 @@ nav.bottom button{font-size:.6rem}
   <div class="modal" style="max-width:380px">
     <h3><span id="income-modal-title">הכנסות החודש</span> <button class="close" data-close="income-modal">✕</button></h3>
     <div id="income-body"></div>
+  </div>
+</div>
+
+<!-- ═══════════ מודאל הוצאות קבועות ═══════════ -->
+<div class="modal-bg" id="recurring-modal">
+  <div class="modal" style="max-width:380px">
+    <h3><span id="recurring-modal-title">הוצאות קבועות</span> <button class="close" data-close="recurring-modal">✕</button></h3>
+    <div id="recurring-body"></div>
   </div>
 </div>
 
@@ -1262,41 +1225,16 @@ var state={
 };
 
 function monthLabel(){
-  if(filter.rangeRows){
-    $('month-label').innerHTML='<small>סינון פעיל</small>טווח מותאם אישית';
-    $('c-badge').textContent='🔍 טווח';
-    return;
-  }
   $('month-label').innerHTML='<small>חודש נבחר</small>'+HE_MONTHS[state.m-1]+' '+state.y;
   $('c-badge').textContent=HE_MONTHS[state.m-1];
 }
 
-/* ═══ בר הסינון: טווח תאריכים + קטגוריה + תיוג ═══════════
-   עיקרון: כל פונקציות הרינדור קוראות displayRows() במקום
-   state.rows — נקודת חנק אחת שכל סינון עובר דרכה, ולכן
-   הכרטיסים, הפאי, רשימת התנועות, האנליטיקס וההשוואות
-   מציגים תמיד את אותה תמונה מסוננת.
-   ▸ ללא טווח תאריכים — הסינון חל על החודש המוצג.
-   ▸ עם טווח — נמשכים כל החודשים שבטווח (Cache-First דרך
-     fetchMonthRows) ומסוננים לפי הימים המדויקים.           */
-var filter={from:'',to:'',cat:'',tag:'',rangeRows:null};
-function filterActive(){ return !!(filter.from||filter.to||filter.cat||filter.tag); }
-function passesCatTag(r){
-  if(filter.cat && (r.category||'ללא קטגוריה')!==filter.cat) return false;
-  if(filter.tag && String(r.tag||'')!==filter.tag) return false;
-  return true;
-}
-function passesFilter(r){
-  if(!passesCatTag(r)) return false;
-  var d=String(r.date||'').slice(0,10);
-  if(filter.from && d<filter.from) return false;
-  if(filter.to && d>filter.to) return false;
-  return true;
-}
+/* ═══ displayRows — נקודת חנק אחת ═══════════════════════
+   כל פונקציות הרינדור קוראות displayRows() במקום state.rows,
+   ולכן הכרטיסים, הפאי, רשימת התנועות והאנליטיקס מציגים
+   תמיד את אותה תמונה.                                       */
 function displayRows(){
-  var base=filter.rangeRows?filter.rangeRows:state.rows;
-  base=dedupRecurringView(base);
-  return filterActive()?base.filter(passesFilter):base;
+  return dedupRecurringView(state.rows);
 }
 /* ═══ Deduplication ויזואלי — הקרנות קבועות מול הוצאות אמיתיות ═══
    רקע: תנועות קבועות ישנות שהוגדרו להתחיל בחודש שבו כבר קיימת
@@ -1330,83 +1268,9 @@ function dedupRecurringView(rows){
     return !real[sig(r)];              /* הקרנה — רק בלי כפיל מלא   */
   });
 }
-/* מאגר החיפוש לעריכה/מחיקה — כולל שורות טווח שאינן בחודש המוצג */
+/* מאגר החיפוש לעריכה/מחיקה */
 function findRowByUidLocal(uid){
-  var pool=filter.rangeRows?state.rows.concat(filter.rangeRows):state.rows;
-  return pool.filter(function(x){ return String(x.uid)===String(uid); })[0];
-}
-function renderFilterOptions(){
-  var sel=$('flt-cat');
-  var cur=sel.value||filter.cat;
-  var names=[];
-  ['expense','income'].forEach(function(k){
-    (state.cats[k]||[]).forEach(function(c){ if(names.indexOf(c.name)===-1) names.push(c.name); });
-  });
-  sel.innerHTML='<option value="">כל הקטגוריות</option>'+names.map(function(n){
-    return '<option value="'+esc(n)+'"'+(n===cur?' selected':'')+'>'+esc(n)+'</option>';
-  }).join('');
-  renderFilterTagOptions();
-}
-/* התיוגים מופיעים דינמית — רק כשנבחרה קטגוריה שיש לה תיוגים */
-function renderFilterTagOptions(){
-  var cat=$('flt-cat').value;
-  var fg=$('flt-tag-fg'), sel=$('flt-tag');
-  var list=(cat && state.tags[cat])?state.tags[cat]:[];
-  fg.style.display=list.length?'':'none';
-  sel.innerHTML='<option value="">כל התיוגים</option>'+list.map(function(t){
-    return '<option value="'+esc(t)+'"'+(t===filter.tag?' selected':'')+'>'+esc(t)+'</option>';
-  }).join('');
-  if(!list.length) sel.value='';
-}
-function renderFilterBadge(){
-  var b=$('filter-badge');
-  if(!filterActive()){ b.textContent=''; b.style.display='none'; return; }
-  var parts=[];
-  if(filter.from&&filter.to) parts.push(fmtDate(filter.from)+'–'+fmtDate(filter.to));
-  if(filter.cat) parts.push(filter.cat);
-  if(filter.tag) parts.push('🏷️ '+filter.tag);
-  b.textContent=parts.join(' · ');
-  b.style.display='inline-flex';
-}
-async function applyFilter(){
-  var from=$('flt-from').value, to=$('flt-to').value;
-  if((from&&!to)||(to&&!from)){ toast('לטווח תאריכים נדרשים גם התחלה וגם סיום',true); return; }
-  if(from&&to&&from>to){ toast('טווח הפוך — תאריך ההתחלה אחרי הסיום',true); return; }
-  filter.cat=$('flt-cat').value||'';
-  filter.tag=($('flt-tag-fg').style.display==='none')?'':($('flt-tag').value||'');
-  filter.from=from; filter.to=to;
-  filter.rangeRows=null;
-  if(from&&to){
-    var fy=+from.slice(0,4), fm=+from.slice(5,7), ty=+to.slice(0,4), tm=+to.slice(5,7);
-    if((ty-fy)*12+(tm-fm)+1>24){ toast('טווח מקסימלי לסינון: 24 חודשים',true); return; }
-    var btn=$('flt-apply'); btn.disabled=true; btn.textContent='טוען טווח…';
-    try{
-      var all=[];
-      for(var y=fy,m=fm; y<ty||(y===ty&&m<=tm); ){
-        all=all.concat(await fetchMonthRows(y,m));
-        m++; if(m>12){ m=1; y++; }
-      }
-      filter.rangeRows=all;
-    }catch(e){
-      if(e.code!==401) toast('שגיאה בטעינת הטווח: '+e.message,true);
-      return;
-    }finally{
-      btn.disabled=false; btn.textContent='✔ החלת הסינון';
-    }
-  }
-  renderFilterBadge();
-  monthLabel();
-  renderAll();
-  haptic(10);
-  toast(filterActive()?'🔍 הסינון הוחל':'הסינון נוקה');
-}
-function clearFilter(){
-  filter={from:'',to:'',cat:'',tag:'',rangeRows:null};
-  $('flt-from').value=''; $('flt-to').value='';
-  $('flt-cat').value=''; renderFilterTagOptions();
-  renderFilterBadge();
-  monthLabel();
-  renderAll();
+  return state.rows.filter(function(x){ return String(x.uid)===String(uid); })[0];
 }
 /* רינדור דרך requestAnimationFrame — לא חוסם את ה-Main Thread */
 var rafId=null;
@@ -1418,12 +1282,6 @@ function scheduleRenderAll(){
 var shiftTimer=null;
 function shiftMonth(d){
   if(navLocked) return; /* משיכה באוויר — אין מעבר עד שתסתיים */
-  /* מעבר חודש יוצא ממצב "טווח מותאם" — סינון קטגוריה/תיוג נשאר */
-  if(filter.rangeRows||filter.from||filter.to){
-    filter.from=''; filter.to=''; filter.rangeRows=null;
-    $('flt-from').value=''; $('flt-to').value='';
-    renderFilterBadge();
-  }
   var m=state.m+d, y=state.y;
   if(m<1){ m=12; y--; } if(m>12){ m=1; y++; }
   state.m=m; state.y=y;
@@ -1650,8 +1508,8 @@ function renderPie(){
      וללא סף מינימום. גם הוצאה של שקלים בודדים מקבלת פרוסה
      ושורה במקרא.                                            */
 
-  /* איפוס ההרחבה במעבר חודש / כניסה-יציאה מטווח מסונן */
-  var viewKey=mKey(state.y,state.m)+(filter.rangeRows?':range':'');
+  /* איפוס ההרחבה במעבר חודש */
+  var viewKey=mKey(state.y,state.m);
   if(viewKey!==pieLegendKey){ pieLegendKey=viewKey; pieLegendExpanded=false; }
   var shownEntries=pieLegendExpanded?entries:entries.slice(0,LEGEND_LIMIT);
   var hiddenCount=entries.length-shownEntries.length;
@@ -1752,7 +1610,7 @@ function txCmp(a,b){
 }
 function renderTx(){
   var list=$('tx-list');
-  var base=displayRows(); /* מסונן לפי בר הסינון (תאריכים/קטגוריה/תיוג) */
+  var base=displayRows();
   var rows=(state.whoFilter==='all'
     ? base.slice()
     : base.filter(function(r){ return r.who===state.whoFilter; }))
@@ -1892,6 +1750,27 @@ function openIncomeModal(){
   haptic(8);
 }
 
+/* ═══ מודאל הוצאות קבועות — כל ההוצאות הקבועות בחודש הנבחר ═══ */
+function openRecurringModal(){
+  var rows=displayRows().filter(function(r){ return r.type!=='income' && r.recurring; })
+    .sort(txCmp);
+  var total=rows.reduce(function(t,r){ return t+(Number(r.amount)||0); },0);
+  $('recurring-modal-title').textContent='הוצאות קבועות · '+HE_MONTHS[state.m-1]+' '+state.y;
+  $('recurring-body').innerHTML=
+    '<div class="ins-row"><span>סה״כ ('+rows.length+' הוצאות קבועות)</span><b style="color:var(--red)">'+fmt(total)+'</b></div>'+
+    '<div class="ins-list">'+
+    (rows.length?rows.map(function(r){
+      return '<div class="ins-tx">'+
+        '<span class="d">'+fmtDate(r.date)+' 🔁</span>'+
+        '<span class="w">'+esc(r.category||'ללא קטגוריה')+(r.tag?' <span class="row-tag">#'+esc(r.tag)+'</span>':'')+(r.note?' · '+esc(r.note):'')+' · '+esc(r.who||'')+'</span>'+
+        '<b style="color:var(--red)">'+fmt(Math.abs(Number(r.amount)||0))+'</b>'+
+      '</div>';
+    }).join(''):'<div class="split-empty">אין הוצאות קבועות בחודש זה 🍃</div>')+
+    '</div>';
+  $('recurring-modal').classList.add('on');
+  haptic(8);
+}
+
 /* ═══ תקציר מהיר (Quick Insights) ═══════════════════════ */
 function weekRangeOf(ref){
   var d=new Date(ref); d.setHours(0,0,0,0);
@@ -1974,7 +1853,6 @@ async function deleteTx(uid){
   try{
     await apiFetch('/api/delete-transaction',{uid:uid});
     state.rows=state.rows.filter(function(r){ return String(r.uid)!==String(uid); });
-    if(filter.rangeRows) filter.rangeRows=filter.rangeRows.filter(function(r){ return String(r.uid)!==String(uid); });
     pendingRows=pendingRows.filter(function(p){ return String(p.row.uid)!==String(uid); });
     /* עדכון ה-Cache של החודש המוצג — ללא קריאת רשת נוספת */
     var key=mKey(state.y,state.m);
@@ -2134,16 +2012,14 @@ async function saveTx(){
   var txKey=mKey(pd.getFullYear(),pd.getMonth()+1);
 
   if(isEdit){
-    /* הסרת הגרסה הישנה מהמסך, ממצב הטווח ומכל ה-Cache */
+    /* הסרת הגרסה הישנה מהמסך ומכל ה-Cache */
     state.rows=state.rows.filter(function(r){ return String(r.uid)!==String(uid); });
-    if(filter.rangeRows) filter.rangeRows=filter.rangeRows.filter(function(r){ return String(r.uid)!==String(uid); });
     pendingRows=pendingRows.filter(function(p){ return String(p.row.uid)!==String(uid); });
     Object.keys(monthCache).forEach(function(k){
       if(monthCache[k].rows) monthCache[k].rows=monthCache[k].rows.filter(function(r){ return String(r.uid)!==String(uid); });
     });
   }
   if(txKey===mKey(state.y,state.m)) state.rows.push(payload);
-  if(filter.rangeRows) filter.rangeRows.push(payload); /* passesFilter יכריע בתצוגה */
   if(monthCache[txKey]){
     monthCache[txKey].rows=(monthCache[txKey].rows||[]).concat([payload]);
     cacheSave();
@@ -2159,7 +2035,6 @@ async function saveTx(){
   function dropOptimistic(){
     pendingRows=pendingRows.filter(function(p){ return String(p.row.uid)!==String(uid); });
     state.rows=state.rows.filter(function(r){ return String(r.uid)!==String(uid); });
-    if(filter.rangeRows) filter.rangeRows=filter.rangeRows.filter(function(r){ return String(r.uid)!==String(uid); });
     Object.keys(monthCache).forEach(function(k){
       if(monthCache[k].rows) monthCache[k].rows=monthCache[k].rows.filter(function(r){ return String(r.uid)!==String(uid); });
     });
@@ -2182,7 +2057,6 @@ async function saveTx(){
       var od=new Date(origRow.date);
       var oKey=mKey(od.getFullYear(),od.getMonth()+1);
       if(oKey===mKey(state.y,state.m)) state.rows.push(origRow);
-      if(filter.rangeRows) filter.rangeRows.push(origRow);
       if(monthCache[oKey]) monthCache[oKey].rows=(monthCache[oKey].rows||[]).concat([origRow]);
     }
     cacheSave();
@@ -2198,8 +2072,7 @@ async function saveTx(){
 var catsDirty=false;
 function renderCats(){
   lastCatsSig=JSON.stringify(state.cats);
-  renderFilterOptions(); /* הקטגוריות בבר הסינון תמיד מסונכרנות */
-  renderCmpOptions();    /* וגם בוררי ההשוואה באנליטיקס */
+  renderCmpOptions();    /* בוררי ההשוואה באנליטיקס תמיד מסונכרנים */    /* וגם בוררי ההשוואה באנליטיקס */
   ['expense','income'].forEach(function(kind){
     var wrap=$('chips-'+kind);
     wrap.className='cat-blocks';
@@ -2418,8 +2291,7 @@ async function syncCats(){
 /* ── 🤖 דוח AI ל-NotebookLM ── */
 function buildAiReport(){
   var s=sums();
-  var mName=(filter.rangeRows?('טווח '+filter.from+' עד '+filter.to):(HE_MONTHS[state.m-1]+' '+state.y))+
-            (filter.cat?(' · קטגוריה: '+filter.cat):'')+(filter.tag?(' · תיוג: '+filter.tag):'');
+  var mName=HE_MONTHS[state.m-1]+' '+state.y;
   var byCat={}, byWho={'שקד':0,'אביטל':0}, biggest=null;
   var expCount=0;
   displayRows().forEach(function(r){
@@ -2500,9 +2372,7 @@ function expenseByCat(rows){
   return m;
 }
 function renderAnalyticsPie(){
-  $('an-month-label').textContent=filter.rangeRows
-    ? 'טווח מותאם אישית 🔍'
-    : (HE_MONTHS[state.m-1]+' '+state.y+(filterActive()?' · מסונן 🔍':''));
+  $('an-month-label').textContent=HE_MONTHS[state.m-1]+' '+state.y;
   if(!window.Chart) return; /* ה-CDN עוד נטען — הגרף יצויר בפתיחת הלשונית */
   var by=expenseByCat(displayRows());
   var labels=Object.keys(by).sort(function(a,b){ return by[b]-by[a]; });
@@ -2718,17 +2588,6 @@ function init(){
   $('m-prev').addEventListener('click',function(){ shiftMonth(-1); });
   $('m-next').addEventListener('click',function(){ shiftMonth(1); });
 
-  /* בר הסינון */
-  $('filter-toggle').addEventListener('click',function(){
-    var body=$('filter-body');
-    var open=body.classList.toggle('hidden');
-    $('filter-chev').classList.toggle('up',!open);
-    if(!open) renderFilterOptions(); /* פתיחה = רשימות טריות */
-  });
-  $('flt-cat').addEventListener('change',renderFilterTagOptions);
-  $('flt-apply').addEventListener('click',applyFilter);
-  $('flt-clear').addEventListener('click',clearFilter);
-
   /* השוואה ממוקדת באנליטיקס: תיוגים דינמיים לפי הקטגוריה */
   $('cmp-cat').addEventListener('change',renderCmpTagOptions);
   $('refresh-btn').addEventListener('click',function(){ loadMonth(true); }); /* ריענון ידני = משיכה טרייה מהשרת */
@@ -2819,6 +2678,9 @@ function init(){
   document.addEventListener('pointermove',catDragMove,{passive:false});
   document.addEventListener('pointerup',catDragUp);
   document.addEventListener('pointercancel',catDragUp);
+
+  /* מודאל הוצאות קבועות */
+  $('recurring-btn').addEventListener('click',openRecurringModal);
 
   /* טוגל פיצול תצוגה */
   var st=$('split-toggle');
