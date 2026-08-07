@@ -486,6 +486,88 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 .status-pill.no{background:var(--red-bg);color:var(--red)}
 nav.bottom button{font-size:.6rem}
 
+/* ═══ חיפוש ואנליטיקה (דשבורד) ═══════════════════════════ */
+#dash-search{display:flex;gap:8px;margin-bottom:14px;align-items:stretch}
+#dash-search .search-wrap{position:relative;flex:1;min-width:0}
+#search-input{padding-inline-start:36px}
+#dash-search .search-ic{
+  position:absolute;top:50%;right:12px;transform:translateY(-50%);
+  font-size:.9rem;color:var(--gray-500);pointer-events:none;
+}
+#search-btn{flex:0 0 auto}
+/* הצעות חיפוש — נפתחות מתחת לשדה */
+#search-sugg{
+  position:absolute;top:calc(100% + 5px);right:0;left:0;z-index:50;
+  background:#fff;border:1.5px solid var(--gray-300);border-radius:var(--r-sm);
+  box-shadow:var(--shadow-lg);max-height:224px;overflow:auto;display:none;
+}
+#search-sugg.on{display:block}
+#search-sugg .sg{
+  display:flex;align-items:center;gap:9px;width:100%;text-align:right;
+  padding:10px 13px;font-size:.83rem;color:var(--ink);border-bottom:1px solid var(--gray-100);
+  cursor:pointer;
+}
+#search-sugg .sg:last-child{border-bottom:0}
+#search-sugg .sg:active{background:var(--gray-100)}
+#search-sugg .sg .ic{flex:0 0 auto;font-size:.8rem;width:20px;text-align:center;color:var(--gray-500)}
+#search-sugg .sg .tx{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#search-sugg .sg small{flex:0 0 auto;font-size:.64rem;color:var(--gray-500)}
+/* חצי ניווט בראש המודאל */
+.srch-nav{
+  width:34px;height:34px;border-radius:10px;font-size:1.05rem;line-height:1;
+  background:var(--gray-100);border:1.5px solid var(--gray-300);color:var(--ink);
+  display:grid;place-items:center;transition:all .15s;flex:0 0 auto;
+}
+.srch-nav:active{transform:scale(.94);background:var(--g-100)}
+.srch-nav:disabled{opacity:.35;pointer-events:none}
+#search-modal-title{
+  flex:1;text-align:center;font-size:.92rem;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;min-width:0;
+}
+/* קרוסלת 3 החודשים — ציר זמן קבוע (ישן→חדש, שמאל→ימין) */
+#search-cols{
+  display:flex;gap:10px;direction:ltr;               /* ציר זמן: שמאל=עבר */
+  overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+  padding-bottom:6px;overscroll-behavior-x:contain;
+}
+.srch-col{
+  flex:0 0 78%;min-width:78%;scroll-snap-align:center;direction:rtl;
+  background:var(--gray-100);border-radius:var(--r-sm);padding:11px 10px 10px;
+  display:flex;flex-direction:column;min-height:180px;
+}
+@media(min-width:700px){
+  #search-cols{overflow-x:visible;scroll-snap-type:none}
+  .srch-col{flex:1 1 0;min-width:0}
+}
+.srch-head{font-weight:700;font-size:.85rem;text-align:center;margin-bottom:9px}
+.srch-list{flex:1;overflow-y:auto;max-height:38dvh}
+.srch-tx{
+  display:flex;justify-content:space-between;align-items:center;gap:7px;
+  font-size:.76rem;padding:7px 2px;border-bottom:1px solid var(--gray-300);
+}
+.srch-tx:last-child{border-bottom:0}
+.srch-tx .d{color:var(--gray-500);flex:0 0 auto;font-size:.68rem}
+.srch-tx .w{flex:1;color:var(--gray-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srch-tx b{font-variant-numeric:tabular-nums;flex:0 0 auto;font-size:.78rem}
+.srch-tx b.exp{color:var(--red)}
+.srch-tx b.inc{color:var(--g-400)}
+/* סיכום חודשי בתחתית הטור + אחוז שינוי */
+.srch-total{
+  border-top:1.5px solid var(--gray-300);margin-top:9px;padding-top:9px;
+  display:flex;justify-content:space-between;align-items:center;gap:6px;
+  font-size:.8rem;font-weight:600;
+}
+.srch-total b{font-variant-numeric:tabular-nums;font-size:.92rem}
+.srch-delta{
+  font-size:.68rem;font-weight:700;border-radius:99px;padding:3px 9px;
+  background:#fff;box-shadow:var(--shadow);white-space:nowrap;
+}
+.srch-delta.bad{color:var(--red)}
+.srch-delta.good{color:var(--g-700)}
+.srch-delta.na{color:var(--gray-500)}
+.srch-count{font-size:.66rem;color:var(--gray-500);text-align:center;margin-top:3px}
+#search-empty{font-size:.8rem;color:var(--gray-500);text-align:center;padding:22px 0}
+
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
@@ -544,6 +626,18 @@ nav.bottom button{font-size:.6rem}
 
     <!-- ── דשבורד ── -->
     <section class="pane on" id="pane-dash">
+
+      <!-- חיפוש ואנליטיקה: מלל חופשי על קטגוריה / תיוג / הערה / רושם -->
+      <div id="dash-search">
+        <div class="search-wrap">
+          <span class="search-ic">🔍</span>
+          <input class="ifield" id="search-input" type="search" inputmode="search"
+                 placeholder="חיפוש הוצאה או הכנסה… (סופר, חטיף חלבון, מילואים)"
+                 autocomplete="off" enterkeyhint="search">
+          <div id="search-sugg"></div>
+        </div>
+        <button class="btn sm" id="search-btn" type="button" aria-label="חיפוש">חפש</button>
+      </div>
 
       <div class="cards">
         <div class="card income" id="card-income" role="button" tabindex="0" style="cursor:pointer">
@@ -810,6 +904,19 @@ nav.bottom button{font-size:.6rem}
   <div class="modal" style="max-width:340px">
     <h3>תקציר מהיר <button class="close" data-close="insight-modal">✕</button></h3>
     <div id="ins-body"></div>
+  </div>
+</div>
+
+<!-- ═══════════ מודאל חיפוש ואנליטיקה — 3 חודשים ═══════════ -->
+<div class="modal-bg" id="search-modal">
+  <div class="modal" style="max-width:640px">
+    <h3 style="gap:8px">
+      <button class="srch-nav" id="srch-prev" type="button" aria-label="חודש אחורה בזמן" title="חודש אחורה">▶</button>
+      <span id="search-modal-title">חיפוש</span>
+      <button class="srch-nav" id="srch-next" type="button" aria-label="חודש קדימה בזמן" title="חודש קדימה">◀</button>
+      <button class="close" data-close="search-modal">✕</button>
+    </h3>
+    <div id="search-cols"></div>
   </div>
 </div>
 
@@ -2402,6 +2509,194 @@ async function fetchMonthRows(y,m){
   cacheSave();
   return rows;
 }
+
+/* ═══ חיפוש ואנליטיקה — מגמת 3 חודשים ═══════════════════════
+   ▸ חיפוש מלל חופשי על: קטגוריה, תיוג, הערה (שם ההוצאה) והרושם.
+   ▸ המודאל מציג 3 טורים (חלון זמן) עם סכום חודשי + אחוז שינוי.
+   ▸ משיכת חודשים היסטוריים — אך ורק דרך fetchMonthRows הקיימת
+     (Cache תחילה, רשת רק בהחמצה) — הדאטה של הדשבורד לא נגעת.
+   ▸ ציר הזמן בקרוסלה קבוע LTR: שמאל=ישן, ימין=חדש. ההשוואה של
+     כל טור היא מול הטור שמשמאלו (החודש הקודם לו).
+   ▸ הטור הישן ביותר ללא השוואה — נמנעת קריאה לחודש רביעי ברקע. */
+var srch={q:'',endY:0,endM:0,seq:0,busy:false};
+
+function srchNorm(s){ return String(s==null?'':s).toLowerCase().trim(); }
+function srchMatch(r,q){
+  return srchNorm(r.category).indexOf(q)>-1 ||
+         srchNorm(r.tag).indexOf(q)>-1 ||
+         srchNorm(r.note).indexOf(q)>-1 ||
+         srchNorm(r.who).indexOf(q)>-1;
+}
+/* חודש אחורה: (y,m) פחות back חודשים */
+function srchYM(y,m,back){
+  var t=(y*12+(m-1))-back;
+  return {y:Math.floor(t/12),m:(t%12)+1};
+}
+function srchIsFuture(y,m){
+  var now=new Date();
+  return (y*12+m) > (now.getFullYear()*12+now.getMonth()+1);
+}
+
+function openSearch(q){
+  q=String(q||'').trim();
+  if(!q){ toast('הקלידו מלל לחיפוש',true); return; }
+  srch.q=q;
+  /* חלון הפתיחה: החודש המוצג בדשבורד + 2 החודשים שקדמו לו */
+  srch.endY=state.y; srch.endM=state.m;
+  srchHideSugg();
+  $('search-modal').classList.add('on');
+  haptic(8);
+  renderSearch();
+}
+
+function srchNavLock(on){
+  srch.busy=on;
+  srchSyncNav();
+}
+function srchSyncNav(){
+  var p=$('srch-prev'), n=$('srch-next');
+  if(p) p.disabled=srch.busy;
+  /* קדימה בזמן — עד החודש הקלנדרי הנוכחי, לא מעבר */
+  var nx=srchYM(srch.endY,srch.endM,-1);
+  if(n) n.disabled=srch.busy || srchIsFuture(nx.y,nx.m);
+}
+function srchShift(dir){
+  if(srch.busy) return;
+  var t=srchYM(srch.endY,srch.endM,-dir); /* dir=+1 קדימה, -1 אחורה */
+  if(dir>0 && srchIsFuture(t.y,t.m)) return;
+  srch.endY=t.y; srch.endM=t.m;
+  renderSearch();
+}
+
+/* שורת תנועה בטור */
+function srchTxHTML(r){
+  var isExp=r.type!=='income';
+  var w=esc(r.category||'ללא קטגוריה')+
+        (r.tag?' <span class="row-tag">#'+esc(r.tag)+'</span>':'')+
+        (r.note?' · '+esc(r.note):'')+
+        (r.who?' · '+esc(r.who):'');
+  return '<div class="srch-tx">'+
+    '<span class="d">'+fmtDate(r.date)+(r.recurring?' 🔁':'')+'</span>'+
+    '<span class="w">'+w+'</span>'+
+    '<b class="'+(isExp?'exp':'inc')+'">'+(isExp?'−':'+')+fmt(Math.abs(Number(r.amount)||0))+'</b>'+
+  '</div>';
+}
+
+async function renderSearch(){
+  var q=srchNorm(srch.q);
+  var seq=++srch.seq;
+  var box=$('search-cols');
+  $('search-modal-title').textContent='"'+srch.q+'"';
+  srchNavLock(true);
+
+  /* חלון הזמן: [ישן, אמצעי, חדש] */
+  var months=[srchYM(srch.endY,srch.endM,2),srchYM(srch.endY,srch.endM,1),{y:srch.endY,m:srch.endM}];
+
+  /* Skeleton מיידי — המסך לא קופא בזמן משיכת חודשים חסרים */
+  box.innerHTML=months.map(function(mm){
+    return '<div class="srch-col"><div class="srch-head">'+HE_MONTHS[mm.m-1]+' '+mm.y+'</div>'+
+           '<div class="srch-list"><div class="split-empty">⏳ טוען…</div></div></div>';
+  }).join('');
+  box.scrollLeft=box.scrollWidth; /* LTR: החודש החדש (ימני) נראה ראשון */
+
+  try{
+    /* משיכה טורית דרך ה-Cache הקיים — פגיעת Cache = 0ms רשת */
+    var cols=[];
+    for(var i=0;i<months.length;i++){
+      var raw=await fetchMonthRows(months[i].y,months[i].m);
+      /* אותה שכבת תצוגה כמו הדשבורד: דה-דופ הקרנות קבועות */
+      var rows=dedupRecurringView(raw).filter(function(r){ return srchMatch(r,q); }).sort(txCmp);
+      cols.push({ym:months[i],rows:rows,
+        total:rows.reduce(function(t,r){ return t+(Number(r.amount)||0); },0)});
+    }
+    if(seq!==srch.seq) return; /* המשתמש כבר הזיז את החלון — תשובה מאחרת נבלעת */
+
+    /* הכנסה או הוצאה? לפי רוב התנועות שנמצאו בכל החלון */
+    var inc=0,exp=0;
+    cols.forEach(function(c){ c.rows.forEach(function(r){ if(r.type==='income') inc++; else exp++; }); });
+    var incomeMode=inc>exp;
+
+    box.innerHTML=cols.map(function(c,idx){
+      /* אחוז שינוי מול הטור שמשמאל (החודש הקודם); הטור הישן — בלי השוואה */
+      var delta='';
+      if(idx>0){
+        var prev=cols[idx-1].total, cur=c.total;
+        if(prev===0 && cur===0){
+          delta='<span class="srch-delta na">—</span>';
+        }else if(prev===0){
+          delta='<span class="srch-delta na">חדש</span>';
+        }else{
+          var pct=Math.round(((cur-prev)/prev)*100);
+          var up=cur>prev;
+          /* הוצאות: עלייה=אדום, ירידה=ירוק · הכנסות: הפוך */
+          var cls=(pct===0)?'na':((up===incomeMode)?'good':'bad');
+          delta='<span class="srch-delta '+cls+'">'+(up?'▲':'▼')+' '+Math.abs(pct)+'%</span>';
+        }
+      }
+      return '<div class="srch-col">'+
+        '<div class="srch-head">'+HE_MONTHS[c.ym.m-1]+' '+c.ym.y+'</div>'+
+        '<div class="srch-list">'+
+          (c.rows.length?c.rows.map(srchTxHTML).join(''):'<div class="split-empty">אין תוצאות 🍃</div>')+
+        '</div>'+
+        '<div class="srch-total"><span>סה״כ</span>'+delta+
+          '<b style="color:'+(incomeMode?'var(--g-400)':'var(--red)')+'">'+fmt(c.total)+'</b>'+
+        '</div>'+
+        '<div class="srch-count">'+c.rows.length+' תנועות</div>'+
+      '</div>';
+    }).join('');
+    box.scrollLeft=box.scrollWidth;
+  }catch(e){
+    if(seq!==srch.seq) return;
+    toast('שגיאה בטעינת נתוני חיפוש: '+e.message,true);
+    box.innerHTML='<div id="search-empty" style="direction:rtl;flex:0 0 100%">לא ניתן לטעון את הנתונים — נסו שוב</div>';
+  }finally{
+    if(seq===srch.seq) srchNavLock(false);
+  }
+}
+
+/* ═══ הצעות חיפוש חכמות ═══════════════════════════════════
+   נבנות מהדאטה שכבר בזיכרון (החודש המוצג + כל חודשי ה-Cache)
+   — אפס קריאות רשת. לחיצה על הצעה פותחת את המודאל מיידית.   */
+function srchHideSugg(){ $('search-sugg').classList.remove('on'); }
+function srchSuggestions(qRaw){
+  var q=srchNorm(qRaw);
+  if(!q) return [];
+  var pools=[state.rows];
+  Object.keys(monthCache).forEach(function(k){
+    if(monthCache[k] && Array.isArray(monthCache[k].rows)) pools.push(monthCache[k].rows);
+  });
+  var seen={}, out=[];
+  function add(val,ic,kind){
+    val=String(val||'').trim(); if(!val) return;
+    var low=val.toLowerCase(), hit=low.indexOf(q);
+    if(hit<0) return;
+    var k=kind+'\u0001'+low;
+    if(seen[k]) return; seen[k]=1;
+    out.push({val:val,ic:ic,kind:kind,starts:hit===0?0:1});
+  }
+  pools.forEach(function(rows){
+    rows.forEach(function(r){
+      add(r.category,'🏷️','קטגוריה');
+      add(r.tag,'#','תיוג');
+      add(r.note,'✏️','הערה');
+      add(r.who,'👤','רושם');
+    });
+  });
+  out.sort(function(a,b){ return a.starts-b.starts || a.val.length-b.val.length; });
+  return out.slice(0,8);
+}
+var srchSuggTimer=null;
+function srchRenderSugg(){
+  var v=$('search-input').value;
+  var list=srchSuggestions(v);
+  var el=$('search-sugg');
+  if(!v.trim() || !list.length){ srchHideSugg(); el.innerHTML=''; return; }
+  el.innerHTML=list.map(function(s){
+    return '<button type="button" class="sg" data-sq="'+esc(s.val)+'">'+
+      '<span class="ic">'+s.ic+'</span><span class="tx">'+esc(s.val)+'</span><small>'+s.kind+'</small></button>';
+  }).join('');
+  el.classList.add('on');
+}
 /* ── השוואה ממוקדת: בוררי קטגוריה/תיוג של לשונית האנליטיקס ──
    ▸ ללא בחירה — השוואת כל הקטגוריות (כמו קודם).
    ▸ קטגוריה בלבד — פירוק ההשוואה לפי התיוגים שבתוכה.
@@ -2587,6 +2882,34 @@ function init(){
   });
   $('m-prev').addEventListener('click',function(){ shiftMonth(-1); });
   $('m-next').addEventListener('click',function(){ shiftMonth(1); });
+
+  /* ═══ חיפוש ואנליטיקה ═══ */
+  $('search-btn').addEventListener('click',function(){ openSearch($('search-input').value); });
+  $('search-input').addEventListener('keydown',function(e){
+    if(e.key==='Enter'){ e.preventDefault(); openSearch($('search-input').value); }
+    if(e.key==='Escape') srchHideSugg();
+  });
+  /* הצעות תוך כדי הקלדה — Debounce קצר, אפס רשת */
+  $('search-input').addEventListener('input',function(){
+    clearTimeout(srchSuggTimer);
+    srchSuggTimer=setTimeout(srchRenderSugg,160);
+  });
+  $('search-input').addEventListener('focus',function(){
+    if($('search-input').value.trim()) srchRenderSugg();
+  });
+  /* בחירת הצעה — פותחת את המודאל מיידית */
+  $('search-sugg').addEventListener('click',function(ev){
+    var b=ev.target.closest('[data-sq]'); if(!b) return;
+    $('search-input').value=b.dataset.sq;
+    openSearch(b.dataset.sq);
+  });
+  /* לחיצה מחוץ לשדה — סגירת ההצעות */
+  document.addEventListener('click',function(ev){
+    if(!ev.target.closest('#dash-search')) srchHideSugg();
+  });
+  /* חצי ניווט: הזזת חלון 3 החודשים בחודש אחד */
+  $('srch-prev').addEventListener('click',function(){ srchShift(-1); }); /* אחורה בזמן */
+  $('srch-next').addEventListener('click',function(){ srchShift(1); });  /* קדימה בזמן */
 
   /* השוואה ממוקדת באנליטיקס: תיוגים דינמיים לפי הקטגוריה */
   $('cmp-cat').addEventListener('change',renderCmpTagOptions);
