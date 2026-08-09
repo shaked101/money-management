@@ -429,6 +429,16 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 .tx-toolbar .seg{flex:1}
 #split-toggle{flex:0 0 auto;white-space:nowrap}
 #split-toggle.on{background:var(--g-700);color:#fff;border-color:var(--g-700)}
+/* כפתור הוצאות קבועות: אייקון 🔁 כ-SVG בכחול המערכת (#2A5B8F —
+   הכחול הקיים בעיצוב, כמו בדסקטופ). במובייל הטקסט מוסתר ונשאר
+   אייקון בלבד; בדסקטופ (min-width:700px) אייקון + טקסט.        */
+#recurring-btn{flex:0 0 auto;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+#recurring-btn .rec-ico{display:inline-flex;color:#2A5B8F}
+#recurring-btn .rec-ico svg{display:block}
+#recurring-btn .rec-lbl{display:none}
+@media(min-width:700px){
+  #recurring-btn .rec-lbl{display:inline}
+}
 /* Drag & Drop קטגוריות */
 .cat-blocks{touch-action:pan-y}
 .cat-block.dragging{opacity:.35}
@@ -449,6 +459,10 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 #ins-period{margin:4px 0 10px}
 .ins-list{max-height:216px;overflow:auto;margin-top:2px;text-align:right}
 .ins-tx{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.8rem;padding:8px 2px;border-bottom:1px solid var(--gray-100)}
+/* שורת תקציר קליקאבילית — פותחת עריכה מהירה */
+.ins-tx.ins-click{cursor:pointer;border-radius:8px}
+.ins-tx.ins-click:active{background:var(--gray-100)}
+@media(hover:hover){.ins-tx.ins-click:hover{background:var(--gray-100)}}
 .ins-tx:last-child{border-bottom:0}
 .ins-tx .d{color:var(--gray-500);flex:0 0 auto;font-size:.72rem}
 .ins-tx .w{flex:1;color:var(--gray-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem}
@@ -544,9 +558,12 @@ nav.bottom button{font-size:.6rem}
   flex:1;text-align:center;font-size:.92rem;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap;min-width:0;
 }
-/* קרוסלת 3 החודשים — ציר זמן קבוע (ישן→חדש, שמאל→ימין) */
+/* קרוסלת 3 החודשים — ציר זמן RTL (ישן→חדש, ימין→שמאל):
+   הטור הימני = החודש הישן ביותר, השמאלי = החדש ביותר.
+   ה-Container נשאר LTR לצורך גלילה/Snap יציבים בכל הדפדפנים —
+   ההיפוך נעשה בסדר הרינדור של הטורים (reverse ב-JS).           */
 #search-cols{
-  display:flex;gap:10px;direction:ltr;               /* ציר זמן: שמאל=עבר */
+  display:flex;gap:10px;direction:ltr;               /* ציר זמן: ימין=עבר (סדר DOM הפוך) */
   overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
   padding-bottom:6px;overscroll-behavior-x:contain;
 }
@@ -701,7 +718,7 @@ nav.bottom button{font-size:.6rem}
           <button data-v="אביטל">אביטל</button>
         </div>
         <button class="btn sm ghost" id="split-toggle" type="button">▦ פיצול</button>
-        <button class="btn sm ghost" id="recurring-btn" type="button">🔁 הוצאות קבועות</button>
+        <button class="btn sm ghost" id="recurring-btn" type="button" aria-label="הוצאות קבועות" title="הוצאות קבועות"><span class="rec-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span><span class="rec-lbl">הוצאות קבועות</span></button>
       </div>
       <div class="tx-totals" id="tx-totals"></div>
       <div class="tx-list" id="tx-list"></div>
@@ -1360,8 +1377,19 @@ function monthLabel(){
    כל פונקציות הרינדור קוראות displayRows() במקום state.rows,
    ולכן הכרטיסים, הפאי, רשימת התנועות והאנליטיקס מציגים
    תמיד את אותה תמונה.                                       */
+/* ═══ Performance: Memoization לשכבת התצוגה ═══════════════════
+   renderAll קורא displayRows() כמה פעמים ברצף (sums, פאי, רשימת
+   תנועות, מודאלים) — בלי Memo, dedupRecurringView רץ מחדש על כל
+   קריאה. המפתח (הפניה למערך + אורך) מזהה בבטחה כל שינוי נתונים:
+   ה-State מוחלף תמיד ב-slice/filter (הפניה חדשה) או ב-push
+   (אורך חדש). שכבת תצוגה בלבד — אפס שינוי לוגי.                 */
+var _viewMemo={src:null,len:-1,out:null};
 function displayRows(){
-  return dedupRecurringView(state.rows);
+  var rows=state.rows;
+  if(_viewMemo.src===rows && _viewMemo.len===rows.length) return _viewMemo.out;
+  var out=dedupRecurringView(rows);
+  _viewMemo.src=rows; _viewMemo.len=rows.length; _viewMemo.out=out;
+  return out;
 }
 /* ═══ Deduplication ויזואלי — הקרנות קבועות מול הוצאות אמיתיות ═══
    רקע: תנועות קבועות ישנות שהוגדרו להתחיל בחודש שבו כבר קיימת
@@ -1643,6 +1671,9 @@ function renderPie(){
 
   var NSX='http://www.w3.org/2000/svg';
   svg.innerHTML='';
+  /* Performance: כל הפרוסות נבנות בתוך DocumentFragment ומוכנסות
+     ל-SVG החי בפעולה אחת — במקום appendChild פר-פרוסה על צומת חי. */
+  var svgFrag=document.createDocumentFragment();
   var cx=60,cy=60,rOut=54,rIn=34, start=-Math.PI/2;
   function pt(r,a){ return (cx+r*Math.cos(a)).toFixed(2)+' '+(cy+r*Math.sin(a)).toFixed(2); }
   entries.forEach(function(e,i){
@@ -1663,19 +1694,20 @@ function renderPie(){
         ' L '+pt(rIn,a2)+' A '+rIn+' '+rIn+' 0 '+large+' 0 '+pt(rIn,a1)+' Z');
     }
     seg.setAttribute('fill',PIE_COLORS[i%PIE_COLORS.length]);
-    svg.appendChild(seg);
+    svgFrag.appendChild(seg);
     start=end;
   });
   var t1=document.createElementNS(NSX,'text');
   t1.setAttribute('x',60);t1.setAttribute('y',57);t1.setAttribute('text-anchor','middle');
   t1.setAttribute('font-size','13');t1.setAttribute('font-weight','800');t1.setAttribute('fill','#182420');
   t1.textContent=NIS.format(total);
-  svg.appendChild(t1);
+  svgFrag.appendChild(t1);
   var t2=document.createElementNS(NSX,'text');
   t2.setAttribute('x',60);t2.setAttribute('y',71);t2.setAttribute('text-anchor','middle');
   t2.setAttribute('font-size','7.5');t2.setAttribute('fill','#7C8B84');
   t2.textContent='סה״כ הוצאות';
-  svg.appendChild(t2);
+  svgFrag.appendChild(t2);
+  svg.appendChild(svgFrag); /* הכנסה יחידה ל-DOM החי */
 
   legend.innerHTML=shownEntries.map(function(e,i){
     var pct=Math.round(e[1]/total*100);
@@ -1709,11 +1741,20 @@ function whoChip(w){
   if(w==='אביטל') return '<span class="who-chip avital">אביטל</span>';
   return w?('<span class="who-chip">'+esc(w)+'</span>'):'';
 }
+/* Performance: toLocaleDateString יקר מאוד כשהוא רץ פר-שורה.
+   תאריכים חוזרים על עצמם רבות בתוך חודש — Cache מחרוזת→מחרוזת
+   מוריד את העלות לכמעט אפס. גבול גודל מונע צבירה אינסופית.     */
+var _fmtDateCache=Object.create(null), _fmtDateN=0;
 function fmtDate(d){
   if(!d) return '';
+  var k=String(d);
+  var hit=_fmtDateCache[k];
+  if(hit!==undefined) return hit;
   var dt=new Date(d);
-  if(isNaN(dt)) return esc(d);
-  return dt.toLocaleDateString('he-IL',{day:'numeric',month:'numeric'});
+  var out=isNaN(dt)?esc(d):dt.toLocaleDateString('he-IL',{day:'numeric',month:'numeric'});
+  if(_fmtDateN>800){ _fmtDateCache=Object.create(null); _fmtDateN=0; }
+  _fmtDateCache[k]=out; _fmtDateN++;
+  return out;
 }
 
 /* ═══ מיון כרונולוגי מלא ═════════════════════════════════
@@ -1730,10 +1771,26 @@ function uidTs(r){
   t=parseInt(s.slice(0,8),36);        /* UID ישן ללא מפריד: 8 תווי חותמת + רנדום */
   return (t>1e12 && t<4e12)?t:0;
 }
+/* Performance: מיון של n שורות מבצע ‎O(n·log n)‎ השוואות; בלי
+   Cache כל השוואה יוצרת שני new Date ומריצה Regex — צוואר בקבוק
+   אמיתי ברשימות גדולות. ה-Cache ממופתח על אובייקט השורה עצמו
+   (WeakMap — משתחרר אוטומטית עם השורה) ומאומת מול r.date, כך
+   שאין סיכון לערך מיושן. אפס שינוי בסדר המיון עצמו.            */
+var _txTsCache=new WeakMap();
+function _txTs(r){
+  if(!r||typeof r!=='object') return {t:+new Date((r&&r.date)||0)||0,u:uidTs(r)};
+  var c=_txTsCache.get(r);
+  if(!c || c.d!==r.date){
+    c={d:r.date,t:+new Date(r.date||0)||0,u:uidTs(r)};
+    _txTsCache.set(r,c);
+  }
+  return c;
+}
 function txCmp(a,b){
-  var d=(new Date(b.date||0))-(new Date(a.date||0));
+  var ca=_txTs(a), cb=_txTs(b);
+  var d=cb.t-ca.t;
   if(d) return d;
-  return uidTs(b)-uidTs(a);
+  return cb.u-ca.u;
 }
 function renderTx(){
   var list=$('tx-list');
@@ -1783,13 +1840,16 @@ function renderRowsWindowed(container,rows,compact){
   if(txIO){ txIO.disconnect(); txIO=null; }
   var INITIAL=20, CHUNK=30, i=0;
   var tmp=document.createElement('div');
+  /* Performance: בניית ה-HTML של כל הנתח כמחרוזת אחת וניתוח
+     innerHTML פעם אחת לנתח (במקום פעם לכל שורה), ואז העברת כל
+     הצמתים ל-DocumentFragment — הכנסה אחת ל-DOM ⇒ Reflow יחיד. */
   function buildFrag(n){
-    var frag=document.createDocumentFragment();
     var end=Math.min(i+n,rows.length);
-    for(; i<end; i++){
-      tmp.innerHTML=txRowHTML(rows[i],compact);
-      frag.appendChild(tmp.firstChild);
-    }
+    var html='';
+    for(; i<end; i++) html+=txRowHTML(rows[i],compact);
+    tmp.innerHTML=html;
+    var frag=document.createDocumentFragment();
+    while(tmp.firstChild) frag.appendChild(tmp.firstChild);
     return frag;
   }
   container.innerHTML='';
@@ -1949,7 +2009,11 @@ function renderInsight(){
     var mid=tagMode
       ? esc(r.category||'ללא קטגוריה')+' · '+esc(r.who||'—')+(r.note?' · '+esc(r.note):'')
       : esc(r.who||'—')+(r.tag?' <span class="row-tag tag-link" data-instag="'+esc(r.tag)+'" data-date="'+esc(r.date||'')+'" role="button" title="תקציר לפי התיוג">#'+esc(r.tag)+'</span>':'')+(r.note?' · '+esc(r.note):'');
-    return '<div class="ins-tx">'+
+    /* שורה קליקאבילית: לחיצה סוגרת את התקציר ופותחת את מודאל
+       עריכת התנועה עבור אותה תנועה — בדיוק כמו בלשונית התנועות. */
+    var canEdit=!!r.uid;
+    return '<div class="ins-tx'+(canEdit?' ins-click':'')+'"'+
+      (canEdit?' data-inedit="'+esc(r.uid)+'" role="button" tabindex="0" title="עריכת התנועה"':'')+'>'+
       '<span class="d">'+fmtDate(r.date)+'</span>'+
       '<span class="w">'+mid+'</span>'+
       '<b>'+(isExp?'−':'+')+fmt(Math.abs(Number(r.amount)||0))+'</b></div>';
@@ -2612,12 +2676,13 @@ async function renderSearch(){
   /* חלון הזמן: [ישן, אמצעי, חדש] */
   var months=[srchYM(srch.endY,srch.endM,2),srchYM(srch.endY,srch.endM,1),{y:srch.endY,m:srch.endM}];
 
-  /* Skeleton מיידי — המסך לא קופא בזמן משיכת חודשים חסרים */
+  /* Skeleton מיידי — המסך לא קופא בזמן משיכת חודשים חסרים.
+     סדר תצוגה RTL: reverse ⇒ הישן מימין, החדש משמאל.          */
   box.innerHTML=months.map(function(mm){
     return '<div class="srch-col"><div class="srch-head">'+HE_MONTHS[mm.m-1]+' '+mm.y+'</div>'+
            '<div class="srch-list"><div class="split-empty">⏳ טוען…</div></div></div>';
-  }).join('');
-  box.scrollLeft=box.scrollWidth; /* LTR: החודש החדש (ימני) נראה ראשון */
+  }).reverse().join('');
+  box.scrollLeft=0; /* החודש החדש הוא כעת השמאלי — נראה ראשון */
 
   try{
     /* משיכה טורית דרך ה-Cache הקיים — פגיעת Cache = 0ms רשת */
@@ -2637,7 +2702,9 @@ async function renderSearch(){
     var incomeMode=inc>exp;
 
     box.innerHTML=cols.map(function(c,idx){
-      /* אחוז שינוי מול הטור שמשמאל (החודש הקודם); הטור הישן — בלי השוואה */
+      /* אחוז שינוי מול החודש הקודם כרונולוגית (בתצוגה החדשה —
+         הטור שמימין); הטור הישן ביותר — בלי השוואה.
+         החישוב נשאר על המערך הכרונולוגי; רק סדר התצוגה מתהפך. */
       var delta='';
       if(idx>0){
         var prev=cols[idx-1].total, cur=c.total;
@@ -2663,8 +2730,8 @@ async function renderSearch(){
         '</div>'+
         '<div class="srch-count">'+c.rows.length+' תנועות</div>'+
       '</div>';
-    }).join('');
-    box.scrollLeft=box.scrollWidth;
+    }).reverse().join(''); /* היפוך תצוגה בלבד: ימין=ישן, שמאל=חדש */
+    box.scrollLeft=0;      /* פתיחה על החודש החדש (השמאלי) */
   }catch(e){
     if(seq!==srch.seq) return;
     toast('שגיאה בטעינת נתוני חיפוש: '+e.message,true);
@@ -3102,6 +3169,14 @@ function init(){
     if(tg){
       ev.stopPropagation();
       showInsight(insight.type,null,tg.dataset.date||insight.refDate,null,tg.dataset.instag);
+      return;
+    }
+    /* לחיצה על שורת תנועה בתקציר — עריכה מהירה: סגירת התקציר
+       ופתיחת מודאל העריכה עבור אותה תנועה ספציפית.            */
+    var rowEl=ev.target.closest('[data-inedit]');
+    if(rowEl){
+      $('insight-modal').classList.remove('on');
+      openTxEdit(rowEl.dataset.inedit);
       return;
     }
     var pb=ev.target.closest('#ins-period button');
