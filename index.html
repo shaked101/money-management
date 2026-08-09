@@ -439,6 +439,19 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 @media(min-width:700px){
   #recurring-btn .rec-lbl{display:inline}
 }
+/* אייקון תנועה קבועה בתוך שורות (ליד התאריך) — אותו SVG כחול */
+.rec-svg{display:inline-flex;vertical-align:-1px;color:#2A5B8F}
+.rec-svg svg{display:block}
+/* שורת סיכום ושליטה בהוצאות קבועות — Toggle הצגה/הסתרה ברשימה */
+.rec-sum{
+  display:flex;align-items:center;gap:7px;cursor:pointer;
+  background:var(--gray-100);border-radius:var(--r-sm);
+  padding:9px 12px;margin:0 0 8px;font-size:.76rem;color:var(--gray-700);
+  user-select:none;-webkit-user-select:none;
+}
+.rec-sum b{color:var(--red);font-variant-numeric:tabular-nums}
+.rec-sum .st{margin-inline-start:auto;font-size:.68rem;font-weight:700;color:#2A5B8F;white-space:nowrap}
+.rec-sum:active{background:var(--gray-300)}
 /* Drag & Drop קטגוריות */
 .cat-blocks{touch-action:pan-y}
 .cat-block.dragging{opacity:.35}
@@ -472,8 +485,20 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 .chart-box{position:relative;max-width:300px;height:280px;margin:0 auto}
 .chart-box.wide{max-width:100%;height:280px}
 /* תצוגת תנועות מפוצלת */
-.split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;align-items:start}
-.split-col{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:10px;min-width:0}
+/* מצב פיצול — מובייל: קרוסלה אופקית עם Scroll-Snap. עמודה
+   ברוחב קריא (86%) וגלילה נוחה ימינה/שמאלה, במקום דחיסת שתי
+   עמודות צרות. בדסקטופ (min-width:700px) — הגריד הדו-עמודתי
+   המקורי נשמר בדיוק כפי שהיה.                                */
+.split{
+  display:flex;gap:9px;align-items:stretch;
+  overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+  overscroll-behavior-x:contain;padding-bottom:6px;
+}
+.split-col{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:10px;min-width:0;flex:0 0 86%;scroll-snap-align:center}
+@media(min-width:700px){
+  .split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;align-items:start;overflow-x:visible;scroll-snap-type:none;padding-bottom:0}
+  .split-col{flex:none}
+}
 .split-head{display:flex;flex-direction:column;gap:1px;border-bottom:1px solid var(--gray-300);padding-bottom:8px;margin-bottom:9px}
 .split-head .who{font-weight:700;font-size:.88rem}
 .split-head .tot{font-size:.72rem;color:var(--gray-500)}
@@ -721,6 +746,7 @@ nav.bottom button{font-size:.6rem}
         <button class="btn sm ghost" id="recurring-btn" type="button" aria-label="הוצאות קבועות" title="הוצאות קבועות"><span class="rec-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span><span class="rec-lbl">הוצאות קבועות</span></button>
       </div>
       <div class="tx-totals" id="tx-totals"></div>
+      <div id="rec-sum-wrap"></div>
       <div class="tx-list" id="tx-list"></div>
     </section>
 
@@ -853,7 +879,7 @@ nav.bottom button{font-size:.6rem}
     <div class="fg">
       <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.86rem;font-weight:500;color:var(--ink)">
         <input type="checkbox" id="tx-recurring" style="width:19px;height:19px;accent-color:var(--g-700)">
-        🔁 תנועה קבועה — חוזרת אוטומטית כל חודש
+        <span class="rec-svg" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span> תנועה קבועה — חוזרת אוטומטית כל חודש
       </label>
     </div>
     <button class="btn full" id="tx-save">💾 שמירת תנועה</button>
@@ -1365,6 +1391,8 @@ var state={
   tags:{},                       /* { 'קטגוריה': ['תיוג1','תיוג2'] } — מגיליון 'תיוגים' */
   whoFilter:'all',               /* הכל | שקד | אביטל */
   splitView:(function(){ try{ return localStorage.getItem('ff_split')==='1'; }catch(e){ return false; } })(),
+  /* Toggle הוצאות קבועות ברשימה — נשמר בין הפעלות (ברירת מחדל: מוצג) */
+  showRecurring:(function(){ try{ return localStorage.getItem('ff_showrec')!=='0'; }catch(e){ return true; } })(),
   loading:false
 };
 
@@ -1622,6 +1650,7 @@ function renderAll(){
 function showMonthSkeleton(){
   ['c-income','c-expense','c-balance'].forEach(function(id){ $(id).textContent='…'; });
   $('tx-totals').innerHTML='';
+  $('rec-sum-wrap').innerHTML=''; /* גם שורת ההוצאות הקבועות מתאפסת בטעינה */
   $('tx-list').innerHTML='<div class="list-empty"><span class="big">⏳</span>טוען נתונים מהשרת…</div>';
 }
 var lastCatsSig='';
@@ -1736,6 +1765,11 @@ function renderPie(){
 }
 
 /* ── רשימת תנועות ── */
+/* אייקון "תנועה קבועה" בשורות — אותו SVG כחול (#2A5B8F) כמו
+   בכפתור העליון, במקום אימוג'י 🔁 (שצבעו משתנה בין מכשירים) —
+   אחידות ויזואלית מלאה בכל המערכת. מחרוזת קבועה אחת ⇒ אפס
+   עלות בנייה ברינדור.                                        */
+var REC_ICON='<span class="rec-svg" title="תנועה קבועה" aria-label="תנועה קבועה"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span>';
 function whoChip(w){
   if(w==='שקד') return '<span class="who-chip shaked">שקד</span>';
   if(w==='אביטל') return '<span class="who-chip avital">אביטל</span>';
@@ -1811,10 +1845,34 @@ function renderTx(){
     'הכנסות <b style="color:var(--g-400)">'+fmt(inc)+'</b> · '+
     'הוצאות <b style="color:var(--red)">'+fmt(exp)+'</b>';
 
-  $('tx-count').textContent=rows.length?('· '+rows.length):'';
-  if(!rows.length){
+  /* ═══ שורת סיכום ושליטה בהוצאות קבועות ══════════════════════
+     מחושבת על הסינון הנוכחי (rows) — סינון O(n) יחיד על הפלט
+     ה-Memoized של displayRows, ללא מיון נוסף. ▸ מוסתר: הקבועות
+     לא מרונדרות כלל. ▸ מוצג: rows כבר ממוין ב-txCmp, כך שהן
+     נשארות משובצות כרונולוגית בין הרגילות — בלי קיבוץ לגוש.
+     סיכומי החודש למעלה נשארים אמת מלאה (לא מושפעים מהטוגל).   */
+  var recRows=rows.filter(function(r){ return r.recurring && r.type!=='income'; });
+  var recWrap=$('rec-sum-wrap');
+  if(recRows.length){
+    var recTotal=recRows.reduce(function(t,r){ return t+(Number(r.amount)||0); },0);
+    recWrap.innerHTML='<div class="rec-sum" data-recsum="1" role="button" tabindex="0" '+
+      'title="'+(state.showRecurring?'הסתרת':'הצגת')+' ההוצאות הקבועות ברשימה">'+
+      REC_ICON+
+      '<span>הוצאות קבועות ('+recRows.length+' תנועות) · <b>'+fmt(recTotal)+'</b> — לחץ להצגה/הסתרה</span>'+
+      '<span class="st">'+(state.showRecurring?'מוצג':'מוסתר')+'</span></div>';
+  }else{
+    recWrap.innerHTML='';
+  }
+  var visRows=state.showRecurring
+    ? rows
+    : rows.filter(function(r){ return !(r.recurring && r.type!=='income'); });
+
+  $('tx-count').textContent=visRows.length?('· '+visRows.length):'';
+  if(!visRows.length){
     list.innerHTML='<div class="list-empty"><span class="big">🍃</span>'+
-      (state.whoFilter==='all'?'אין תנועות בחודש זה.<br>לחצו על + כדי להוסיף את הראשונה.':'אין תנועות של '+esc(state.whoFilter)+' בחודש זה.')+'</div>';
+      (recRows.length&&!state.showRecurring
+        ? 'כל תנועות החודש הן הוצאות קבועות — כרגע מוסתרות.<br>לחצו על השורה למעלה כדי להציגן.'
+        : (state.whoFilter==='all'?'אין תנועות בחודש זה.<br>לחצו על + כדי להוסיף את הראשונה.':'אין תנועות של '+esc(state.whoFilter)+' בחודש זה.'))+'</div>';
     return;
   }
 
@@ -1822,10 +1880,10 @@ function renderTx(){
      (ורק במצב "הכל" — פילטר משתמש גובר).                 */
   if(state.splitView && state.whoFilter==='all'){
     txRenderToken++; /* מבטל רינדור-בנתחים תלוי ועומד */
-    list.innerHTML='<div class="split">'+splitCol('שקד',rows)+splitCol('אביטל',rows)+'</div>'+
-      otherRowsSection(rows);
+    list.innerHTML='<div class="split">'+splitCol('שקד',visRows)+splitCol('אביטל',visRows)+'</div>'+
+      otherRowsSection(visRows);
   }else{
-    renderRowsWindowed(list,rows,false);
+    renderRowsWindowed(list,visRows,false);
   }
 }
 
@@ -1892,7 +1950,7 @@ function txRowHTML(r,compact){
     '<div class="cat-ic" style="background:'+esc(icBg)+';color:var(--ink)">'+esc(ic)+'</div>'+
     '<div class="mid">'+
       '<div class="cat">'+esc(r.category||'ללא קטגוריה')+tagChip+(r.note&&!compact?' · <span style="font-weight:400;color:var(--gray-700)">'+esc(r.note)+'</span>':'')+'</div>'+
-      '<div class="meta">'+(r.recurring?'<span title="תנועה קבועה">🔁</span> ':'')+fmtDate(r.date)+(compact?'':' '+whoChip(r.who))+'</div>'+
+      '<div class="meta">'+(r.recurring?REC_ICON+' ':'')+fmtDate(r.date)+(compact?'':' '+whoChip(r.who))+'</div>'+
     '</div>'+
     '<div class="amt">'+(isExp?'−':'+')+fmt(Math.abs(Number(r.amount)||0))+'</div>'+
     '<button class="edit" data-edit="'+esc(r.uid)+'" aria-label="עריכת תנועה">✏️</button>'+
@@ -1926,7 +1984,7 @@ function openIncomeModal(){
     '<div class="ins-list">'+
     (rows.length?rows.map(function(r){
       return '<div class="ins-tx">'+
-        '<span class="d">'+fmtDate(r.date)+(r.recurring?' 🔁':'')+'</span>'+
+        '<span class="d">'+fmtDate(r.date)+(r.recurring?' '+REC_ICON:'')+'</span>'+
         '<span class="w">'+esc(r.category||'')+(r.tag?' <span class="row-tag">#'+esc(r.tag)+'</span>':'')+(r.note?' · '+esc(r.note):'')+' · '+esc(r.who||'')+'</span>'+
         '<b style="color:var(--g-400)">+'+fmt(Math.abs(Number(r.amount)||0))+'</b>'+
         '<button class="mini-edit" data-editinc="'+esc(r.uid)+'" aria-label="עריכת הכנסה">✏️</button>'+
@@ -1948,7 +2006,7 @@ function openRecurringModal(){
     '<div class="ins-list">'+
     (rows.length?rows.map(function(r){
       return '<div class="ins-tx">'+
-        '<span class="d">'+fmtDate(r.date)+' 🔁</span>'+
+        '<span class="d">'+fmtDate(r.date)+' '+REC_ICON+'</span>'+
         '<span class="w">'+esc(r.category||'ללא קטגוריה')+(r.tag?' <span class="row-tag">#'+esc(r.tag)+'</span>':'')+(r.note?' · '+esc(r.note):'')+' · '+esc(r.who||'')+'</span>'+
         '<b style="color:var(--red)">'+fmt(Math.abs(Number(r.amount)||0))+'</b>'+
       '</div>';
@@ -2660,7 +2718,7 @@ function srchTxHTML(r){
         (r.note?' · '+esc(r.note):'')+
         (r.who?' · '+esc(r.who):'');
   return '<div class="srch-tx">'+
-    '<span class="d">'+fmtDate(r.date)+(r.recurring?' 🔁':'')+'</span>'+
+    '<span class="d">'+fmtDate(r.date)+(r.recurring?' '+REC_ICON:'')+'</span>'+
     '<span class="w">'+w+'</span>'+
     '<b class="'+(isExp?'exp':'inc')+'">'+(isExp?'−':'+')+fmt(Math.abs(Number(r.amount)||0))+'</b>'+
   '</div>';
@@ -3118,6 +3176,15 @@ function init(){
 
   /* מודאל הוצאות קבועות */
   $('recurring-btn').addEventListener('click',openRecurringModal);
+
+  /* Toggle הצגה/הסתרה של הוצאות קבועות ברשימת התנועות —
+     המצב נשמר ב-localStorage ונטען בפתיחת האפליקציה.      */
+  $('rec-sum-wrap').addEventListener('click',function(ev){
+    if(!ev.target.closest('[data-recsum]')) return;
+    state.showRecurring=!state.showRecurring;
+    try{ localStorage.setItem('ff_showrec',state.showRecurring?'1':'0'); }catch(e){}
+    renderTx(); haptic(8);
+  });
 
   /* טוגל פיצול תצוגה */
   var st=$('split-toggle');
