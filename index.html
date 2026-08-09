@@ -1448,8 +1448,10 @@ function dedupRecurringView(rows){
   if(!rows || !rows.length) return rows;
   var SEP='\u0001';
   function sig(r){
+    /* מפתח יום קנוני: "21/07/2026 10:00" ו-"2026-07-21" ⇒ אותו יום */
+    var dk=dateKeyOf(r.date)||String(r.date||'').slice(0,10);
     return (r.type==='income'?'income':'expense')+SEP+
-           String(r.date||'').slice(0,10)+SEP+
+           dk+SEP+
            String(r.category||'')+SEP+
            String(r.who||'')+SEP+
            String(r.tag||'')+SEP+
@@ -1790,6 +1792,34 @@ function whoChip(w){
   if(w==='אביטל') return '<span class="who-chip avital">אביטל</span>';
   return w?('<span class="who-chip">'+esc(w)+'</span>'):'';
 }
+/* ═══ פיענוח תאריכים — פורמט ישראלי DD/MM/YYYY ═══════════════
+   הדאטה מהגיליון מגיעה כ-"DD/MM/YYYY HH:mm" (ותנועות אופטימיות
+   מהטופס כ-"YYYY-MM-DD"). new Date() על מחרוזת ישראלית מחזיר
+   Invalid Date (או מפרש 05/07 כ-MM/DD) — ולכן כל פיענוח תאריך
+   של שורה חייב לעבור כאן. Regex מפורש לשני הפורמטים, ובנייה
+   כ-Date מקומי (רכיבים מספריים) — בלי הפתעות Timezone.          */
+var _RE_IL=/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/;
+var _RE_ISO=/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/;
+function parseTxDate(s){
+  if(s instanceof Date) return isNaN(s)?null:s;
+  if(typeof s==='number') return new Date(s);
+  var str=String(s==null?'':s).trim();
+  if(!str) return null;
+  var m=_RE_IL.exec(str);                              /* DD/MM/YYYY [HH:mm[:ss]] */
+  if(m) return new Date(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0),+(m[6]||0));
+  m=_RE_ISO.exec(str);                                 /* YYYY-MM-DD [HH:mm[:ss]] */
+  if(m) return new Date(+m[1],+m[2]-1,+m[3],+(m[4]||0),+(m[5]||0),+(m[6]||0));
+  var d=new Date(str);                                 /* גיבוי לכל פורמט אחר */
+  return isNaN(d)?null:d;
+}
+function parseTxTs(s){ var d=parseTxDate(s); return d?d.getTime():0; }
+/* מפתח יום קנוני YYYY-MM-DD — משווה נכון בין שני הפורמטים */
+function dateKeyOf(s){
+  var d=parseTxDate(s);
+  if(!d) return '';
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
 /* Performance: toLocaleDateString יקר מאוד כשהוא רץ פר-שורה.
    תאריכים חוזרים על עצמם רבות בתוך חודש — Cache מחרוזת→מחרוזת
    מוריד את העלות לכמעט אפס. גבול גודל מונע צבירה אינסופית.     */
@@ -1799,8 +1829,8 @@ function fmtDate(d){
   var k=String(d);
   var hit=_fmtDateCache[k];
   if(hit!==undefined) return hit;
-  var dt=new Date(d);
-  var out=isNaN(dt)?esc(d):dt.toLocaleDateString('he-IL',{day:'numeric',month:'numeric'});
+  var dt=parseTxDate(d);
+  var out=!dt?esc(d):dt.toLocaleDateString('he-IL',{day:'numeric',month:'numeric'});
   if(_fmtDateN>800){ _fmtDateCache=Object.create(null); _fmtDateN=0; }
   _fmtDateCache[k]=out; _fmtDateN++;
   return out;
@@ -1827,10 +1857,13 @@ function uidTs(r){
    שאין סיכון לערך מיושן. אפס שינוי בסדר המיון עצמו.            */
 var _txTsCache=new WeakMap();
 function _txTs(r){
-  if(!r||typeof r!=='object') return {t:+new Date((r&&r.date)||0)||0,u:uidTs(r)};
+  /* קריטי: הפיענוח חייב לעבור ב-parseTxTs (מודע ל-DD/MM/YYYY).
+     new Date() גולמי החזיר NaN לתאריכים ישראליים (למשל 21/07)
+     ⇒ חותמת 0 ⇒ מיון שגוי שהעלים תנועות מהמסך.                */
+  if(!r||typeof r!=='object') return {t:parseTxTs(r&&r.date),u:uidTs(r)};
   var c=_txTsCache.get(r);
   if(!c || c.d!==r.date){
-    c={d:r.date,t:+new Date(r.date||0)||0,u:uidTs(r)};
+    c={d:r.date,t:parseTxTs(r.date),u:uidTs(r)};
     _txTsCache.set(r,c);
   }
   return c;
@@ -1943,6 +1976,14 @@ function renderRowsWindowed(container,rows,compact){
     })();
     return;
   }
+  /* תיקון קריטי: IntersectionObserver מדווח רק על *שינויי* חיתוך.
+     אחרי הכנסת נתח, אם ה-Sentinel נשאר בתוך טווח ה-rootMargin —
+     אין שינוי מצב ⇒ אין Callback נוסף ⇒ הטעינה נתקעת אחרי הנתח
+     הראשון גם כשגוללים עד הסוף. הפתרון: אחרי כל נתח מבצעים
+     unobserve+observe — observe() תמיד מייצר התראת מצב טרייה, כך
+     שאם ה-Sentinel עדיין בטווח נטען מיד את הנתח הבא (שרשרת עד
+     שהוא יוצא מהטווח או שכל השורות רונדרו), ואם לא — ממתינים
+     לגלילה כרגיל. כל שורה בחודש מגיעה למסך, עד האחרונה.        */
   txIO=new IntersectionObserver(function(entries){
     if(token!==txRenderToken){ if(txIO){ txIO.disconnect(); txIO=null; } return; }
     if(!entries.some(function(e){ return e.isIntersecting; })) return;
@@ -1950,7 +1991,10 @@ function renderRowsWindowed(container,rows,compact){
     if(i>=rows.length){
       sentinel.remove();
       txIO.disconnect(); txIO=null;
+      return;
     }
+    txIO.unobserve(sentinel);
+    txIO.observe(sentinel);   /* Re-arm ⇒ דיווח מצב עדכני מיידי */
   },{rootMargin:'400px'});
   txIO.observe(sentinel);
 }
@@ -2058,9 +2102,9 @@ function insightRows(){
   if(insight.period==='week'){
     var now=new Date();
     var isCurMonth=(now.getFullYear()===state.y && now.getMonth()+1===state.m);
-    var ref=isCurMonth?now:(insight.refDate?new Date(insight.refDate):new Date(state.y,state.m-1,1));
+    var ref=isCurMonth?now:((insight.refDate&&parseTxDate(insight.refDate))||new Date(state.y,state.m-1,1));
     var wr=weekRangeOf(ref);
-    rows=rows.filter(function(r){ var d=new Date(r.date); return d>=wr[0]&&d<wr[1]; });
+    rows=rows.filter(function(r){ var d=parseTxDate(r.date); return d&&d>=wr[0]&&d<wr[1]; });
   }
   return rows.sort(txCmp);
 }
@@ -2209,7 +2253,9 @@ function openTxEdit(uid){
   setSeg('tx-who-seg',txForm.who);
   fillCatGrid();
   $('tx-amount').value=Number(r.amount)||'';
-  $('tx-date').value=String(r.date||todayLocalISO()).slice(0,10);
+  /* input type=date מקבל אך ורק YYYY-MM-DD — תאריך גיליון (DD/MM/YYYY)
+     חייב המרה, אחרת הדפדפן מרוקן את השדה והשמירה קופצת ל"היום". */
+  $('tx-date').value=dateKeyOf(r.date)||todayLocalISO();
   $('tx-note').value=r.note||'';
   $('tx-recurring').checked=!!r.recurring;
   $('tx-modal').classList.add('on');
@@ -2318,7 +2364,7 @@ async function saveTx(){
     /* Rollback מלא: הסרת השורה האופטימית והשבת המקור בעריכה */
     dropOptimistic();
     if(origRow){
-      var od=new Date(origRow.date);
+      var od=parseTxDate(origRow.date)||new Date(state.y,state.m-1,1);
       var oKey=mKey(od.getFullYear(),od.getMonth()+1);
       if(oKey===mKey(state.y,state.m)) state.rows.push(origRow);
       if(monthCache[oKey]) monthCache[oKey].rows=(monthCache[oKey].rows||[]).concat([origRow]);
@@ -2591,7 +2637,7 @@ function buildAiReport(){
   lines.push('דו-קרב הרישומים: שקד רשם הוצאות בסך '+fmt(byWho['שקד'])+' לעומת אביטל עם '+fmt(byWho['אביטל'])+'.');
   lines.push('');
   lines.push('רשימת כל התנועות (תאריך | סוג | קטגוריה | סכום | תיאור | מי רשם):');
-  state.rows.slice().sort(function(a,b){ return new Date(a.date||0)-new Date(b.date||0); })
+  state.rows.slice().sort(function(a,b){ return parseTxTs(a.date)-parseTxTs(b.date); })
     .forEach(function(r){
       lines.push([fmtDate(r.date),(r.type==='income'?'הכנסה':'הוצאה'),r.category||'',fmt(r.amount),r.note||'',r.who||''].join(' | '));
     });
