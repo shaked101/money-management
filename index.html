@@ -348,8 +348,23 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 .cat-tile.on{border-color:var(--g-700);box-shadow:0 0 0 2px rgba(20,80,60,.14);transform:scale(1.04)}
 /* פילטר משתמשים + סיכומי סינון */
 #tx-filter{margin:2px 0 8px}
-.tx-totals{display:flex;gap:12px;margin:0 2px 10px;font-size:.76rem;color:var(--gray-700)}
-.tx-totals b{font-variant-numeric:tabular-nums}
+/* סיכומי החודש בלשונית התנועות — שתי מיני-כרטיסיות זו לצד זו:
+   קטנות ועדינות מכרטיסיות הדשבורד (זה לא העיקר בלשונית הזו),
+   אבל מפרידות בבירור את המספרים משאר הטקסט. רקעים עדינים
+   מהפלטה הקיימת (--g-100 / --red-bg), צבעי הטקסט הקיימים
+   והצללה הקלה (--shadow).                                     */
+.tx-totals{display:flex;gap:8px;margin:2px 0 10px}
+.tx-totals:empty{display:none}
+.tx-totals .mini-card{
+  flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;
+  border-radius:var(--r-sm);box-shadow:var(--shadow);padding:7px 12px;
+}
+.tx-totals .mini-card .lbl{font-size:.64rem;color:var(--gray-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-totals .mini-card b{font-size:.92rem;font-variant-numeric:tabular-nums;line-height:1.25}
+.tx-totals .mini-card.inc{background:var(--g-100)}
+.tx-totals .mini-card.inc b{color:var(--g-400)}
+.tx-totals .mini-card.exp{background:var(--red-bg)}
+.tx-totals .mini-card.exp b{color:var(--red)}
 /* בלוקים בלשונית קטגוריות */
 .cat-blocks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
 .cat-block{position:relative;border-radius:13px;padding:11px 5px 9px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:.69rem;font-weight:600;cursor:pointer;border:1.5px solid rgba(0,0,0,.05);color:var(--ink)}
@@ -736,6 +751,7 @@ nav.bottom button{font-size:.6rem}
     <!-- ── תנועות ── -->
     <section class="pane" id="pane-tx">
       <h2 class="sec">תנועות החודש <span id="tx-count" style="color:var(--gray-500);font-weight:400"></span></h2>
+      <div class="tx-totals" id="tx-totals"></div>
       <div class="tx-toolbar">
         <div class="seg" id="tx-filter">
           <button data-v="all" class="on">הכל</button>
@@ -745,7 +761,6 @@ nav.bottom button{font-size:.6rem}
         <button class="btn sm ghost" id="split-toggle" type="button">▦ פיצול</button>
         <button class="btn sm ghost" id="recurring-btn" type="button" aria-label="הוצאות קבועות" title="הוצאות קבועות"><span class="rec-ico" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span><span class="rec-lbl">הוצאות קבועות</span></button>
       </div>
-      <div class="tx-totals" id="tx-totals"></div>
       <div id="rec-sum-wrap"></div>
       <div class="tx-list" id="tx-list"></div>
     </section>
@@ -1834,16 +1849,16 @@ function renderTx(){
     : base.filter(function(r){ return r.who===state.whoFilter; }))
     .sort(txCmp);
 
-  /* סיכומי הסינון הנוכחי */
+  /* סיכומי הסינון הנוכחי — שתי מיני-כרטיסיות מעל הפילטרים */
   var inc=0,exp=0;
   rows.forEach(function(r){
     var a=Number(r.amount)||0;
     if(r.type==='income') inc+=a; else exp+=a;
   });
+  var whoSfx=(state.whoFilter==='all'?'':' · '+esc(state.whoFilter));
   $('tx-totals').innerHTML=
-    (state.whoFilter==='all'?'סה״כ':'מוצג — '+esc(state.whoFilter))+': '+
-    'הכנסות <b style="color:var(--g-400)">'+fmt(inc)+'</b> · '+
-    'הוצאות <b style="color:var(--red)">'+fmt(exp)+'</b>';
+    '<div class="mini-card inc"><span class="lbl">הכנסות'+whoSfx+'</span><b>'+fmt(inc)+'</b></div>'+
+    '<div class="mini-card exp"><span class="lbl">הוצאות'+whoSfx+'</span><b>'+fmt(exp)+'</b></div>';
 
   /* ═══ שורת סיכום ושליטה בהוצאות קבועות ══════════════════════
      מחושבת על הסינון הנוכחי (rows) — סינון O(n) יחיד על הפלט
@@ -3201,6 +3216,14 @@ function init(){
   var mainEl=document.querySelector('#app main.wrap');
   mainEl.addEventListener('touchstart',function(ev){
     if(ev.touches.length!==1){ sw.on=false; return; }
+    /* ═══ פתרון התנגשות מחוות: קרוסלת הפיצול ═══
+       מחווה שמתחילה בתוך .split שייכת לגלילה האופקית של
+       הקרוסלה — לא להחלפת חודש. ה-Swipe הגלובלי נבלע כבר
+       ב-touchstart (sw.on=false), כך שה-touchend התואם לא
+       יפעיל shiftMonth. גלילת הקרוסלה עצמה (Native Scroll)
+       ממשיכה לעבוד כרגיל, והחלקה מחוץ לקרוסלה עדיין מחליפה
+       חודש — גם כשמצב פיצול פעיל.                          */
+    if(ev.target.closest && ev.target.closest('.split')){ sw.on=false; return; }
     var p=document.querySelector('section.pane.on');
     sw.on=!!p&&(p.id==='pane-dash'||p.id==='pane-tx');
     sw.x=ev.touches[0].clientX; sw.y=ev.touches[0].clientY;
