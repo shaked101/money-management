@@ -31,6 +31,7 @@
   --g-100:#DCEDE5;          /* ירוק רקע עדין */
   --gold:#C9A85C;           /* נגיעת פרימיום */
   --ink:#182420;            /* טקסט ראשי */
+  --cat-ink:#182420;        /* טקסט על רקעי קטגוריה פסטליים — קבוע גם במצב לילה */
   --gray-700:#4C5B54;       /* טקסט משני */
   --gray-500:#7C8B84;       /* טקסט חלש */
   --gray-300:#D8DFDB;       /* קווים */
@@ -84,6 +85,55 @@ header.top{
   transition:background .15s;
 }
 .icon-btn:active{background:rgba(255,255,255,.24)}
+
+/* ═══ תפריט פעולות (המבורגר) ב-Header ═══════════════════════
+   גלויים בהאדר: 🔍 חיפוש + ⟳ רענון + כפתור התפריט. שאר
+   הפעולות (נעילה, דוח AI, מצב לילה) עברו לתפריט נפתח.       */
+.top-actions{position:relative}
+#menu-btn svg{display:block}
+#hmenu{
+  position:absolute;top:calc(100% + 9px);left:0;z-index:75;min-width:208px;
+  background:var(--card);color:var(--ink);border-radius:14px;
+  border:1px solid var(--gray-300);box-shadow:var(--shadow-lg);
+  padding:6px;display:none;
+}
+#hmenu.on{display:block;animation:menuPop .16s ease}
+@keyframes menuPop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.hm-item{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:right;
+  padding:11px 12px;border-radius:10px;font-size:.86rem;font-weight:600;color:var(--ink);
+  transition:background .12s;
+}
+.hm-item:active{background:var(--gray-100)}
+@media(hover:hover){.hm-item:hover{background:var(--gray-100)}}
+.hm-item .hm-ic{width:22px;text-align:center;font-size:1rem;flex:0 0 auto}
+.hm-sep{height:1px;background:var(--gray-300);margin:5px 8px}
+/* מתג מצב לילה בתוך התפריט */
+.hm-switch{
+  margin-inline-start:auto;width:36px;height:20px;border-radius:99px;
+  background:var(--gray-300);position:relative;transition:background .18s;flex:0 0 auto;
+}
+.hm-switch .knob{
+  position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .18s;
+}
+#dm-toggle[aria-checked="true"] .hm-switch{background:var(--g-500)}
+#dm-toggle[aria-checked="true"] .hm-switch .knob{transform:translateX(-16px)}
+
+/* ═══ Toggle תצוגה שבועית — בשורת בורר החודשים ═══ */
+.month-nav .wk{
+  width:auto;min-width:52px;padding:0 13px;font-size:.72rem;font-weight:700;letter-spacing:.2px;
+}
+.month-nav .wk.on{background:#fff;color:var(--g-900)}
+.month-nav .wk.on:active{background:rgba(255,255,255,.85)}
+/* מסכים צרים מאוד: התווית מתכווצת מעט כדי שכל השורה תיכנס */
+@media(max-width:374px){
+  #month-label{min-width:112px;font-size:.94rem}
+  .month-nav .wk{min-width:46px;padding:0 10px}
+}
+/* טווח התאריכים של השבוע — מוצג LTR יציב גם בהקשר RTL
+   (משמש גם בתווית ההאדר וגם בתג שעל כרטיס היתרה)          */
+.wk-range{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums;display:inline-block}
 
 /* בורר חודשים */
 .month-nav{
@@ -645,10 +695,54 @@ nav.bottom button{font-size:.6rem}
 .srch-count{font-size:.66rem;color:var(--gray-500);text-align:center;margin-top:3px}
 #search-empty{font-size:.8rem;color:var(--gray-500);text-align:center;padding:22px 0}
 
+/* ═══ מצב לילה (Dark Mode) ═══════════════════════════════════
+   מופעל ע"י class="dark" על <html> (נשמר ב-localStorage: ff_dark).
+   העיקרון: דריסת משתני ה-CSS בלבד — רקעים שחורים/אפורים כהים,
+   טקסטים בהירים, ושמירה על הירוק הכהה (Brand) בהאדר, בכפתורים
+   ובאלמנטים הבולטים. בנוסף — דריסות נקודתיות לצבעים שנכתבו
+   Hardcoded (לבן) מחוץ למערכת המשתנים.                          */
+html.dark{
+  --g-100:#12352A;          /* ירוק רקע עדין — גרסה כהה */
+  --ink:#E7EFEA;            /* טקסט ראשי בהיר */
+  --gray-700:#AEBEB5;       /* טקסט משני */
+  --gray-500:#8FA098;       /* טקסט חלש */
+  --gray-300:#2C3A33;       /* קווים */
+  --gray-100:#1B2621;       /* רקע משני */
+  --bg:#0C1210;             /* רקע כללי — כמעט שחור */
+  --card:#151F1A;           /* כרטיסים */
+  --red:#E2705C;            /* אדום קריא על כהה */
+  --red-bg:#33201B;
+  --g-400:#3FBF8F;          /* ירוק הכנסות בוהק מעט */
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.38);
+  --shadow-lg:0 10px 40px rgba(0,0,0,.65);
+}
+html.dark ::selection{background:var(--g-700);color:#fff}
+html.dark .modal{background:var(--card)}
+html.dark .seg button.on{background:#243129;color:var(--ink)}
+html.dark nav.bottom{background:rgba(15,22,18,.94);border-top-color:var(--gray-300)}
+html.dark #search-sugg{background:var(--card)}
+html.dark .srch-delta{background:var(--gray-100)}
+html.dark .card.balance{background:linear-gradient(135deg,var(--card) 60%,var(--g-100));border-color:var(--g-100)}
+html.dark .ifield:focus{background:var(--gray-100)}
+html.dark .chip .x{background:rgba(255,255,255,.08)}
+html.dark .who-chip.shaked{background:#1C3247;color:#93C5F2}
+html.dark .who-chip.avital{background:#3A2033;color:#E6ADD6}
+/* אייקוני "תנועה קבועה" הכחולים — בהירים יותר על רקע כהה */
+html.dark .rec-svg,html.dark #recurring-btn .rec-ico,html.dark .rec-sum .st{color:#7FB0E6}
+/* משבצות קטגוריה: הרקעים הם פסטלים בהירים מהגיליון —
+   הטקסט עליהן נשאר כהה גם במצב לילה (קונטרסט)            */
+html.dark .cat-tile,html.dark .cat-block{color:#182420}
+html.dark .cat-tile.on{box-shadow:0 0 0 2px rgba(63,191,143,.35)}
+html.dark #drag-ghost{filter:brightness(.96)}
+
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
 </style>
+<script>
+/* ── מצב לילה: החלה מוקדמת (לפני ציור הדף) — מונע הבזק לבן ── */
+try{ if(localStorage.getItem('ff_dark')==='1') document.documentElement.classList.add('dark'); }catch(e){}
+</script>
 </head>
 <body>
 
@@ -687,9 +781,20 @@ nav.bottom button{font-size:.6rem}
         <div class="brand"><div class="coin">₪</div>הכסף שלנו</div>
         <div class="top-actions">
           <button class="icon-btn" id="search-toggle" aria-label="חיפוש הוצאה או הכנסה" title="חיפוש">🔍</button>
-          <button class="icon-btn" id="ai-btn" aria-label="הפקת דוח AI ללוח" title="דוח AI ללוח">🤖</button>
-          <button class="icon-btn" id="refresh-btn" aria-label="רענון נתונים" title="רענון">⟳</button>
-          <button class="icon-btn" id="lock-btn" aria-label="נעילת המערכת" title="נעילה">🔒</button>
+          <button class="icon-btn" id="refresh-btn" aria-label="רענון נתונים מלא מהשרת" title="רענון">⟳</button>
+          <button class="icon-btn" id="menu-btn" aria-label="תפריט פעולות" aria-haspopup="true" aria-expanded="false" title="תפריט">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
+          </button>
+          <!-- תפריט נפתח: נעילה · דוח AI · מצב לילה -->
+          <div id="hmenu" role="menu" aria-label="פעולות מערכת">
+            <button class="hm-item" id="lock-btn" role="menuitem"><span class="hm-ic">🔒</span><span>נעילת המערכת</span></button>
+            <button class="hm-item" id="ai-btn" role="menuitem"><span class="hm-ic">🤖</span><span>דוח AI ללוח</span></button>
+            <div class="hm-sep"></div>
+            <button class="hm-item" id="dm-toggle" role="menuitemcheckbox" aria-checked="false">
+              <span class="hm-ic">🌙</span><span>מצב לילה</span>
+              <span class="hm-switch" aria-hidden="true"><span class="knob"></span></span>
+            </button>
+          </div>
         </div>
         <!-- שדה חיפוש מתרחב — שכבה על פני השורה, לא שובר את ה-Header -->
         <div id="hsearch-field">
@@ -704,9 +809,11 @@ nav.bottom button{font-size:.6rem}
         </div>
       </div>
       <div class="month-nav">
-        <button class="mv" id="m-prev" aria-label="חודש קודם">‹</button>
+        <button class="mv" id="m-prev" aria-label="תקופה קודמת">‹</button>
         <div id="month-label"><small>&nbsp;</small>—</div>
-        <button class="mv" id="m-next" aria-label="חודש הבא">›</button>
+        <button class="mv" id="m-next" aria-label="תקופה הבאה">›</button>
+        <button class="mv wk" id="week-toggle" type="button" aria-pressed="false"
+                aria-label="מעבר בין תצוגה חודשית לשבועית" title="תצוגה שבועית">שבועי</button>
       </div>
     </div>
   </header>
@@ -718,16 +825,16 @@ nav.bottom button{font-size:.6rem}
 
       <div class="cards">
         <div class="card income" id="card-income" role="button" tabindex="0" style="cursor:pointer">
-          <div class="lbl">הכנסות החודש <span style="font-size:.62rem">👁</span></div>
+          <div class="lbl"><span id="lbl-income">הכנסות החודש</span> <span style="font-size:.62rem">👁</span></div>
           <div class="val" id="c-income">—</div>
         </div>
         <div class="card expense">
-          <div class="lbl">הוצאות החודש</div>
+          <div class="lbl" id="lbl-expense">הוצאות החודש</div>
           <div class="val" id="c-expense">—</div>
         </div>
         <div class="card balance">
           <div>
-            <div class="lbl">יתרה חודשית</div>
+            <div class="lbl" id="lbl-balance">יתרה חודשית</div>
             <div class="val" id="c-balance">—</div>
           </div>
           <div class="badge-month" id="c-badge">—</div>
@@ -1017,6 +1124,13 @@ function fmt(n){ n=Number(n)||0; return (Math.abs(n)%1>0.004?NIS2:NIS).format(n)
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function haptic(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms||12); }catch(e){} }
+/* קריאת משתנה CSS מהערכה הנוכחית (בהיר/לילה) — לגרפים של Chart.js */
+function cssVar(name,fallback){
+  try{
+    var v=getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v||fallback;
+  }catch(e){ return fallback; }
+}
 
 var toastTimer=null;
 function toast(msg,isErr){
@@ -1408,12 +1522,119 @@ var state={
   splitView:(function(){ try{ return localStorage.getItem('ff_split')==='1'; }catch(e){ return false; } })(),
   /* Toggle הוצאות קבועות ברשימה — נשמר בין הפעלות (ברירת מחדל: מוצג) */
   showRecurring:(function(){ try{ return localStorage.getItem('ff_showrec')!=='0'; }catch(e){ return true; } })(),
+  /* ═══ תצוגה שבועית בדשבורד ═══
+     weekly=true ⇒ הכרטיסיות והעוגה בדשבורד מציגות שבוע (א'–שבת)
+     במקום חודש. weekStart = יום ראשון (00:00) של השבוע המוצג.
+     אינווריאנט: במצב שבועי, state.y/state.m הם תמיד החודש של
+     weekStart — כך הדאטה הראשית טעונה, והחודש המשלים (אם השבוע
+     חוצה חודשים) נמשך דרך ה-Cache בלבד.                        */
+  weekly:false,
+  weekStart:null,
   loading:false
 };
 
+/* ═══ תצוגה שבועית — עזרי תאריכים ═══════════════════════════
+   שבוע = ראשון 00:00 עד שבת (מוצ"ש) כולל. הכותרת: "02/08 - 08/08". */
+function weekStartOf(d){
+  var x=new Date(d); x.setHours(0,0,0,0);
+  x.setDate(x.getDate()-x.getDay());               /* getDay(): ראשון=0 */
+  return x;
+}
+function weekEndOf(ws){ var e=new Date(ws); e.setDate(ws.getDate()+6); return e; } /* שבת */
+function fmtDM(d){ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0'); }
+function weekRangeLabel(){
+  var ws=state.weekStart, we=weekEndOf(ws);
+  return fmtDM(ws)+' - '+fmtDM(we);
+}
+
 function monthLabel(){
-  $('month-label').innerHTML='<small>חודש נבחר</small>'+HE_MONTHS[state.m-1]+' '+state.y;
-  $('c-badge').textContent=HE_MONTHS[state.m-1];
+  if(state.weekly && state.weekStart){
+    $('month-label').innerHTML='<small>שבוע נבחר</small><span class="wk-range">'+weekRangeLabel()+'</span>';
+    $('c-badge').innerHTML='<span class="wk-range">'+weekRangeLabel()+'</span>';
+  }else{
+    $('month-label').innerHTML='<small>חודש נבחר</small>'+HE_MONTHS[state.m-1]+' '+state.y;
+    $('c-badge').textContent=HE_MONTHS[state.m-1];
+  }
+}
+
+/* ═══ נתוני השבוע ═══════════════════════════════════════════
+   ▸ המאגר: תנועות החודש הראשי (state.rows) + חודש ההמשך מה-Cache
+     כשהשבוע חוצה חודשים (החודש הראשי הוא תמיד חודש weekStart).
+   ▸ כלל ברזל: כל תנועה קבועה (recurring) מסוננת החוצה לחלוטין —
+     לא מוצגת ולא נספרת בסיכום השבועי.                           */
+function weekViewRows(){
+  var ws=state.weekStart;
+  if(!ws) return [];
+  var until=new Date(ws); until.setDate(ws.getDate()+7);  /* לא-כולל */
+  var pool=state.rows;
+  var we=weekEndOf(ws);
+  if(we.getFullYear()!==state.y || we.getMonth()+1!==state.m){
+    var k2=mKey(we.getFullYear(),we.getMonth()+1);
+    if(monthCache[k2] && Array.isArray(monthCache[k2].rows))
+      pool=pool.concat(monthCache[k2].rows);
+  }
+  return pool.filter(function(r){
+    if(r.recurring) return false;                   /* כלל ברזל שבועי */
+    var d=parseTxDate(r.date);
+    return !!d && d>=ws && d<until;
+  });
+}
+/* נקודת החנק של הדשבורד: חודשי ⇒ displayRows, שבועי ⇒ weekViewRows */
+function dashRows(){ return state.weekly ? weekViewRows() : displayRows(); }
+
+/* משיכת רקע של חודש ההמשך כשהשבוע חוצה חודשים (Cache תחילה) */
+var weekFetchPending={};
+function ensureWeekMonths(){
+  if(!state.weekly || !state.weekStart) return;
+  var we=weekEndOf(state.weekStart);
+  var y2=we.getFullYear(), m2=we.getMonth()+1;
+  if(y2===state.y && m2===state.m) return;          /* השבוע כולו בחודש אחד */
+  var k2=mKey(y2,m2);
+  if(monthCache[k2] || weekFetchPending[k2]) return;
+  weekFetchPending[k2]=true;
+  fetchMonthRows(y2,m2).then(function(){
+    delete weekFetchPending[k2];
+    if(state.weekly) scheduleRenderAll();
+  }).catch(function(){ delete weekFetchPending[k2]; });
+}
+
+/* ניווט שבוע אחורה/קדימה — מסנכרן את החודש הראשי לחודש weekStart */
+function shiftWeek(d){
+  if(navLocked) return;
+  var ws=new Date(state.weekStart); ws.setDate(ws.getDate()+d*7);
+  state.weekStart=ws;
+  state.y=ws.getFullYear(); state.m=ws.getMonth()+1;
+  monthLabel();                                     /* התווית מגיבה מיידית */
+  clearTimeout(shiftTimer);
+  shiftTimer=setTimeout(function(){ loadMonth(); ensureWeekMonths(); },140);
+}
+/* נתב ניווט אחיד לחצים ולמחוות ההחלקה */
+function navShift(d){ if(state.weekly) shiftWeek(d); else shiftMonth(d); }
+
+/* הפעלה/כיבוי של התצוגה השבועית */
+function toggleWeekly(){
+  if(state.weekly){
+    state.weekly=false; state.weekStart=null;
+    monthLabel();
+    scheduleRenderAll();
+  }else{
+    var now=new Date();
+    var ref=(now.getFullYear()===state.y && now.getMonth()+1===state.m)
+      ? now : new Date(state.y,state.m-1,1);
+    state.weekStart=weekStartOf(ref);
+    state.weekly=true;
+    /* סנכרון החודש הראשי לחודש של תחילת השבוע (ייתכן שה-1 בחודש
+       נופל באמצע שבוע שמתחיל בחודש הקודם) */
+    state.y=state.weekStart.getFullYear(); state.m=state.weekStart.getMonth()+1;
+    monthLabel();
+    loadMonth();                                    /* פגיעת Cache = מיידי */
+    ensureWeekMonths();
+  }
+  var wb=$('week-toggle');
+  wb.classList.toggle('on',state.weekly);
+  wb.setAttribute('aria-pressed',state.weekly?'true':'false');
+  wb.textContent=state.weekly?'חודשי':'שבועי';
+  wb.title=state.weekly?'חזרה לתצוגה חודשית':'תצוגה שבועית';
 }
 
 /* ═══ displayRows — נקודת חנק אחת ═══════════════════════
@@ -1643,9 +1864,46 @@ async function loadMonth(force){
   }
 }
 
+/* ═══ רענון קשיח (Hard Refresh / Cache Busting) — כפתור ⟳ ═══
+   פותר אי-סנכרון בין מכשירים (מובייל PWA שנתקע על Cache ישן):
+   בלחיצה נמחק כל הזיכרון המקומי הרלוונטי — מטמון החודשים
+   (בזיכרון וב-localStorage), שורות אופטימיות ממתינות, וכל
+   מטמוני העזר של שכבת התצוגה — ואז נכפית קריאת fetch טרייה
+   ונקייה מהשרת. התשובה של get-data כוללת גם את הקטגוריות
+   והתיוגים (applyCategories) — כך שגם הם נטענים מחדש, טריים.
+
+   ⚠️ כלל ברזל — Read-Only בלבד:
+   הפעולה היחידה שנשלחת לשרת היא /api/get-data (חילוץ נתונים).
+   שום קריאת מחיקה (Delete) או כתיבה אינה נשלחת ל-GAS —
+   מסד הנתונים (הגיליון) נשאר מוגן לחלוטין משינויים.
+   הניקוי הוא מקומי לדפדפן בלבד, ואינו נוגע ב: הכספת/הסימון
+   (Vault/Pattern), טוקן הסשן, והעדפות תצוגה (פיצול/קבועות/לילה). */
+function hardRefresh(){
+  /* ביטול כל בקשה תלויה — הרענון מתחיל מדף חלק */
+  if(inflightCtrl){ try{ inflightCtrl.abort(); }catch(e){} inflightCtrl=null; }
+  /* 1. מטמון החודשים — הזיכרון וההתמדה ב-localStorage */
+  monthCache={};
+  try{ localStorage.removeItem(CACHE_KEY); }catch(e){}
+  /* 2. שורות אופטימיות ממתינות — האמת תגיע מהשרת */
+  pendingRows=[];
+  /* 3. מטמוני עזר של שכבת התצוגה (Memoization) */
+  _viewMemo={src:null,len:-1,out:null};
+  _fmtDateCache=Object.create(null); _fmtDateN=0;
+  _txTsCache=new WeakMap();
+  lastCatsSig='';                      /* מסך הקטגוריות ירונדר מחדש */
+  weekFetchPending={};
+  toast('🔄 רענון מלא — נתונים, קטגוריות ותיוגים נמשכים טריים מהשרת…');
+  /* 4. משיכה כפויה מהשרת (force=true עוקף כל Cache) —
+        כולל קטגוריות + תיוגים מעודכנים מאותה תשובה */
+  loadMonth(true);
+  /* במצב שבועי: גם חודש ההמשך של השבוע נמשך מחדש */
+  if(state.weekly) ensureWeekMonths();
+}
+
 function sums(){
   var inc=0,exp=0;
-  displayRows().forEach(function(r){
+  /* דשבורד: חודשי ⇒ כל החודש; שבועי ⇒ טווח השבוע בלבד, ללא קבועות */
+  dashRows().forEach(function(r){
     var a=Number(r.amount)||0;
     if(r.type==='income') inc+=a; else exp+=a;
   });
@@ -1653,6 +1911,11 @@ function sums(){
 }
 
 function renderAll(){
+  /* כותרות הכרטיסיות מתחלפות בין מצב חודשי לשבועי */
+  var wk=state.weekly;
+  $('lbl-income').textContent=wk?'הכנסות השבוע':'הכנסות החודש';
+  $('lbl-expense').textContent=wk?'הוצאות השבוע':'הוצאות החודש';
+  $('lbl-balance').textContent=wk?'יתרה שבועית':'יתרה חודשית';
   var s=sums();
   $('c-income').textContent=fmt(s.inc);
   $('c-expense').textContent=fmt(s.exp);
@@ -1686,7 +1949,8 @@ var pieLegendExpanded=false, pieLegendKey='';
 
 function renderPie(){
   var byCat={};
-  displayRows().forEach(function(r){
+  /* העוגה בדשבורד עוקבת אחרי מצב התצוגה: חודש מלא או שבוע נבחר */
+  dashRows().forEach(function(r){
     if(r.type!=='expense') return;
     var c=r.category||'ללא קטגוריה';
     byCat[c]=(byCat[c]||0)+(Number(r.amount)||0);
@@ -1709,8 +1973,8 @@ function renderPie(){
      וללא סף מינימום. גם הוצאה של שקלים בודדים מקבלת פרוסה
      ושורה במקרא.                                            */
 
-  /* איפוס ההרחבה במעבר חודש */
-  var viewKey=mKey(state.y,state.m);
+  /* איפוס ההרחבה במעבר חודש/שבוע */
+  var viewKey=state.weekly&&state.weekStart ? 'w:'+state.weekStart.getTime() : mKey(state.y,state.m);
   if(viewKey!==pieLegendKey){ pieLegendKey=viewKey; pieLegendExpanded=false; }
   var shownEntries=pieLegendExpanded?entries:entries.slice(0,LEGEND_LIMIT);
   var hiddenCount=entries.length-shownEntries.length;
@@ -1745,12 +2009,12 @@ function renderPie(){
   });
   var t1=document.createElementNS(NSX,'text');
   t1.setAttribute('x',60);t1.setAttribute('y',57);t1.setAttribute('text-anchor','middle');
-  t1.setAttribute('font-size','13');t1.setAttribute('font-weight','800');t1.setAttribute('fill','#182420');
+  t1.setAttribute('font-size','13');t1.setAttribute('font-weight','800');t1.style.fill='var(--ink)';
   t1.textContent=NIS.format(total);
   svgFrag.appendChild(t1);
   var t2=document.createElementNS(NSX,'text');
   t2.setAttribute('x',60);t2.setAttribute('y',71);t2.setAttribute('text-anchor','middle');
-  t2.setAttribute('font-size','7.5');t2.setAttribute('fill','#7C8B84');
+  t2.setAttribute('font-size','7.5');t2.style.fill='var(--gray-500)';
   t2.textContent='סה״כ הוצאות';
   svgFrag.appendChild(t2);
   svg.appendChild(svgFrag); /* הכנסה יחידה ל-DOM החי */
@@ -2006,7 +2270,7 @@ function txRowHTML(r,compact){
   /* תיוג (תת-קטגוריה): Chip לחיץ — פותח "הוצאות דומות" לפי התיוג */
   var tagChip=r.tag?('<span class="row-tag tag-link" data-instag="'+esc(r.tag)+'" role="button" tabindex="0" title="הצגת תנועות דומות עם התיוג הזה">#'+esc(r.tag)+'</span>'):'';
   return '<div class="tx '+(isExp?'expense':'income')+(compact?' tx-sm':'')+'" data-ins="'+esc(r.uid)+'">'+
-    '<div class="cat-ic" style="background:'+esc(icBg)+';color:var(--ink)">'+esc(ic)+'</div>'+
+    '<div class="cat-ic" style="background:'+esc(icBg)+';color:var(--cat-ink,#182420)">'+esc(ic)+'</div>'+
     '<div class="mid">'+
       '<div class="cat">'+esc(r.category||'ללא קטגוריה')+tagChip+(r.note&&!compact?' · <span style="font-weight:400;color:var(--gray-700)">'+esc(r.note)+'</span>':'')+'</div>'+
       '<div class="meta">'+(r.recurring?REC_ICON+' ':'')+fmtDate(r.date)+(compact?'':' '+whoChip(r.who))+'</div>'+
@@ -2695,10 +2959,10 @@ function renderAnalyticsPie(){
     data:{labels:labels,datasets:[{
       data:labels.map(function(l){ return by[l]; }),
       backgroundColor:labels.map(function(l,i){ return PIE_COLORS[i%PIE_COLORS.length]; }),
-      borderColor:'#fff',borderWidth:2
+      borderColor:cssVar('--card','#fff'),borderWidth:2
     }]},
     options:{responsive:true,maintainAspectRatio:false,animation:{duration:250},
-      plugins:{legend:{position:'bottom',rtl:true,labels:{font:{family:'Heebo',size:11},boxWidth:12}}}}
+      plugins:{legend:{position:'bottom',rtl:true,labels:{font:{family:'Heebo',size:11},boxWidth:12,color:cssVar('--ink','#182420')}}}}
   });
 }
 
@@ -3007,8 +3271,10 @@ async function runCompare(){
         {label:lb,data:db,backgroundColor:'#C9A85C',borderRadius:6}
       ]},
       options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{position:'bottom',rtl:true,labels:{font:{family:'Heebo',size:11},boxWidth:12}}},
-        scales:{y:{beginAtZero:true,ticks:{font:{family:'Heebo'}}},x:{ticks:{font:{family:'Heebo',size:10}}}}}
+        plugins:{legend:{position:'bottom',rtl:true,labels:{font:{family:'Heebo',size:11},boxWidth:12,color:cssVar('--ink','#182420')}}},
+        scales:{
+          y:{beginAtZero:true,ticks:{font:{family:'Heebo'},color:cssVar('--gray-700','#4C5B54')},grid:{color:cssVar('--gray-300','#D8DFDB')}},
+          x:{ticks:{font:{family:'Heebo',size:10},color:cssVar('--gray-700','#4C5B54')},grid:{color:cssVar('--gray-300','#D8DFDB')}}}}
     });
 
     /* ── סיכום מספרי: סה״כ לכל חודש + שינוי באחוזים ── */
@@ -3101,12 +3367,49 @@ function init(){
   document.querySelector('nav.bottom').addEventListener('click',function(ev){
     var b=ev.target.closest('button'); if(b) switchPane(b.dataset.pane);
   });
-  $('m-prev').addEventListener('click',function(){ shiftMonth(-1); });
-  $('m-next').addEventListener('click',function(){ shiftMonth(1); });
+  /* חצי הניווט משרתים חודש או שבוע — לפי מצב התצוגה */
+  $('m-prev').addEventListener('click',function(){ navShift(-1); });
+  $('m-next').addEventListener('click',function(){ navShift(1); });
+  $('week-toggle').addEventListener('click',function(){ toggleWeekly(); haptic(8); });
+
+  /* ═══ תפריט פעולות (המבורגר) ═══ */
+  function closeMenu(){
+    $('hmenu').classList.remove('on');
+    $('menu-btn').setAttribute('aria-expanded','false');
+  }
+  $('menu-btn').addEventListener('click',function(ev){
+    ev.stopPropagation();
+    var on=!$('hmenu').classList.contains('on');
+    if(on) srchCloseField();           /* תפריט וחיפוש לא נפתחים יחד */
+    $('hmenu').classList.toggle('on',on);
+    $('menu-btn').setAttribute('aria-expanded',String(on));
+  });
+  /* לחיצה בתוך התפריט לא נחשבת "לחיצה בחוץ" (מתג הלילה נשאר פתוח) */
+  $('hmenu').addEventListener('click',function(ev){ ev.stopPropagation(); });
+  document.addEventListener('click',closeMenu);
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeMenu(); });
+
+  /* ═══ מצב לילה — Toggle עם שמירה ב-localStorage ═══ */
+  function applyDark(on){
+    document.documentElement.classList.toggle('dark',on);
+    $('dm-toggle').setAttribute('aria-checked',on?'true':'false');
+    try{ localStorage.setItem('ff_dark',on?'1':'0'); }catch(e){}
+    var meta=document.querySelector('meta[name="theme-color"]');
+    if(meta) meta.setAttribute('content',on?'#07211A':'#0B2E23');
+    scheduleRenderAll();               /* גרפים/עוגה קולטים את צבעי הערכה */
+  }
+  /* סנכרון המתג למצב שהוחל כבר בראש הדף (Script מוקדם) */
+  $('dm-toggle').setAttribute('aria-checked',
+    document.documentElement.classList.contains('dark')?'true':'false');
+  $('dm-toggle').addEventListener('click',function(){
+    applyDark(!document.documentElement.classList.contains('dark'));
+    haptic(8);
+  });
 
   /* ═══ חיפוש ואנליטיקה — כפתור מתרחב ב-Header ═══ */
   $('search-toggle').addEventListener('click',function(ev){
     ev.stopPropagation(); /* שלא ייתפס כלחיצה "מחוץ לשדה" */
+    closeMenu();          /* חיפוש ותפריט לא נפתחים יחד */
     srchOpenField();
   });
   /* 🔍 בתוך השדה הפתוח = הפעלת החיפוש (או פוקוס אם ריק) */
@@ -3146,8 +3449,10 @@ function init(){
 
   /* השוואה ממוקדת באנליטיקס: תיוגים דינמיים לפי הקטגוריה */
   $('cmp-cat').addEventListener('change',renderCmpTagOptions);
-  $('refresh-btn').addEventListener('click',function(){ loadMonth(true); }); /* ריענון ידני = משיכה טרייה מהשרת */
-  $('lock-btn').addEventListener('click',function(){ lockOut('המערכת ננעלה'); });
+  /* ריענון ידני = Hard Refresh: מחיקת כל ה-Cache המקומי + משיכה
+     טרייה מהשרת (Read-Only — ראו hardRefresh)                  */
+  $('refresh-btn').addEventListener('click',hardRefresh);
+  $('lock-btn').addEventListener('click',function(){ closeMenu(); lockOut('המערכת ננעלה'); });
 
   /* תנועות */
   $('fab').addEventListener('click',openTxModal);
@@ -3280,7 +3585,7 @@ function init(){
     var dx=ev.changedTouches[0].clientX-sw.x;
     var dy=ev.changedTouches[0].clientY-sw.y;
     if(Math.abs(dx)<60 || Math.abs(dy)>Math.abs(dx)) return;
-    shiftMonth(dx<0?-1:1); haptic(8);
+    navShift(dx<0?-1:1); haptic(8);   /* חודשי או שבועי — לפי מצב התצוגה */
   },{passive:true});
 
   /* משבצת ההכנסות פותחת מודאל צפייה ועריכה */
@@ -3402,7 +3707,7 @@ function init(){
   });
 
   /* AI */
-  $('ai-btn').addEventListener('click',copyAiReport);
+  $('ai-btn').addEventListener('click',function(){ closeMenu(); copyAiReport(); });
 
   /* ── Boot ── */
   monthLabel();
