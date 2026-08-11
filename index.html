@@ -120,17 +120,40 @@ header.top{
 #dm-toggle[aria-checked="true"] .hm-switch{background:var(--g-500)}
 #dm-toggle[aria-checked="true"] .hm-switch .knob{transform:translateX(-16px)}
 
-/* ═══ Toggle תצוגה שבועית — בשורת בורר החודשים ═══ */
-.month-nav .wk{
-  width:auto;min-width:52px;padding:0 13px;font-size:.72rem;font-weight:700;letter-spacing:.2px;
+/* ═══ Toggle תצוגה שבועית — שורה נפרדת מתחת לכותרת החודש ═══
+   קטן ועדין: לא מתחרה בבורר החודשים, מוסתר מחוץ לדשבורד
+   (switchPane מחיל display:none על #wk-row).                */
+.wk-row{display:flex;justify-content:center;margin-top:8px}
+#week-toggle{
+  font-size:.64rem;font-weight:600;letter-spacing:.4px;line-height:1;
+  color:rgba(255,255,255,.82);background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.16);border-radius:99px;padding:5px 15px;
+  transition:background .15s,color .15s;
 }
-.month-nav .wk.on{background:#fff;color:var(--g-900)}
-.month-nav .wk.on:active{background:rgba(255,255,255,.85)}
-/* מסכים צרים מאוד: התווית מתכווצת מעט כדי שכל השורה תיכנס */
-@media(max-width:374px){
-  #month-label{min-width:112px;font-size:.94rem}
-  .month-nav .wk{min-width:46px;padding:0 10px}
+#week-toggle:active{background:rgba(255,255,255,.22)}
+#week-toggle.on{background:#fff;color:var(--g-900);border-color:#fff;font-weight:700}
+/* כותרת החודש לחיצה — פותחת בורר חודשים/שנים מהיר */
+#month-label{cursor:pointer;transition:background .15s;-webkit-tap-highlight-color:transparent}
+#month-label:active{background:rgba(255,255,255,.14)}
+@media(hover:hover){#month-label:hover{background:rgba(255,255,255,.1)}}
+
+/* ═══ מודאל בורר חודשים/שנים מהיר ═══ */
+.mp-year{display:flex;align-items:center;justify-content:center;gap:14px;margin:2px 0 14px}
+.mp-year b{font-size:1.18rem;min-width:76px;text-align:center;font-variant-numeric:tabular-nums}
+.mp-ynav{
+  width:38px;height:38px;border-radius:11px;font-size:1.15rem;line-height:1;
+  background:var(--gray-100);border:1.5px solid var(--gray-300);color:var(--ink);
+  display:grid;place-items:center;transition:all .15s;
 }
+.mp-ynav:active{transform:scale(.94);background:var(--g-100)}
+.mp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mp-m{
+  padding:13px 4px;border-radius:11px;font-size:.86rem;font-weight:600;color:var(--ink);
+  background:var(--gray-100);border:1.5px solid var(--gray-300);transition:all .12s;
+}
+.mp-m:active{transform:scale(.96)}
+.mp-m.now{border-color:var(--g-500)}          /* החודש הקלנדרי הנוכחי */
+.mp-m.on{background:var(--g-700);border-color:var(--g-700);color:#fff}  /* החודש המוצג */
 /* טווח התאריכים של השבוע — מוצג LTR יציב גם בהקשר RTL
    (משמש גם בתווית ההאדר וגם בתג שעל כרטיס היתרה)          */
 .wk-range{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums;display:inline-block}
@@ -789,6 +812,7 @@ try{ if(localStorage.getItem('ff_dark')==='1') document.documentElement.classLis
           <div id="hmenu" role="menu" aria-label="פעולות מערכת">
             <button class="hm-item" id="lock-btn" role="menuitem"><span class="hm-ic">🔒</span><span>נעילת המערכת</span></button>
             <button class="hm-item" id="ai-btn" role="menuitem"><span class="hm-ic">🤖</span><span>דוח AI ללוח</span></button>
+            <button class="hm-item" id="audit-btn" role="menuitem"><span class="hm-ic">🛡️</span><span class="hm-lbl">אימות נתונים</span></button>
             <div class="hm-sep"></div>
             <button class="hm-item" id="dm-toggle" role="menuitemcheckbox" aria-checked="false">
               <span class="hm-ic">🌙</span><span>מצב לילה</span>
@@ -810,9 +834,13 @@ try{ if(localStorage.getItem('ff_dark')==='1') document.documentElement.classLis
       </div>
       <div class="month-nav">
         <button class="mv" id="m-prev" aria-label="תקופה קודמת">‹</button>
-        <div id="month-label"><small>&nbsp;</small>—</div>
+        <div id="month-label" role="button" tabindex="0"
+             aria-label="בחירה מהירה של חודש ושנה" title="בחירת חודש ושנה"><small>&nbsp;</small>—</div>
         <button class="mv" id="m-next" aria-label="תקופה הבאה">›</button>
-        <button class="mv wk" id="week-toggle" type="button" aria-pressed="false"
+      </div>
+      <!-- Toggle תצוגה שבועית — שורה נפרדת, ממורכזת, מתחת לכותרת -->
+      <div class="wk-row" id="wk-row">
+        <button id="week-toggle" type="button" aria-pressed="false"
                 aria-label="מעבר בין תצוגה חודשית לשבועית" title="תצוגה שבועית">שבועי</button>
       </div>
     </div>
@@ -1105,6 +1133,21 @@ try{ if(localStorage.getItem('ff_dark')==='1') document.documentElement.classLis
   </div>
 </div>
 
+<!-- ═══════════ מודאל בורר חודשים/שנים מהיר ═══════════
+     נפתח בלחיצה על כותרת החודש בהאדר — קפיצה מהירה לכל
+     חודש/שנה בלי הקלקות מרובות על החצים.                 -->
+<div class="modal-bg" id="mp-modal">
+  <div class="modal compact" style="max-width:380px">
+    <h3><span>בחירת חודש ושנה</span> <button class="close" data-close="mp-modal">✕</button></h3>
+    <div class="mp-year">
+      <button class="mp-ynav" id="mp-y-prev" type="button" aria-label="שנה קודמת">‹</button>
+      <b id="mp-year">—</b>
+      <button class="mp-ynav" id="mp-y-next" type="button" aria-label="שנה הבאה">›</button>
+    </div>
+    <div class="mp-grid" id="mp-grid"></div>
+  </div>
+</div>
+
 <div id="toast"></div>
 <script>
 /* ════════════════════════════════════════════════════════════
@@ -1133,11 +1176,11 @@ function cssVar(name,fallback){
 }
 
 var toastTimer=null;
-function toast(msg,isErr){
+function toast(msg,isErr,ms){
   var t=$('toast'); t.textContent=msg;
   t.className='on'+(isErr?' err':'');
   clearTimeout(toastTimer);
-  toastTimer=setTimeout(function(){ t.className=''; },2600);
+  toastTimer=setTimeout(function(){ t.className=''; },ms||2600);
 }
 
 /* ─── apiFetch — עטיפה אחידה לכל קריאות ה-API ─────────────
@@ -1560,6 +1603,8 @@ function monthLabel(){
 /* ═══ נתוני השבוע ═══════════════════════════════════════════
    ▸ המאגר: תנועות החודש הראשי (state.rows) + חודש ההמשך מה-Cache
      כשהשבוע חוצה חודשים (החודש הראשי הוא תמיד חודש weekStart).
+   ▸ רק הוצאות מסוננות לפי תאריכי השבוע — ההכנסות אינן חלק
+     מהתצוגה השבועית (הן נשארות בסיס חודשי קבוע, ראו sums).
    ▸ כלל ברזל: כל תנועה קבועה (recurring) מסוננת החוצה לחלוטין —
      לא מוצגת ולא נספרת בסיכום השבועי.                           */
 function weekViewRows(){
@@ -1574,6 +1619,7 @@ function weekViewRows(){
       pool=pool.concat(monthCache[k2].rows);
   }
   return pool.filter(function(r){
+    if(r.type==='income') return false;             /* הכנסות = בסיס חודשי */
     if(r.recurring) return false;                   /* כלל ברזל שבועי */
     var d=parseTxDate(r.date);
     return !!d && d>=ws && d<until;
@@ -1635,6 +1681,104 @@ function toggleWeekly(){
   wb.setAttribute('aria-pressed',state.weekly?'true':'false');
   wb.textContent=state.weekly?'חודשי':'שבועי';
   wb.title=state.weekly?'חזרה לתצוגה חודשית':'תצוגה שבועית';
+}
+
+/* ═══ בורר חודשים/שנים מהיר ═══════════════════════════════════
+   נפתח בלחיצה על כותרת החודש בהאדר: שנה עם חצי דפדוף למעלה,
+   גריד 12 חודשים מתחת. בחירה ⇒ loadMonth לחודש הנבחר + סגירה.  */
+var mpYear=null;
+function openMonthPicker(){
+  mpYear=state.y;
+  renderMonthPicker();
+  $('mp-modal').classList.add('on');
+  haptic(8);
+}
+function renderMonthPicker(){
+  $('mp-year').textContent=mpYear;
+  var now=new Date();
+  $('mp-grid').innerHTML=HE_MONTHS.map(function(nm,i){
+    var isShown=(mpYear===state.y && i+1===state.m);            /* החודש המוצג כעת */
+    var isNow=(mpYear===now.getFullYear() && i+1===now.getMonth()+1);
+    return '<button type="button" class="mp-m'+(isShown?' on':'')+(isNow?' now':'')+'" data-mp="'+(i+1)+'">'+nm+'</button>';
+  }).join('');
+}
+function pickMonth(m){
+  $('mp-modal').classList.remove('on');
+  if(state.weekly){
+    /* במצב שבועי: קופצים לשבוע הראשון של החודש הנבחר */
+    state.weekStart=weekStartOf(new Date(mpYear,m-1,1));
+    state.y=state.weekStart.getFullYear(); state.m=state.weekStart.getMonth()+1;
+    monthLabel();
+    loadMonth();
+    ensureWeekMonths();
+  }else{
+    state.y=mpYear; state.m=m;
+    monthLabel();
+    loadMonth();
+  }
+  haptic(8);
+}
+
+/* ═══ אימות שלמות נתונים (Data Integrity Audit) ═══════════════
+   משווה את מה שנטען בפועל לזיכרון המקומי (state.rows של החודש
+   הפעיל) מול האמת בשרת — כדי לוודא 100% סנכרון בין האקסל לטלפון.
+
+   ⚠️ Read-Only בלבד: הבדיקה שולחת אך ורק /api/get-data עם דגל
+   audit:true (אותו נתיב Vercel קיים — אפס שינויי צד-שרת בפרוקסי).
+   שני מסלולים בשרת ה-GAS:
+   ▸ אם הוסף קטע ה-Audit ב-Code.gs (מסופק בנפרד) — GAS מחזיר
+     ספירה וסכומים בלבד ({audit:true,count,expenseTotal,incomeTotal})
+     — קליל, בלי להעביר את כל השורות.
+   ▸ Fallback אוטומטי: אם ה-GAS טרם עודכן, מתקבלת תשובת get-data
+     רגילה — והספירה נעשית כאן על rows הטריים. האימות עובד מיד
+     בשני המקרים.                                                 */
+var auditBusy=false;
+async function runDataAudit(){
+  if(auditBusy) return;
+  auditBusy=true;
+  var lbl=$('audit-btn')?$('audit-btn').querySelector('.hm-lbl'):null;
+  if(lbl) lbl.textContent='בודק מול השרת…';
+  var y=state.y, m=state.m;
+  try{
+    /* צילום המצב המקומי של החודש הפעיל — לפני הרשת */
+    var localRows=state.rows||[];
+    var localCount=localRows.length, lExp=0, lInc=0;
+    localRows.forEach(function(r){
+      var a=Number(r.amount)||0;
+      if(r.type==='income') lInc+=a; else lExp+=a;
+    });
+    toast('🛡️ מריץ אימות נתונים מול השרת…');
+    var data=await apiFetch('/api/get-data',{month:m,year:y,audit:true});
+    var srvCount, sExp, sInc;
+    if(data && data.audit===true){
+      /* מסלול Audit ייעודי (Code.gs עודכן) */
+      srvCount=Number(data.count)||0;
+      sExp=Number(data.expenseTotal)||0;
+      sInc=Number(data.incomeTotal)||0;
+    }else{
+      /* Fallback: תשובת get-data מלאה — סופרים כאן */
+      var rows=Array.isArray(data&&data.rows)?data.rows:[];
+      srvCount=rows.length; sExp=0; sInc=0;
+      rows.forEach(function(r){
+        var a=Number(r.amount)||0;
+        if(r.type==='income') sInc+=a; else sExp+=a;
+      });
+    }
+    var lbl2=HE_MONTHS[m-1]+' '+y;
+    if(srvCount===localCount && Math.abs(sExp-lExp)<0.01 && Math.abs(sInc-lInc)<0.01){
+      toast('✅ הנתונים מסונכרנים במלואם ('+srvCount+' תנועות · '+lbl2+')',false,4600);
+    }else if(srvCount!==localCount){
+      toast('⚠️ פער נתונים ב'+lbl2+': קיימות '+srvCount+' תנועות באקסל, אך נטענו רק '+
+        localCount+' — לחצו ⟳ לרענון מלא',true,6500);
+    }else{
+      toast('⚠️ '+lbl2+': כמות התנועות זהה ('+srvCount+') אך הסכומים שונים — לחצו ⟳ לרענון מלא',true,6500);
+    }
+  }catch(e){
+    if(e.code!==401) toast('שגיאה באימות הנתונים: '+e.message,true);
+  }finally{
+    auditBusy=false;
+    if(lbl) lbl.textContent='אימות נתונים';
+  }
 }
 
 /* ═══ displayRows — נקודת חנק אחת ═══════════════════════
@@ -1902,20 +2046,31 @@ function hardRefresh(){
 
 function sums(){
   var inc=0,exp=0;
-  /* דשבורד: חודשי ⇒ כל החודש; שבועי ⇒ טווח השבוע בלבד, ללא קבועות */
-  dashRows().forEach(function(r){
-    var a=Number(r.amount)||0;
-    if(r.type==='income') inc+=a; else exp+=a;
-  });
+  if(state.weekly){
+    /* ═══ תצוגה שבועית — הכנסות כבסיס חודשי קבוע ═══
+       הוצאות: טווח השבוע בלבד (ללא קבועות, ראו weekViewRows).
+       הכנסות: תמיד סך ההכנסות המלא של כל החודש המוצג — כדי
+       למנוע מצג שווא של חוסר איזון בשבוע ללא הכנסות.           */
+    weekViewRows().forEach(function(r){ exp+=Number(r.amount)||0; });
+    displayRows().forEach(function(r){
+      if(r.type==='income') inc+=Number(r.amount)||0;
+    });
+  }else{
+    displayRows().forEach(function(r){
+      var a=Number(r.amount)||0;
+      if(r.type==='income') inc+=a; else exp+=a;
+    });
+  }
   return {inc:inc,exp:exp,bal:inc-exp};
 }
 
 function renderAll(){
-  /* כותרות הכרטיסיות מתחלפות בין מצב חודשי לשבועי */
+  /* כותרות הכרטיסיות: ההוצאות והיתרה מתחלפות לשבועי; ההכנסות
+     נשארות תמיד "הכנסות החודש" — בסיס חודשי קבוע גם במצב שבועי */
   var wk=state.weekly;
-  $('lbl-income').textContent=wk?'הכנסות השבוע':'הכנסות החודש';
+  $('lbl-income').textContent='הכנסות החודש';
   $('lbl-expense').textContent=wk?'הוצאות השבוע':'הוצאות החודש';
-  $('lbl-balance').textContent=wk?'יתרה שבועית':'יתרה חודשית';
+  $('lbl-balance').textContent=wk?'יתרה שבועית · מול הכנסות החודש':'יתרה חודשית';
   var s=sums();
   $('c-income').textContent=fmt(s.inc);
   $('c-expense').textContent=fmt(s.exp);
@@ -3343,6 +3498,9 @@ function switchPane(name){
     b.classList.toggle('on',b.dataset.pane===name);
   });
   $('fab').style.display=(name==='dash'||name==='tx')?'grid':'none';
+  /* כפתור "שבועי" רלוונטי רק לדשבורד — מוסתר לחלוטין בשאר הלשוניות */
+  var wr=$('wk-row');
+  if(wr) wr.style.display=(name==='dash')?'':'none';
   if(name==='an') renderAnalyticsPie();   /* הקנבס חייב להיות גלוי כשמציירים */
   if(name==='set') renderSettings();
 }
@@ -3371,6 +3529,18 @@ function init(){
   $('m-prev').addEventListener('click',function(){ navShift(-1); });
   $('m-next').addEventListener('click',function(){ navShift(1); });
   $('week-toggle').addEventListener('click',function(){ toggleWeekly(); haptic(8); });
+
+  /* ═══ בורר חודשים/שנים מהיר — כותרת החודש לחיצה ═══ */
+  $('month-label').addEventListener('click',openMonthPicker);
+  $('month-label').addEventListener('keydown',function(e){
+    if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openMonthPicker(); }
+  });
+  $('mp-y-prev').addEventListener('click',function(){ mpYear--; renderMonthPicker(); haptic(6); });
+  $('mp-y-next').addEventListener('click',function(){ mpYear++; renderMonthPicker(); haptic(6); });
+  $('mp-grid').addEventListener('click',function(ev){
+    var b=ev.target.closest('[data-mp]'); if(!b) return;
+    pickMonth(parseInt(b.dataset.mp,10));
+  });
 
   /* ═══ תפריט פעולות (המבורגר) ═══ */
   function closeMenu(){
@@ -3708,6 +3878,8 @@ function init(){
 
   /* AI */
   $('ai-btn').addEventListener('click',function(){ closeMenu(); copyAiReport(); });
+  /* אימות שלמות נתונים — מהתפריט */
+  $('audit-btn').addEventListener('click',function(){ closeMenu(); runDataAudit(); });
 
   /* ── Boot ── */
   monthLabel();
