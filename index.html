@@ -1566,28 +1566,39 @@ var state={
   /* Toggle הוצאות קבועות ברשימה — נשמר בין הפעלות (ברירת מחדל: מוצג) */
   showRecurring:(function(){ try{ return localStorage.getItem('ff_showrec')!=='0'; }catch(e){ return true; } })(),
   /* ═══ תצוגה שבועית בדשבורד ═══
-     weekly=true ⇒ הכרטיסיות והעוגה בדשבורד מציגות שבוע (א'–שבת)
-     במקום חודש. weekStart = יום ראשון (00:00) של השבוע המוצג.
-     אינווריאנט: במצב שבועי, state.y/state.m הם תמיד החודש של
-     weekStart — כך הדאטה הראשית טעונה, והחודש המשלים (אם השבוע
-     חוצה חודשים) נמשך דרך ה-Cache בלבד.                        */
+     weekly=true ⇒ הכרטיסיות והעוגה בדשבורד מציגות שבוע במקום
+     חודש. weekStart = תחילת השבוע התחום (Clamped) — היום הראשון
+     של השבוע בתוך החודש הפעיל (ראו clampWeekBounds).
+     אינווריאנט: השבוע חי תמיד כולו בתוך state.y/state.m —
+     ההתחלה לא לפני ה-1 בחודש והסיום לא אחרי היום האחרון בו.    */
   weekly:false,
   weekStart:null,
   loading:false
 };
 
 /* ═══ תצוגה שבועית — עזרי תאריכים ═══════════════════════════
-   שבוע = ראשון 00:00 עד שבת (מוצ"ש) כולל. הכותרת: "02/08 - 08/08". */
-function weekStartOf(d){
-  var x=new Date(d); x.setHours(0,0,0,0);
-  x.setDate(x.getDate()-x.getDay());               /* getDay(): ראשון=0 */
-  return x;
+   שבוע בסיסי = ראשון עד שבת, אך תמיד תחום (Clamped) לגבולות
+   החודש הפעיל: תאריך ההתחלה לעולם לא לפני ה-1 בחודש, ותאריך
+   הסיום לעולם לא אחרי היום האחרון בחודש. שבוע שגולש בין חודשים
+   מפוצל לשניים — למשל "28/06 - 30/06" ואז "01/07 - 04/07".
+   יתרון נלווה: כל שבוע חי כולו בתוך חודש אחד — אין עוד צורך
+   במשיכת חודש-המשך מה-Cache.                                    */
+function clampWeekBounds(anchor){
+  var y=anchor.getFullYear(), m=anchor.getMonth();
+  var ws=new Date(anchor); ws.setHours(0,0,0,0);
+  ws.setDate(ws.getDate()-ws.getDay());            /* ראשון של השבוע (getDay: ראשון=0) */
+  var first=new Date(y,m,1);
+  if(ws<first) ws=first;                           /* חיתוך לתחילת החודש */
+  var we=new Date(ws);
+  we.setDate(we.getDate()+(6-we.getDay()));        /* שבת של אותו שבוע */
+  var last=new Date(y,m+1,0);
+  if(we>last) we=last;                             /* חיתוך לסוף החודש */
+  return {ws:ws,we:we};
 }
-function weekEndOf(ws){ var e=new Date(ws); e.setDate(ws.getDate()+6); return e; } /* שבת */
 function fmtDM(d){ return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0'); }
 function weekRangeLabel(){
-  var ws=state.weekStart, we=weekEndOf(ws);
-  return fmtDM(ws)+' - '+fmtDM(we);
+  var b=clampWeekBounds(state.weekStart);
+  return fmtDM(b.ws)+' - '+fmtDM(b.we);
 }
 
 function monthLabel(){
@@ -1601,58 +1612,60 @@ function monthLabel(){
 }
 
 /* ═══ נתוני השבוע ═══════════════════════════════════════════
-   ▸ המאגר: תנועות החודש הראשי (state.rows) + חודש ההמשך מה-Cache
-     כשהשבוע חוצה חודשים (החודש הראשי הוא תמיד חודש weekStart).
+   ▸ המאגר: תנועות החודש הפעיל בלבד (state.rows) — השבוע תחום
+     לגבולות החודש, כך שאין עוד תלות בחודשים שכנים.
    ▸ רק הוצאות מסוננות לפי תאריכי השבוע — ההכנסות אינן חלק
      מהתצוגה השבועית (הן נשארות בסיס חודשי קבוע, ראו sums).
    ▸ כלל ברזל: כל תנועה קבועה (recurring) מסוננת החוצה לחלוטין —
      לא מוצגת ולא נספרת בסיכום השבועי.                           */
 function weekViewRows(){
-  var ws=state.weekStart;
-  if(!ws) return [];
-  var until=new Date(ws); until.setDate(ws.getDate()+7);  /* לא-כולל */
-  var pool=state.rows;
-  var we=weekEndOf(ws);
-  if(we.getFullYear()!==state.y || we.getMonth()+1!==state.m){
-    var k2=mKey(we.getFullYear(),we.getMonth()+1);
-    if(monthCache[k2] && Array.isArray(monthCache[k2].rows))
-      pool=pool.concat(monthCache[k2].rows);
-  }
-  return pool.filter(function(r){
+  if(!state.weekStart) return [];
+  var b=clampWeekBounds(state.weekStart);
+  var until=new Date(b.we); until.setDate(until.getDate()+1);  /* אחרי סוף השבוע (לא-כולל) */
+  return state.rows.filter(function(r){
     if(r.type==='income') return false;             /* הכנסות = בסיס חודשי */
     if(r.recurring) return false;                   /* כלל ברזל שבועי */
     var d=parseTxDate(r.date);
-    return !!d && d>=ws && d<until;
+    return !!d && d>=b.ws && d<until;
   });
 }
 /* נקודת החנק של הדשבורד: חודשי ⇒ displayRows, שבועי ⇒ weekViewRows */
 function dashRows(){ return state.weekly ? weekViewRows() : displayRows(); }
 
-/* משיכת רקע של חודש ההמשך כשהשבוע חוצה חודשים (Cache תחילה) */
-var weekFetchPending={};
-function ensureWeekMonths(){
-  if(!state.weekly || !state.weekStart) return;
-  var we=weekEndOf(state.weekStart);
-  var y2=we.getFullYear(), m2=we.getMonth()+1;
-  if(y2===state.y && m2===state.m) return;          /* השבוע כולו בחודש אחד */
-  var k2=mKey(y2,m2);
-  if(monthCache[k2] || weekFetchPending[k2]) return;
-  weekFetchPending[k2]=true;
-  fetchMonthRows(y2,m2).then(function(){
-    delete weekFetchPending[k2];
-    if(state.weekly) scheduleRenderAll();
-  }).catch(function(){ delete weekFetchPending[k2]; });
+/* ═══ הוצאות מצטברות — לחישוב היתרה השבועית ═══════════════════
+   סך כל ההוצאות שבוצעו מה-1 בחודש ועד ליום האחרון של השבוע
+   המוצג (כולל). אותם כללי סינון כמו התצוגה השבועית: ללא הכנסות
+   וללא הוצאות קבועות — כך שהיתרה עקבית עם הכרטיסיות.            */
+function weekCumExpenses(){
+  if(!state.weekStart) return 0;
+  var b=clampWeekBounds(state.weekStart);
+  var until=new Date(b.we); until.setDate(until.getDate()+1);  /* אחרי סוף השבוע */
+  var cum=0;
+  /* state.rows = תנועות החודש הפעיל בלבד ⇒ הגבול התחתון (ה-1
+     בחודש) מובטח מעצם המבנה — נותר לסנן רק את הגבול העליון */
+  state.rows.forEach(function(r){
+    if(r.type==='income' || r.recurring) return;
+    var d=parseTxDate(r.date);
+    if(d && d<until) cum+=Number(r.amount)||0;
+  });
+  return cum;
 }
 
-/* ניווט שבוע אחורה/קדימה — מסנכרן את החודש הראשי לחודש weekStart */
+/* ניווט שבוע אחורה/קדימה — חוצה גבולות חודש דרך השבועות
+   התחומים: קדימה מהשבוע האחרון של יוני ⇒ "01/07 - ...";
+   אחורה מהשבוע הראשון של יולי ⇒ "... - 30/06".               */
 function shiftWeek(d){
   if(navLocked) return;
-  var ws=new Date(state.weekStart); ws.setDate(ws.getDate()+d*7);
-  state.weekStart=ws;
-  state.y=ws.getFullYear(); state.m=ws.getMonth()+1;
+  var b=clampWeekBounds(state.weekStart);
+  var anchor;
+  if(d>0){ anchor=new Date(b.we); anchor.setDate(anchor.getDate()+1); }  /* היום שאחרי סוף השבוע */
+  else   { anchor=new Date(b.ws); anchor.setDate(anchor.getDate()-1); }  /* היום שלפני תחילתו */
+  var nb=clampWeekBounds(anchor);
+  state.weekStart=nb.ws;
+  state.y=nb.ws.getFullYear(); state.m=nb.ws.getMonth()+1;
   monthLabel();                                     /* התווית מגיבה מיידית */
   clearTimeout(shiftTimer);
-  shiftTimer=setTimeout(function(){ loadMonth(); ensureWeekMonths(); },140);
+  shiftTimer=setTimeout(function(){ loadMonth(); },140);  /* פגיעת Cache = מיידי */
 }
 /* נתב ניווט אחיד לחצים ולמחוות ההחלקה */
 function navShift(d){ if(state.weekly) shiftWeek(d); else shiftMonth(d); }
@@ -1667,14 +1680,12 @@ function toggleWeekly(){
     var now=new Date();
     var ref=(now.getFullYear()===state.y && now.getMonth()+1===state.m)
       ? now : new Date(state.y,state.m-1,1);
-    state.weekStart=weekStartOf(ref);
+    /* השבוע תחום לחודש הפעיל ⇒ weekStart תמיד בתוכו, אין צורך
+       בסנכרון חודש או במשיכת חודש שכן */
+    state.weekStart=clampWeekBounds(ref).ws;
     state.weekly=true;
-    /* סנכרון החודש הראשי לחודש של תחילת השבוע (ייתכן שה-1 בחודש
-       נופל באמצע שבוע שמתחיל בחודש הקודם) */
-    state.y=state.weekStart.getFullYear(); state.m=state.weekStart.getMonth()+1;
     monthLabel();
-    loadMonth();                                    /* פגיעת Cache = מיידי */
-    ensureWeekMonths();
+    scheduleRenderAll();
   }
   var wb=$('week-toggle');
   wb.classList.toggle('on',state.weekly);
@@ -1705,12 +1716,12 @@ function renderMonthPicker(){
 function pickMonth(m){
   $('mp-modal').classList.remove('on');
   if(state.weekly){
-    /* במצב שבועי: קופצים לשבוע הראשון של החודש הנבחר */
-    state.weekStart=weekStartOf(new Date(mpYear,m-1,1));
-    state.y=state.weekStart.getFullYear(); state.m=state.weekStart.getMonth()+1;
+    /* במצב שבועי: קופצים לשבוע הראשון (התחום) של החודש הנבחר —
+       מתחיל תמיד ב-1 בחודש */
+    state.y=mpYear; state.m=m;
+    state.weekStart=clampWeekBounds(new Date(mpYear,m-1,1)).ws;
     monthLabel();
     loadMonth();
-    ensureWeekMonths();
   }else{
     state.y=mpYear; state.m=m;
     monthLabel();
@@ -2035,32 +2046,32 @@ function hardRefresh(){
   _fmtDateCache=Object.create(null); _fmtDateN=0;
   _txTsCache=new WeakMap();
   lastCatsSig='';                      /* מסך הקטגוריות ירונדר מחדש */
-  weekFetchPending={};
   toast('🔄 רענון מלא — נתונים, קטגוריות ותיוגים נמשכים טריים מהשרת…');
   /* 4. משיכה כפויה מהשרת (force=true עוקף כל Cache) —
-        כולל קטגוריות + תיוגים מעודכנים מאותה תשובה */
+        כולל קטגוריות + תיוגים מעודכנים מאותה תשובה.
+        (השבועות תחומים לחודש הפעיל ⇒ די בחודש אחד)             */
   loadMonth(true);
-  /* במצב שבועי: גם חודש ההמשך של השבוע נמשך מחדש */
-  if(state.weekly) ensureWeekMonths();
 }
 
 function sums(){
   var inc=0,exp=0;
   if(state.weekly){
-    /* ═══ תצוגה שבועית — הכנסות כבסיס חודשי קבוע ═══
-       הוצאות: טווח השבוע בלבד (ללא קבועות, ראו weekViewRows).
-       הכנסות: תמיד סך ההכנסות המלא של כל החודש המוצג — כדי
-       למנוע מצג שווא של חוסר איזון בשבוע ללא הכנסות.           */
+    /* ═══ תצוגה שבועית ═══
+       הוצאות: טווח השבוע התחום בלבד (ללא קבועות, ראו weekViewRows).
+       הכנסות: תמיד סך ההכנסות המלא של כל החודש המוצג — בסיס קבוע.
+       יתרה: מצטברת — (סך הכנסות החודש) פחות (סך כל ההוצאות
+       שבוצעו מה-1 בחודש ועד ליום האחרון של השבוע המוצג), כך
+       שמעבר שבוע קדימה לא "שוכח" את הוצאות השבועות הקודמים.    */
     weekViewRows().forEach(function(r){ exp+=Number(r.amount)||0; });
     displayRows().forEach(function(r){
       if(r.type==='income') inc+=Number(r.amount)||0;
     });
-  }else{
-    displayRows().forEach(function(r){
-      var a=Number(r.amount)||0;
-      if(r.type==='income') inc+=a; else exp+=a;
-    });
+    return {inc:inc,exp:exp,bal:inc-weekCumExpenses()};
   }
+  displayRows().forEach(function(r){
+    var a=Number(r.amount)||0;
+    if(r.type==='income') inc+=a; else exp+=a;
+  });
   return {inc:inc,exp:exp,bal:inc-exp};
 }
 
@@ -2070,7 +2081,7 @@ function renderAll(){
   var wk=state.weekly;
   $('lbl-income').textContent='הכנסות החודש';
   $('lbl-expense').textContent=wk?'הוצאות השבוע':'הוצאות החודש';
-  $('lbl-balance').textContent=wk?'יתרה שבועית · מול הכנסות החודש':'יתרה חודשית';
+  $('lbl-balance').textContent=wk?'יתרה מצטברת · עד סוף השבוע':'יתרה חודשית';
   var s=sums();
   $('c-income').textContent=fmt(s.inc);
   $('c-expense').textContent=fmt(s.exp);
