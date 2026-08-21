@@ -373,11 +373,14 @@ function saveCatsToStorage(){
 }
 async function refreshCats(){
   if(!navigator.onLine) return;
+  var ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
+  var timer=ctrl?setTimeout(function(){ ctrl.abort(); },4000):null;
   try{
     var res=await fetch('/api/get-categories',{
       method:'POST',
       headers:authHeaders(),
-      body:'{}'
+      body:'{}',
+      signal: ctrl?ctrl.signal:undefined
     });
     if(res.status===401||res.status===403){ setAuthError(true); return; }
     if(!res.ok) return;
@@ -390,7 +393,8 @@ async function refreshCats(){
       saveCatsToStorage();
       renderCatGrid();
     }
-  }catch(e){ /* אין רשת / שגיאה — נשארים עם ה-Cache */ }
+  }catch(e){ /* אין רשת / שגיאה / Timeout — נשארים עם ה-Cache */
+  }finally{ if(timer) clearTimeout(timer); }
 }
 
 /* אין קטגוריות דמה: עד לחיבור מוצלח ראשון הרשת מציגה הנחיה בלבד,
@@ -401,8 +405,12 @@ if(!loadCatsFromStorage()){ cats=[]; tags={}; }
    כל הוצאה שנכשלה בשידור (או הוזנה בלי רשת) נכנסת לתור,
    ומשודרת אוטומטית: באירוע 'online', בטעינת הדף, ואחרי כל
    שמירה מוצלחת — עד שהתור מתרוקן. UID נוצר בצד הלקוח, כך
-   ששידור כפול לעולם לא ייצור שורה כפולה בזיהוי אנושי.       */
-var LS_QUEUE='qa_queue_v1';
+   ששידור כפול לעולם לא ייצור שורה כפולה בזיהוי אנושי.
+   מפתח משותף עם index.html (‎ff_offline_queue‎) — אותו Origin,
+   אותו localStorage: הוצאה שנכנסה לתור כאן יכולה להתרוקן גם
+   מהדשבורד הראשי ולהפך. כל פריט: {path, payload, ts}.        */
+var LS_QUEUE='ff_offline_queue';
+var LS_QUEUE_LEGACY='qa_queue_v1'; /* גרסה קודמת — מיזוג חד-פעמי */
 function readQueue(){
   try{ var q=JSON.parse(localStorage.getItem(LS_QUEUE)||'[]'); return Array.isArray(q)?q:[]; }catch(e){ return []; }
 }
@@ -410,19 +418,37 @@ function writeQueue(q){
   try{ localStorage.setItem(LS_QUEUE,JSON.stringify(q)); }catch(e){}
   renderBadges();
 }
+(function migrateLegacyQueue(){
+  try{
+    var old=JSON.parse(localStorage.getItem(LS_QUEUE_LEGACY)||'null');
+    if(Array.isArray(old) && old.length){
+      var cur=readQueue();
+      old.forEach(function(p){ cur.push({path:'/api/add-transaction',payload:p,ts:Date.now()}); });
+      writeQueue(cur);
+    }
+    localStorage.removeItem(LS_QUEUE_LEGACY);
+  }catch(e){}
+})();
 function makeUid(){
   return 'tx_'+Date.now().toString(36)+'_'+Math.floor(Math.random()*1e9).toString(36);
 }
-async function postTx(payload){
-  var res=await fetch('/api/add-transaction',{
-    method:'POST',
-    headers:authHeaders(),
-    body:JSON.stringify(payload)
-  });
-  if(res.status===401||res.status===403){ setAuthError(true); var e=new Error('unauthorized'); e.code=401; throw e; }
-  if(!res.ok){ var e2=new Error('server '+res.status); e2.code=res.status; throw e2; }
-  setAuthError(false);
-  return res.json();
+/* item = {path, payload, ts}. Timeout של 4 שניות — בקשה
+   תלויה/איטית לא משאירה את התור נעול לנצח. */
+async function postTx(item){
+  var ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
+  var timer=ctrl?setTimeout(function(){ ctrl.abort(); },4000):null;
+  try{
+    var res=await fetch(item.path,{
+      method:'POST',
+      headers:authHeaders(),
+      body:JSON.stringify(item.payload),
+      signal: ctrl?ctrl.signal:undefined
+    });
+    if(res.status===401||res.status===403){ setAuthError(true); var e=new Error('unauthorized'); e.code=401; throw e; }
+    if(!res.ok){ var e2=new Error('server '+res.status); e2.code=res.status; throw e2; }
+    setAuthError(false);
+    return await res.json();
+  } finally { if(timer) clearTimeout(timer); }
 }
 var flushing=false;
 /* quiet=true (מנתיב השמירה): בלי טוסט "שודרו" על ההוצאה שזה
@@ -592,7 +618,7 @@ $('save-btn').addEventListener('click',function(){
      אנימציית "נשמר" ואיפוס האשף מיידיים; השידור בפועל נעשה
      דרך flushQueue הקיים (מסלול שידור אחד ויחיד), שמוחק את
      ההוצאה מהתור רק אחרי תשובת הצלחה מהשרת.                */
-  var q=readQueue(); q.push(payload); writeQueue(q);
+  var q=readQueue(); q.push({path:'/api/add-transaction',payload:payload,ts:Date.now()}); writeQueue(q);
   haptic(18);
   showDone(offline);
   if(!offline) flushQueue(true); /* quiet — בלי טוסט על השמירה הרגילה */

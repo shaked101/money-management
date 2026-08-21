@@ -3,9 +3,14 @@
    אסטרטגיה:
    • App Shell (index.html, manifest, אייקונים) נשמר ב-Cache
      בהתקנה — האפליקציה עולה מיידית גם בניתוק רשת.
-   • ניווט (HTML): Network-First עם נפילה ל-Cache — כך פריסה
-     חדשה ב-Vercel נטענת מיד כשיש רשת, וה-Cache משמש רק כגיבוי.
-   • נכסים סטטיים אחרים: Cache-First עם עדכון ברקע.
+   • ניווט (HTML): Cache-First עם רענון שקט ברקע
+     (Stale-While-Revalidate) — ה-HTML מוגש מה-Cache המקומי
+     תוך 0 מילישניות (מסך הפתיחה נעלם מיידית), ורק *אחרי* זה
+     נבדק עדכון מהרשת ברקע לפעם הבאה. פריסה חדשה ב-Vercel
+     נקלטת בעלייה הבאה של האפליקציה, לא באותה עלייה — זה המחיר
+     המכוון של הארכיטקטורה: בקשת רשת תלויה/איטית (Hanging
+     Request, קליטה חלשה) לעולם לא תוקעת יותר את עליית הממשק.
+   • נכסים סטטיים אחרים: Cache-First עם עדכון ברקע (ללא שינוי).
    • ‎/api/‎ וכל בקשה שאינה GET — עוקפים את ה-SW לחלוטין.
      לעולם לא שומרים ב-Cache נתונים פיננסיים או תשובות API.
 
@@ -19,7 +24,7 @@
    ════════════════════════════════════════════════════════════ */
 'use strict';
 
-const VERSION = 'v23';
+const VERSION = 'v24';
 const CACHE_NAME = 'family-finance-' + VERSION;
 
 const APP_SHELL = [
@@ -100,23 +105,36 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  /* 4. ניווט / HTML — Network-First, Cache כגיבוי אופליין.
+  /* 4. ניווט / HTML — Cache-First עם רענון שקט ברקע.
+        אם קיים עותק ב-Cache: מוגש מיידית (0ms), בלי לחכות
+        לרשת בכלל — וברקע, ללא חסימה, נשלחת בקשת fetch נפרדת
+        שרק מעדכנת את ה-Cache לפעם הבאה (fire-and-forget; אין
+        respondWith שני, ולכן שום Hang שלה לא יכול לתקוע דבר).
+        אין Cache (עלייה ראשונה בלבד) — אין ברירה אלא להמתין
+        לרשת; נפילה אחרונה ל-'./' אם גם זה נכשל.
         ‎/quick-add‎ מקבל גיבוי משלו — שלא יוגש index.html בטעות. */
   if (req.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.html')) {
     const isQuickAdd = url.pathname === '/quick-add' || url.pathname.endsWith('/quick-add.html');
     const shellKey = isQuickAdd ? './quick-add.html' : './index.html';
     event.respondWith(
-      fetch(req)
-        .then((res) => {
-          if (res && res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE_NAME).then((c) => c.put(shellKey, copy));
-          }
-          return res;
-        })
-        .catch(() =>
-          caches.match(shellKey).then((hit) => hit || caches.match('./'))
-        )
+      caches.match(shellKey).then((cached) => {
+        const revalidate = fetch(req)
+          .then((res) => {
+            if (res && res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE_NAME).then((c) => c.put(shellKey, copy));
+            }
+            return res;
+          })
+          .catch(() => null);
+
+        if (cached) {
+          revalidate.catch(() => {}); /* רקע בלבד — לא נחכה לה */
+          return cached;
+        }
+        /* אין Cache עדיין — חייבים רשת; אם גם היא נכשלת, ננסה שורש */
+        return revalidate.then((res) => res || caches.match('./'));
+      })
     );
     return;
   }

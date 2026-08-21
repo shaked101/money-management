@@ -1189,20 +1189,35 @@ function toast(msg,isErr,ms){
 var SS_KEY='ff_secret';
 function getSecret(){ try{ return sessionStorage.getItem(SS_KEY)||''; }catch(e){ return ''; } }
 
-async function apiFetch(path, payload, secretOverride, signal){
+/* timeoutMs (אופציונלי, פרמטר 5): כשאין signal חיצוני שסופק —
+   נוצר AbortController פנימי שמבטל את הבקשה אם היא לא ענתה
+   בתוך timeoutMs (בקשת רשת תלויה/איטית לא תמתין לנצח). קריאות
+   שכבר מספקות signal משלהן (למשל loadMonth) לא מושפעות — הן
+   ממשיכות להתנהג בדיוק כמו קודם. */
+async function apiFetch(path, payload, secretOverride, signal, timeoutMs){
   var secret = (secretOverride!=null) ? secretOverride : getSecret();
-  var res = await fetch(path,{
-    method:'POST',
-    headers:{ 'Content-Type':'application/json', 'X-App-Secret':secret },
-    body: JSON.stringify(payload||{}),
-    signal: signal||undefined
-  });
-  if(res.status===401 || res.status===403){
-    if(secretOverride==null) lockOut('פג תוקף ההרשאה — נדרשת כניסה מחדש');
-    var e1=new Error('unauthorized'); e1.code=401; throw e1;
+  var ctrl=null, timer=null, useSignal=signal;
+  if(!useSignal && timeoutMs && typeof AbortController!=='undefined'){
+    ctrl=new AbortController();
+    useSignal=ctrl.signal;
+    timer=setTimeout(function(){ ctrl.abort(); },timeoutMs);
   }
-  if(!res.ok){ var e2=new Error('שגיאת שרת ('+res.status+')'); e2.code=res.status; throw e2; }
-  return res.json();
+  try{
+    var res = await fetch(path,{
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'X-App-Secret':secret },
+      body: JSON.stringify(payload||{}),
+      signal: useSignal||undefined
+    });
+    if(res.status===401 || res.status===403){
+      if(secretOverride==null) lockOut('פג תוקף ההרשאה — נדרשת כניסה מחדש');
+      var e1=new Error('unauthorized'); e1.code=401; throw e1;
+    }
+    if(!res.ok){ var e2=new Error('שגיאת שרת ('+res.status+')'); e2.code=res.status; throw e2; }
+    return await res.json();
+  } finally {
+    if(timer) clearTimeout(timer);
+  }
 }
 
 /* ─── 2. Vault — כספת מוצפנת (AES-GCM) ────────────────────
@@ -1411,6 +1426,9 @@ function bootApp(){
      ומיד, ברקע וללא Skeleton, נמשכת גרסה טרייה מהשרת שתחליף
      את התצוגה בשקט כשתגיע (קליטת שינויים ממכשירים אחרים). */
   if(lastLoadFromCache) revalidateCurrentMonth();
+  /* שידור כל פעולה שהמתינה בתור האופליין (מהאפליקציה הזו או
+     מ-quick-add) מאז העלייה הקודמת. שקט — בלי טוסט על הצלחה. */
+  flushOfflineQueue(true);
 }
 
 async function onLockPattern(key,len){
@@ -1883,6 +1901,50 @@ try{ monthCache=JSON.parse(localStorage.getItem(CACHE_KEY)||'{}')||{}; }catch(e)
 function mKey(y,m){ return y+'-'+String(m).padStart(2,'0'); }
 function cacheSave(){ try{ localStorage.setItem(CACHE_KEY,JSON.stringify(monthCache)); }catch(e){} }
 function cacheInvalidate(y,m){ delete monthCache[mKey(y,m)]; cacheSave(); }
+
+/* ═══ תור גיבוי אופליין (Offline Outbox Queue) ═══════════════
+   מפתח משותף עם quick-add.html (‎ff_offline_queue‎) — שני
+   האפליקציות הן אותו Origin, כך שהן חולקות את אותו localStorage:
+   פעולה שנכנסה לתור מהווידג'ט יכולה להתרוקן גם מכאן ולהפך.
+   כל פריט: {path, payload, ts}. פעולה (add/update/delete)
+   נכנסת לתור רק כשהבקשה ל-GAS נכשלת/נתלית/עוברת Timeout —
+   ה-UI כבר עודכן אופטימית קודם לכן, כך שדבר לא הולך לאיבוד. */
+var LS_OFFLINE_Q='ff_offline_queue';
+var offlineFlushing=false;
+function readOfflineQueue(){
+  try{ var q=JSON.parse(localStorage.getItem(LS_OFFLINE_Q)||'[]'); return Array.isArray(q)?q:[]; }catch(e){ return []; }
+}
+function writeOfflineQueue(q){ try{ localStorage.setItem(LS_OFFLINE_Q,JSON.stringify(q)); }catch(e){} }
+function enqueueOffline(path,payload){
+  var q=readOfflineQueue();
+  q.push({path:path,payload:payload,ts:Date.now()});
+  writeOfflineQueue(q);
+}
+/* מתרוקן ב: עליית האפליקציה, אירוע 'online', ואחרי כל כשל
+   שנוסף לתור. עצירה מלאה בכשל ראשון (סדר חשוב — add לפני
+   update/delete של אותו UID) — הניסיון הבא יגיע מהאירוע הבא. */
+async function flushOfflineQueue(quiet){
+  if(offlineFlushing || !navigator.onLine) return;
+  var q=readOfflineQueue();
+  if(!q.length) return;
+  offlineFlushing=true;
+  var sent=0;
+  try{
+    while(q.length){
+      await apiFetch(q[0].path,q[0].payload,null,null,4000);
+      q.shift();
+      writeOfflineQueue(q);
+      sent++;
+    }
+  }catch(e){
+    /* כשל (רשת/Timeout/שרת) — שאר התור נשאר, ננסה שוב ב-online הבא.
+       401 כבר טופל בתוך apiFetch (lockOut) ולא צריך טיפול נוסף כאן. */
+  }finally{
+    offlineFlushing=false;
+    if(sent && !quiet) toast('📤 סונכרנו '+sent+' פעולות שהמתינו בתור');
+  }
+}
+window.addEventListener('online',function(){ flushOfflineQueue(true); });
 
 /* תנועות אופטימיות שממתינות לאישור מהשרת (מרוץ מול Make) */
 var pendingRows=[];
@@ -2588,16 +2650,38 @@ function renderInsight(){
 async function deleteTx(uid){
   if(!uid){ toast('לתנועה זו אין מזהה (UID)',true); return; }
   if(!confirm('למחוק את התנועה לצמיתות?')) return;
+  var key=mKey(state.y,state.m);
+  var removedRow=findRowByUidLocal(uid);
+
+  /* ═══ Optimistic UI (תואם ל-saveTx) ═══════════════════════
+     המחיקה מהמסך ומה-Cache מיידית — בלי להמתין ל-GAS האיטי.
+     כשל שאינו 401 לא מבטל את המחיקה: הוא רק נכנס לתור לשידור
+     חוזר, כדי שרשת תלויה/איטית לא תשאיר בפועל שורה שלא נמחקה. */
+  state.rows=state.rows.filter(function(r){ return String(r.uid)!==String(uid); });
+  pendingRows=pendingRows.filter(function(p){ return String(p.row.uid)!==String(uid); });
+  if(monthCache[key]){ monthCache[key].rows=state.rows.slice(); cacheSave(); }
+  renderAll();
+  toast('🗑 התנועה נמחקה');
+  haptic(15);
+
   try{
-    await apiFetch('/api/delete-transaction',{uid:uid});
-    state.rows=state.rows.filter(function(r){ return String(r.uid)!==String(uid); });
-    pendingRows=pendingRows.filter(function(p){ return String(p.row.uid)!==String(uid); });
-    /* עדכון ה-Cache של החודש המוצג — ללא קריאת רשת נוספת */
-    var key=mKey(state.y,state.m);
-    if(monthCache[key]){ monthCache[key].rows=state.rows.slice(); cacheSave(); }
-    renderAll();
-    toast('🗑 התנועה נמחקה');
-  }catch(e){ if(e.code!==401) toast('שגיאה במחיקה: '+e.message,true); }
+    await apiFetch('/api/delete-transaction',{uid:uid},null,null,4000);
+  }catch(e){
+    if(e.code===401){
+      /* דחייה מפורשת — Rollback: השבת השורה שנמחקה אופטימית */
+      if(removedRow){
+        if(key===mKey(state.y,state.m)) state.rows.push(removedRow);
+        if(monthCache[key]) monthCache[key].rows=(monthCache[key].rows||[]).concat([removedRow]);
+        cacheSave();
+        renderAll();
+      }
+      toast('⚠️ אין הרשאה — המחיקה בוטלה',true);
+      haptic([28,40,28]);
+    }else{
+      enqueueOffline('/api/delete-transaction',{uid:uid});
+      toast('📥 החיבור איטי — המחיקה תסונכרן אוטומטית ברקע',true);
+    }
+  }
 }
 
 /* ── מודאל הוספה ── */
@@ -2780,7 +2864,7 @@ async function saveTx(){
     });
   }
   try{
-    await apiFetch(isEdit?'/api/update-transaction':'/api/add-transaction',payload);
+    await apiFetch(isEdit?'/api/update-transaction':'/api/add-transaction',payload,null,null,4000);
     /* אושר — השורה בגיליון; אינה "תלויה" עוד */
     pendingRows=pendingRows.filter(function(p){ return String(p.row.uid)!==String(uid); });
     if(payload.recurring||wasRecurring){
@@ -2791,20 +2875,30 @@ async function saveTx(){
       loadMonth(true);
     }
   }catch(e){
-    /* Rollback מלא: הסרת השורה האופטימית והשבת המקור בעריכה */
-    dropOptimistic();
-    if(origRow){
-      var od=parseTxDate(origRow.date)||new Date(state.y,state.m-1,1);
-      var oKey=mKey(od.getFullYear(),od.getMonth()+1);
-      if(oKey===mKey(state.y,state.m)) state.rows.push(origRow);
-      if(monthCache[oKey]) monthCache[oKey].rows=(monthCache[oKey].rows||[]).concat([origRow]);
+    if(e.code===401){
+      /* דחייה מפורשת מהשרת — Rollback מלא: הסרת השורה
+         האופטימית והשבת המקור בעריכה. אין טעם לתור כאן —
+         אותו טוקן ייכשל שוב, וה-lockOut כבר הופעל ב-apiFetch. */
+      dropOptimistic();
+      if(origRow){
+        var od=parseTxDate(origRow.date)||new Date(state.y,state.m-1,1);
+        var oKey=mKey(od.getFullYear(),od.getMonth()+1);
+        if(oKey===mKey(state.y,state.m)) state.rows.push(origRow);
+        if(monthCache[oKey]) monthCache[oKey].rows=(monthCache[oKey].rows||[]).concat([origRow]);
+      }
+      cacheSave();
+      renderAll();
+      toast('⚠️ אין הרשאה — השינוי בוטל',true);
+      haptic([28,40,28]);
+    }else{
+      /* רשת נכשלה / נתלתה / Timeout מעל 4 שניות — השורה
+         האופטימית *נשארת* על המסך (וב-pendingRows, כדי
+         שהפיוס מול loadMonth לא ימחק אותה), והפעולה נכנסת
+         לתור לשידור חוזר אוטומטי (online / עלייה הבאה). */
+      enqueueOffline(isEdit?'/api/update-transaction':'/api/add-transaction',payload);
+      toast('📥 החיבור איטי — נשמר מקומית ויסונכרן אוטומטית ברקע',true);
+      haptic(15);
     }
-    cacheSave();
-    renderAll();
-    toast(e.code===401
-      ? '⚠️ אין הרשאה — השינוי בוטל'
-      : '⚠️ השמירה נכשלה והשינוי בוטל: '+e.message,true);
-    haptic([28,40,28]);
   }
 }
 
