@@ -59,7 +59,10 @@ header{display:flex;align-items:center;justify-content:space-between;gap:8px;mar
 header .title{font-size:.82rem;font-weight:700;color:var(--dim);letter-spacing:.02em}
 #net-badge{font-size:.66rem;font-weight:700;border-radius:99px;padding:4px 10px;background:var(--card-2);color:var(--dim)}
 #net-badge.off{background:rgba(224,106,90,.16);color:var(--red)}
-#queue-badge{font-size:.66rem;font-weight:700;border-radius:99px;padding:4px 10px;background:rgba(201,168,92,.15);color:var(--gold);display:none}
+#queue-badge{font-size:.66rem;font-weight:700;border-radius:99px;padding:4px 10px;background:rgba(201,168,92,.15);color:var(--gold);display:none;cursor:pointer;transition:background .15s,opacity .15s}
+#queue-badge:hover{background:rgba(201,168,92,.28)}
+#queue-badge:active{transform:scale(.96)}
+#queue-badge.syncing{opacity:.7;cursor:wait}
 
 /* בורר משתמש */
 .user-seg{display:flex;gap:6px;background:var(--card);border-radius:99px;padding:4px;margin-bottom:10px}
@@ -176,7 +179,7 @@ header .title{font-size:.82rem;font-weight:700;color:var(--dim);letter-spacing:.
 <header>
   <span class="title">⚡ הזנה מהירה</span>
   <span style="display:flex;gap:6px">
-    <span id="queue-badge"></span>
+    <span id="queue-badge" role="button" tabindex="0" aria-label="לחיצה לסנכרון ידני של התור הממתין"></span>
     <span id="net-badge">מקוון</span>
   </span>
 </header>
@@ -432,11 +435,12 @@ function writeQueue(q){
 function makeUid(){
   return 'tx_'+Date.now().toString(36)+'_'+Math.floor(Math.random()*1e9).toString(36);
 }
-/* item = {path, payload, ts}. Timeout של 4 שניות — בקשה
-   תלויה/איטית לא משאירה את התור נעול לנצח. */
+/* item = {path, payload, ts}. Timeout של 15 שניות — מספיק זמן
+   ל-Cold Start של Google Apps Script להתעורר ולענות, גם על
+   רשת תקינה; בקשה תלויה/איטית עדיין לא משאירה את התור נעול לנצח. */
 async function postTx(item){
   var ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
-  var timer=ctrl?setTimeout(function(){ ctrl.abort(); },4000):null;
+  var timer=ctrl?setTimeout(function(){ ctrl.abort(); },15000):null;
   try{
     var res=await fetch(item.path,{
       method:'POST',
@@ -483,13 +487,45 @@ function renderBadges(){
   var nb=$('net-badge');
   nb.textContent=online?'מקוון':'אופליין';
   nb.className=online?'':'off';
-  var q=readQueue();
   var qb=$('queue-badge');
+  if(qb.classList.contains('syncing')) return; /* לא לדרוס את "מסנכרן..." באמצע סנכרון ידני */
+  var q=readQueue();
   if(q.length){ qb.style.display='inline'; qb.textContent='בתור: '+q.length; }
   else qb.style.display='none';
 }
 window.addEventListener('online',function(){ renderBadges(); refreshCats(); flushQueue(); });
 window.addEventListener('offline',renderBadges);
+
+/* Polling Retry: גם אם המכשיר תמיד נשאר "מחובר" (Wi-Fi יציב) אבל
+   שידור נקודתי נכשל (למשל Timeout של Cold Start ל-GAS), אירוע
+   'online' לא יירה שוב — אז בודקים כל 30 שניות אם יש תור +
+   navigator.onLine, ומנסים לרוקן אותו בשקט. */
+setInterval(function(){
+  try{
+    if(navigator.onLine && readQueue().length) flushQueue(true);
+  }catch(e){}
+},30000);
+
+/* Manual Force Sync: לחיצה על תג "בתור: N" מפעילה סנכרון יזום,
+   עם חיווי "מסנכרן..." זמני כדי שהמשתמש ידע שהפעולה בתהליך. */
+(function(){
+  var qb=$('queue-badge');
+  if(!qb) return;
+  function manualFlush(){
+    if(qb.classList.contains('syncing') || !readQueue().length) return;
+    qb.classList.add('syncing');
+    qb.style.display='inline';
+    qb.textContent='🔄 מסנכרן...';
+    flushQueue().finally(function(){
+      qb.classList.remove('syncing');
+      renderBadges();
+    });
+  }
+  qb.addEventListener('click',manualFlush);
+  qb.addEventListener('keydown',function(e){
+    if(e.key==='Enter'||e.key===' '){ e.preventDefault(); manualFlush(); }
+  });
+})();
 
 /* ═══ 6. אשף ההזנה ════════════════════════════════════════ */
 var wiz={ amount:'', category:null, tag:'', note:'' };

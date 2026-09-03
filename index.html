@@ -86,6 +86,18 @@ header.top{
 }
 .icon-btn:active{background:rgba(255,255,255,.24)}
 
+/* תג תור אופליין — ליד המותג בהאדר. לחיץ ליזום סנכרון ידני
+   (ר' flushOfflineQueue), עם מצב "syncing" זמני לחיווי חזותי. */
+.queue-badge{
+  display:none;align-items:center;font-size:.66rem;font-weight:700;
+  border-radius:99px;padding:5px 11px;background:rgba(201,168,92,.22);
+  color:var(--gold);cursor:pointer;transition:background .15s,opacity .15s;
+  white-space:nowrap;
+}
+.queue-badge:hover{background:rgba(201,168,92,.36)}
+.queue-badge:active{transform:scale(.96)}
+.queue-badge.syncing{opacity:.75;cursor:wait}
+
 /* ═══ תפריט פעולות (המבורגר) ב-Header ═══════════════════════
    גלויים בהאדר: 🔍 חיפוש + ⟳ רענון + כפתור התפריט. שאר
    הפעולות (נעילה, דוח AI, מצב לילה) עברו לתפריט נפתח.       */
@@ -801,7 +813,7 @@ try{ if(localStorage.getItem('ff_dark')==='1') document.documentElement.classLis
   <header class="top">
     <div class="wrap">
       <div class="top-row" id="top-row">
-        <div class="brand"><div class="coin">₪</div>הכסף שלנו</div>
+        <div class="brand"><div class="coin">₪</div>הכסף שלנו<span id="offline-queue-badge" class="queue-badge" role="button" tabindex="0" aria-label="לחיצה לסנכרון ידני של התור הממתין"></span></div>
         <div class="top-actions">
           <button class="icon-btn" id="search-toggle" aria-label="חיפוש הוצאה או הכנסה" title="חיפוש">🔍</button>
           <button class="icon-btn" id="refresh-btn" aria-label="רענון נתונים מלא מהשרת" title="רענון">⟳</button>
@@ -1914,7 +1926,17 @@ var offlineFlushing=false;
 function readOfflineQueue(){
   try{ var q=JSON.parse(localStorage.getItem(LS_OFFLINE_Q)||'[]'); return Array.isArray(q)?q:[]; }catch(e){ return []; }
 }
-function writeOfflineQueue(q){ try{ localStorage.setItem(LS_OFFLINE_Q,JSON.stringify(q)); }catch(e){} }
+function writeOfflineQueue(q){ try{ localStorage.setItem(LS_OFFLINE_Q,JSON.stringify(q)); }catch(e){} renderOfflineQueueBadge(); }
+/* תג "ממתין לסנכרון" — מוצג/מוסתר לפי אורך התור בפועל.
+   בזמן סנכרון יזום (syncing) לא דורסים את חיווי "מסנכרן...". */
+function renderOfflineQueueBadge(){
+  var el=document.getElementById('offline-queue-badge');
+  if(!el) return;
+  if(el.classList.contains('syncing')) return;
+  var q=readOfflineQueue();
+  if(q.length){ el.style.display='inline-flex'; el.textContent='⏳ ממתין לסנכרון ('+q.length+')'; }
+  else { el.style.display='none'; el.textContent=''; }
+}
 function enqueueOffline(path,payload){
   var q=readOfflineQueue();
   q.push({path:path,payload:payload,ts:Date.now()});
@@ -1931,7 +1953,7 @@ async function flushOfflineQueue(quiet){
   var sent=0;
   try{
     while(q.length){
-      await apiFetch(q[0].path,q[0].payload,null,null,4000);
+      await apiFetch(q[0].path,q[0].payload,null,null,15000);
       q.shift();
       writeOfflineQueue(q);
       sent++;
@@ -1945,6 +1967,38 @@ async function flushOfflineQueue(quiet){
   }
 }
 window.addEventListener('online',function(){ flushOfflineQueue(true); });
+
+/* Polling Retry: אם הבקשה נכשלה נקודתית (למשל Timeout של Cold
+   Start ל-GAS) בזמן שהמכשיר תמיד נשאר מחובר לרשת, אירוע 'online'
+   לא יירה שוב ותתקבע פריט תקוע בתור. בודקים כל 30 שניות אם יש
+   תור + navigator.onLine, ומרוקנים בשקט אם כן. */
+setInterval(function(){
+  try{
+    if(navigator.onLine && readOfflineQueue().length) flushOfflineQueue(true);
+  }catch(e){}
+},30000);
+
+/* Manual Force Sync: לחיצה על תג התור מפעילה סנכרון יזום, עם
+   חיווי "מסנכרן..." זמני כדי שהמשתמש ידע שהפעולה בתהליך. */
+(function(){
+  var qb=document.getElementById('offline-queue-badge');
+  if(!qb) return;
+  function manualFlush(){
+    if(qb.classList.contains('syncing') || !readOfflineQueue().length) return;
+    qb.classList.add('syncing');
+    qb.style.display='inline-flex';
+    qb.textContent='🔄 מסנכרן...';
+    flushOfflineQueue().finally(function(){
+      qb.classList.remove('syncing');
+      renderOfflineQueueBadge();
+    });
+  }
+  qb.addEventListener('click',manualFlush);
+  qb.addEventListener('keydown',function(e){
+    if(e.key==='Enter'||e.key===' '){ e.preventDefault(); manualFlush(); }
+  });
+})();
+renderOfflineQueueBadge(); /* חיווי ראשוני — למקרה שיש תור שנשאר מסשן קודם */
 
 /* תנועות אופטימיות שממתינות לאישור מהשרת (מרוץ מול Make) */
 var pendingRows=[];
@@ -2665,7 +2719,7 @@ async function deleteTx(uid){
   haptic(15);
 
   try{
-    await apiFetch('/api/delete-transaction',{uid:uid},null,null,4000);
+    await apiFetch('/api/delete-transaction',{uid:uid},null,null,15000);
   }catch(e){
     if(e.code===401){
       /* דחייה מפורשת — Rollback: השבת השורה שנמחקה אופטימית */
@@ -2864,7 +2918,7 @@ async function saveTx(){
     });
   }
   try{
-    await apiFetch(isEdit?'/api/update-transaction':'/api/add-transaction',payload,null,null,4000);
+    await apiFetch(isEdit?'/api/update-transaction':'/api/add-transaction',payload,null,null,15000);
     /* אושר — השורה בגיליון; אינה "תלויה" עוד */
     pendingRows=pendingRows.filter(function(p){ return String(p.row.uid)!==String(uid); });
     if(payload.recurring||wasRecurring){
