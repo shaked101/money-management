@@ -377,13 +377,31 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 .split-row .sr-top select{flex:1;min-width:0}
 .split-row .sr-top input.split-amt{width:92px;flex:0 0 auto;text-align:center}
 .split-row .sr-bottom{display:flex;gap:6px;align-items:center}
-.split-row .sr-bottom input.split-tag{flex:1;min-width:0}
+.split-row .sr-bottom select.split-tag{flex:1;min-width:0}
 .split-row button.split-ico{
   flex:0 0 auto;width:34px;height:34px;border-radius:9px;background:var(--card);
   border:1.5px solid var(--gray-300);font-size:.86rem;display:grid;place-items:center;
 }
 .split-row button.split-del{color:var(--red)}
 #tx-split-addrow{margin-bottom:2px}
+
+/* ── #tx-modal: צמצום גובה ייעודי — פאנל הפיצול מאריך את הטופס
+   ועלול לדחוף את הכפתורים התחתונים מתחת לקו הגלילה במובייל.
+   הקטנת paddings/margins/גובה שדות רק בתוך #tx-modal (לא נוגע
+   במודלים אחרים) כדי שהכל, כולל הכפתורים, ייכנס למסך בלי גלילה. */
+#tx-modal .modal{padding:14px 16px calc(14px + var(--safe-b))}
+#tx-modal h3{margin-bottom:10px;font-size:.98rem}
+#tx-modal .fg{margin-bottom:7px}
+#tx-modal .fg label{margin-bottom:3px;font-size:.7rem}
+#tx-modal .ifield{padding:8px 11px}
+#tx-modal .grid-2{gap:7px}
+#tx-modal .cat-grid{gap:5px;max-height:150px}
+#tx-modal .cat-tile{padding:4px 2px;min-height:42px;gap:2px}
+#tx-modal .tx-tags{gap:5px}
+#tx-modal .split-head{margin-bottom:6px;font-size:.76rem}
+#tx-modal .split-row{padding:6px;margin-bottom:6px}
+#tx-modal .split-row .sr-top{margin-bottom:4px}
+#tx-modal .tx-save-row{margin-top:2px;gap:6px}
 
 /* טוסט */
 #toast{
@@ -1990,7 +2008,14 @@ async function flushOfflineQueue(quiet){
   var sent=0;
   try{
     while(q.length){
-      await apiFetch(q[0].path,q[0].payload,null,null,15000);
+      var res=await apiFetch(q[0].path,q[0].payload,null,null,15000);
+      /* תשובת HTTP תקינה (200) אינה בהכרח הצלחה: GAS מחזיר תמיד
+         JSON גם על כשל יישומי (ok:false, למשל ולידציה שנכשלה) —
+         בלי הבדיקה הזו הפעולה נמחקת מהתור בטעות כאילו הצליחה,
+         וההוצאה אובדת בשקט בלי שום שגיאה גלויה. */
+      if(res && res.ok===false){
+        var eApp=new Error(res.error||'שגיאת שרת'); eApp.code='app'; throw eApp;
+      }
       q.shift();
       writeOfflineQueue(q);
       sent++;
@@ -1998,6 +2023,11 @@ async function flushOfflineQueue(quiet){
   }catch(e){
     /* כשל (רשת/Timeout/שרת) — שאר התור נשאר, ננסה שוב ב-online הבא.
        401 כבר טופל בתוך apiFetch (lockOut) ולא צריך טיפול נוסף כאן. */
+    if(e.code==='app'){
+      /* שגיאה יישומית אמיתית (ok:false) — לא בעיית רשת, אז "ננסה
+         שוב אוטומטית" מטעה: אותה שגיאה תחזור בכל ניסיון חוזר. */
+      toast('⚠️ '+(e.message||'שגיאה בשרת')+' — הפעולה נשארת בתור',true);
+    }
   }finally{
     offlineFlushing=false;
     if(sent && !quiet) toast('📤 סונכרנו '+sent+' פעולות שהמתינו בתור');
@@ -2960,7 +2990,11 @@ async function saveTx(){
     });
   }
   try{
-    await apiFetch(isEdit?'/api/update-transaction':'/api/add-transaction',payload,null,null,15000);
+    var res=await apiFetch(isEdit?'/api/update-transaction':'/api/add-transaction',payload,null,null,15000);
+    /* HTTP 200 אינו בהכרח הצלחה — GAS מחזיר JSON גם על כשל יישומי
+       (ok:false). בלי הבדיקה הזו כשל כזה מוצג כהצלחה למרות שדבר
+       לא נכתב בפועל בגיליון. */
+    if(res && res.ok===false){ var eApp=new Error(res.error||'שגיאת שרת'); eApp.code='app'; throw eApp; }
     /* אושר — השורה בגיליון; אינה "תלויה" עוד */
     pendingRows=pendingRows.filter(function(p){ return String(p.row.uid)!==String(uid); });
     if(payload.recurring||wasRecurring){
@@ -2986,6 +3020,13 @@ async function saveTx(){
       renderAll();
       toast('⚠️ אין הרשאה — השינוי בוטל',true);
       haptic([28,40,28]);
+    }else if(e.code==='app'){
+      /* שגיאה יישומית אמיתית מה-GAS (ok:false) — לא בעיית רשת.
+         נכנסת לתור כמו כל כשל אחר (למקרה שמדובר במצב זמני בגיליון),
+         אך הטוסט מציג את הסיבה האמיתית במקום הודעת "רשת איטית" מטעה. */
+      enqueueOffline(isEdit?'/api/update-transaction':'/api/add-transaction',payload);
+      toast('⚠️ '+(e.message||'שגיאה בשרת')+' — הפעולה נשארת בתור',true);
+      haptic(15);
     }else{
       /* רשת נכשלה / נתלתה / Timeout מעל 4 שניות — השורה
          האופטימית *נשארת* על המסך (וב-pendingRows, כדי
@@ -3048,6 +3089,17 @@ function splitCatOptionsHtml(selected){
     return '<option value="'+esc(c.name)+'"'+(c.name===selected?' selected':'')+'>'+esc(c.emoji)+' '+esc(c.name)+'</option>';
   }).join('');
 }
+/* תיוג דינמי — אותו מקור (state.tags[קטגוריה]) שמזין את התיוג
+   הראשי מחוץ למצב פיצול (fillTxTags), אבל לפי הקטגוריה של
+   *השורה הספציפית* ולא של הטופס הראשי */
+function splitTagOptionsHtml(cat,selected){
+  var list=(cat && state.tags && state.tags[cat])?state.tags[cat]:[];
+  var html='<option value="">— ללא תיוג —</option>';
+  html+=list.map(function(t){
+    return '<option value="'+esc(t)+'"'+(t===selected?' selected':'')+'>'+esc(t)+'</option>';
+  }).join('');
+  return html;
+}
 function renderSplitRows(){
   var wrap=$('tx-split-rows');
   wrap.innerHTML=splitRows.map(function(r,i){
@@ -3057,7 +3109,7 @@ function renderSplitRows(){
         '<input class="ifield split-amt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" value="'+esc(r.amount||'')+'" data-sf="amount" data-i="'+i+'">'+
       '</div>'+
       '<div class="sr-bottom">'+
-        '<input class="ifield split-tag" placeholder="תיוג / הערה (רשות)" value="'+esc(r.tag||'')+'" data-sf="tag" data-i="'+i+'">'+
+        '<select class="ifield split-tag" data-sf="tag" data-i="'+i+'">'+splitTagOptionsHtml(r.cat,r.tag)+'</select>'+
         '<button type="button" class="split-ico" data-splitfill="'+i+'" title="השלם יתרה">⚡</button>'+
         '<button type="button" class="split-ico split-del" data-splitdel="'+i+'" title="הסרת שורה">✕</button>'+
       '</div>'+
@@ -3142,7 +3194,10 @@ async function saveSplitTx(){
   }
   var payload={items:items,groupId:groupId,month:state.m,year:state.y};
   try{
-    await apiFetch('/api/add-transaction',payload,null,null,15000);
+    var res=await apiFetch('/api/add-transaction',payload,null,null,15000);
+    /* HTTP 200 אינו בהכרח הצלחה — ok:false אמיתי (למשל שורה אחת
+       בפיצול נכשלה בוולידציה) לא אמור להיחשב "נשמר בהצלחה". */
+    if(res && res.ok===false){ var eApp=new Error(res.error||'שגיאת שרת'); eApp.code='app'; throw eApp; }
     var uids=items.map(function(it){ return String(it.uid); });
     pendingRows=pendingRows.filter(function(p){ return uids.indexOf(String(p.row.uid))===-1; });
   }catch(e){
@@ -3152,6 +3207,13 @@ async function saveSplitTx(){
       renderAll();
       toast('⚠️ אין הרשאה — הפיצול בוטל',true);
       haptic([28,40,28]);
+    }else if(e.code==='app'){
+      /* שגיאה יישומית אמיתית (ok:false) — נשאר בתור (דדופ לפי UID
+         בשרת דואג שפריטים שכבר נכתבו לא ייכתבו פעמיים בניסיון הבא),
+         אך הטוסט מציג את הסיבה האמיתית במקום "רשת איטית". */
+      enqueueOffline('/api/add-transaction',payload);
+      toast('⚠️ '+(e.message||'שגיאה בשרת')+' — הפיצול נשאר בתור',true);
+      haptic(15);
     }else{
       /* כשל רשת/Timeout — כל מערך הפיצול (items) נכנס לתור כפריט
          אחד, ומשודר מחדש כמכלול ברקע (online / Polling הקיימים). */
@@ -4023,7 +4085,13 @@ function init(){
     var f=t.dataset.sf; if(!f) return;
     var i=+t.dataset.i; if(!splitRows[i]) return;
     splitRows[i][f]=t.value;
-    updateSplitRemain();
+    if(f==='cat'){
+      /* קטגוריה חדשה בשורה — רשימת התיוגים תלויה בה, מתאפסת ומתעדכנת */
+      splitRows[i].tag='';
+      renderSplitRows();
+    }else{
+      updateSplitRemain();
+    }
   });
   $('tx-split-rows').addEventListener('click',function(ev){
     var fillBtn=ev.target.closest('[data-splitfill]');

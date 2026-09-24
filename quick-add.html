@@ -149,7 +149,7 @@ header .title{font-size:.82rem;font-weight:700;color:var(--dim);letter-spacing:.
 .split-row-qa select:focus,.split-row-qa input:focus{border-color:var(--accent)}
 .split-row-qa select{flex:1}
 .split-row-qa input[data-f="amount"]{width:82px;flex:0 0 auto;text-align:center;direction:ltr}
-.split-row-qa input[data-f="tag"]{flex:1}
+.split-row-qa .r2 select[data-f="tag"]{flex:1}
 .split-row-qa button{
   flex:0 0 auto;width:32px;height:32px;border-radius:10px;background:var(--card-2);
   font-size:.85rem;color:var(--ink);
@@ -495,7 +495,13 @@ async function postTx(item){
     if(res.status===401||res.status===403){ setAuthError(true); var e=new Error('unauthorized'); e.code=401; throw e; }
     if(!res.ok){ var e2=new Error('server '+res.status); e2.code=res.status; throw e2; }
     setAuthError(false);
-    return await res.json();
+    var data=await res.json();
+    /* תשובה תקינה מה-HTTP (200) לא בהכרח הצלחה אמיתית: GAS מחזיר
+       תמיד JSON — גם כשל יישומי (למשל ולידציה שנכשלה) חוזר כ-
+       ok:false עם קוד 200. בלי הבדיקה הזו כשל כזה נחשב בטעות
+       להצלחה, השורה נמחקת מהתור, וההוצאה אובדת בשקט. */
+    if(data && data.ok===false){ var e3=new Error(data.error||'שגיאת שרת'); e3.code='app'; throw e3; }
+    return data;
   } finally { if(timer) clearTimeout(timer); }
 }
 var flushing=false;
@@ -516,6 +522,12 @@ async function flushQueue(quiet){
     }
   }catch(e){
     if(e.code===401){ toast('טוקן שגוי — התור ממתין',true); }
+    else if(e.code==='app'){
+      /* שגיאה יישומית אמיתית מה-GAS (ok:false, למשל קטגוריה חסרה) —
+         לא בעיית רשת. מוצגת תמיד, גם ב-quiet, כי "ננסה שוב מאוחר
+         יותר" לא נכון כאן: אותה שגיאה תחזור בכל ניסיון חוזר. */
+      toast('⚠️ '+(e.message||'שגיאה בשרת')+' — הפעולה נשארת בתור',true);
+    }
     else if(quiet){ toast('📥 השרת לא זמין — ההוצאה נשמרה בתור ותשודר אוטומטית',true); }
     /* שגיאת רשת/שרת — ננסה שוב ב-online הבא */
   }finally{
@@ -702,6 +714,16 @@ function qaSplitCatOptions(selected){
     return '<option value="'+esc(c.name)+'"'+(c.name===selected?' selected':'')+'>'+esc(c.emoji||'🏷️')+' '+esc(c.name)+'</option>';
   }).join('');
 }
+/* תיוג דינמי לפי הקטגוריה של השורה — אותו מקור (tags[קטגוריה])
+   שמזין את תיוגי הקטגוריה הראשית מחוץ למצב פיצול */
+function qaSplitTagOptions(cat,selected){
+  var list=(cat && tags[cat])?tags[cat]:[];
+  var html='<option value="">— ללא תיוג —</option>';
+  html+=list.map(function(t){
+    return '<option value="'+esc(t)+'"'+(t===selected?' selected':'')+'>'+esc(t)+'</option>';
+  }).join('');
+  return html;
+}
 function qaUpdateSplitRemain(){
   var remain=qaSplitRemaining();
   var ok=Math.abs(remain)<0.005;
@@ -721,7 +743,7 @@ function qaRenderSplitRows(){
         '<button type="button" data-fill="'+i+'" title="השלם יתרה">⚡</button>'+
       '</div>'+
       '<div class="r2">'+
-        '<input type="text" placeholder="תיוג / הערה" value="'+esc(r.tag||'')+'" data-f="tag" data-i="'+i+'">'+
+        '<select data-f="tag" data-i="'+i+'">'+qaSplitTagOptions(r.category,r.tag)+'</select>'+
         '<button type="button" class="split-del-qa" data-del="'+i+'" title="הסרת שורה">✕</button>'+
       '</div>'+
     '</div>';
@@ -758,7 +780,13 @@ $('split-rows-qa').addEventListener('change',function(ev){
   var f=t.dataset.f; if(!f) return;
   var i=+t.dataset.i; if(!qaSplit.rows[i]) return;
   qaSplit.rows[i][f]=t.value;
-  qaUpdateSplitRemain();
+  if(f==='category'){
+    /* קטגוריה חדשה בשורה — רשימת התיוגים תלויה בה, מתאפסת ומתעדכנת */
+    qaSplit.rows[i].tag='';
+    qaRenderSplitRows();
+  }else{
+    qaUpdateSplitRemain();
+  }
 });
 $('split-rows-qa').addEventListener('click',function(ev){
   var fillBtn=ev.target.closest('[data-fill]');
