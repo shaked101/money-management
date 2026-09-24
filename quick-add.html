@@ -190,17 +190,16 @@ header .title{font-size:.82rem;font-weight:700;color:var(--dim);letter-spacing:.
 #toast.on{opacity:1}
 #toast.err{background:rgba(224,106,90,.25);color:#FFB3A8}
 
-/* כפתור תחזוקה קטן — ניקוי תור אופליין תקוע (נתונים "מורעלים"
-   מגרסאות קודמות שחוסמים סנכרון). הוזז לפינה עליונה, *מתחת*
-   לשורת ה-header (לא חופף לכותרת/badges), כדי לא להסתיר יותר
-   את כפתורי הניווט (הבא/חזרה/שמור) שיושבים תמיד בתחתית המסך. */
+/* כפתור תחזוקה זעיר — ניקוי תור אופליין תקוע (נתונים "מורעלים"
+   מגרסאות קודמות שחוסמים סנכרון). עבר לתוך ה-header עצמו (בין
+   הכותרת לתג "מקוון"), כדי לא להסתיר עוד את שם המשתמש (אביטל)
+   בתצוגה ולא להתנגש עם כפתורי הניווט התחתונים. עיצוב מינימלי
+   ועמעם מאוד + אזור נגיעה קטן, כדי שלא יילחץ בטעות אגב שימוש רגיל. */
 #clear-queue-btn{
-  position:fixed;top:calc(44px + var(--safe-t));left:10px;z-index:35;
-  font-size:.68rem;font-weight:700;color:var(--dim);
-  background:var(--card);border:1px solid var(--faint);border-radius:99px;
-  padding:6px 12px;opacity:.55;transition:opacity .15s;
+  font-size:.72rem;line-height:1;color:var(--dim);opacity:.32;
+  padding:3px 5px;border-radius:8px;flex-shrink:0;
 }
-#clear-queue-btn:active{opacity:1}
+#clear-queue-btn:active{opacity:1;background:var(--faint)}
 
 /* באנר שגיאת טוקן — קבוע עד לפתרון */
 #auth-error{
@@ -219,8 +218,11 @@ header .title{font-size:.82rem;font-weight:700;color:var(--dim);letter-spacing:.
 <body>
 
 <header>
-  <span class="title">⚡ הזנה מהירה</span>
-  <span style="display:flex;gap:6px">
+  <span style="display:flex;align-items:center;gap:4px;min-width:0">
+    <span class="title">⚡ הזנה מהירה</span>
+    <button type="button" id="clear-queue-btn" aria-label="ניקוי תור אופליין תקוע" title="ניקוי תור תקוע">🧹</button>
+  </span>
+  <span style="display:flex;gap:6px;flex-shrink:0">
     <span id="queue-badge" role="button" tabindex="0" aria-label="לחיצה לסנכרון ידני של התור הממתין"></span>
     <span id="net-badge">מקוון</span>
   </span>
@@ -330,8 +332,6 @@ header .title{font-size:.82rem;font-weight:700;color:var(--dim);letter-spacing:.
 
 <div id="toast"></div>
 
-<button type="button" id="clear-queue-btn" aria-label="ניקוי תור אופליין תקוע">🧹 נקה תור</button>
-
 <script>
 (function(){
 'use strict';
@@ -345,7 +345,9 @@ function toast(msg,isErr){
   var t=$('toast'); t.textContent=msg;
   t.className='on'+(isErr?' err':'');
   clearTimeout(toastTimer);
-  toastTimer=setTimeout(function(){ t.className=''; },2600);
+  /* הודעות שגיאה נשארות יותר זמן — אם יש בהן טקסט אבחוני (e.message)
+     צריך זמן בפועל לקרוא אותן, לא רק 2.6 שניות הרגילות של אישור. */
+  toastTimer=setTimeout(function(){ t.className=''; },isErr?5200:2600);
 }
 
 /* ═══ 1. אבטחה בסיסית: טוקן חובה ═══════════════════════════
@@ -542,7 +544,12 @@ async function flushQueue(quiet){
          יותר" לא נכון כאן: אותה שגיאה תחזור בכל ניסיון חוזר. */
       toast('⚠️ '+(e.message||'שגיאה בשרת')+' — הפעולה נשארת בתור',true);
     }
-    else if(quiet){ toast('📥 השרת לא זמין — ההוצאה נשמרה בתור ותשודר אוטומטית',true); }
+    else if(quiet){
+      /* כולל את e.message בפועל: אם זו שגיאת JS מקומית אמיתית
+         (למשל TypeError בקוד) ולא כשל רשת, ההודעה כאן תחשוף
+         את זה במקום להסתתר תמיד מאחורי "השרת לא זמין". */
+      toast('📥 השרת לא זמין ('+((e&&e.message)||e||'שגיאה לא ידועה')+') — ההוצאה נשמרה בתור ותשודר אוטומטית',true);
+    }
     /* שגיאת רשת/שרת — ננסה שוב ב-online הבא */
   }finally{
     flushing=false;
