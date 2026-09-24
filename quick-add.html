@@ -190,6 +190,17 @@ header .title{font-size:.82rem;font-weight:700;color:var(--dim);letter-spacing:.
 #toast.on{opacity:1}
 #toast.err{background:rgba(224,106,90,.25);color:#FFB3A8}
 
+/* כפתור תחזוקה קטן — ניקוי תור אופליין תקוע (נתונים "מורעלים"
+   מגרסאות קודמות שחוסמים סנכרון). פינה תחתונה, לא מפריע לזרימה
+   הרגילה ולא מתנגש עם ה-toast (שממורכז) או ה-header (למעלה). */
+#clear-queue-btn{
+  position:fixed;bottom:calc(14px + var(--safe-b));left:14px;z-index:40;
+  font-size:.68rem;font-weight:700;color:var(--dim);
+  background:var(--card);border:1px solid var(--faint);border-radius:99px;
+  padding:6px 12px;opacity:.55;transition:opacity .15s;
+}
+#clear-queue-btn:active{opacity:1}
+
 /* באנר שגיאת טוקן — קבוע עד לפתרון */
 #auth-error{
   display:none;background:rgba(224,106,90,.14);border:1.5px solid rgba(224,106,90,.45);
@@ -317,6 +328,8 @@ header .title{font-size:.82rem;font-weight:700;color:var(--dim);letter-spacing:.
 </div>
 
 <div id="toast"></div>
+
+<button type="button" id="clear-queue-btn" aria-label="ניקוי תור אופליין תקוע">🧹 נקה תור</button>
 
 <script>
 (function(){
@@ -868,6 +881,13 @@ $('save-btn').addEventListener('click',function(){
   haptic(18);
   showDone(offline);
   if(!offline) flushQueue(true); /* quiet — בלי טוסט על השמירה הרגילה */
+});
+
+/* כפתור תחזוקה: ניקוי תור אופליין תקוע (נתונים ישנים/מורעלים
+   מגרסאות קודמות שחוסמים סנכרון) והפעלה מחדש נקייה של הדף. */
+$('clear-queue-btn').addEventListener('click',function(){
+  localStorage.removeItem('ff_offline_queue');
+  location.reload(true);
 });
 
 /* ═══ 7. Boot ═════════════════════════════════════════════ */
