@@ -191,10 +191,11 @@ header .title{font-size:.82rem;font-weight:700;color:var(--dim);letter-spacing:.
 #toast.err{background:rgba(224,106,90,.25);color:#FFB3A8}
 
 /* כפתור תחזוקה קטן — ניקוי תור אופליין תקוע (נתונים "מורעלים"
-   מגרסאות קודמות שחוסמים סנכרון). פינה תחתונה, לא מפריע לזרימה
-   הרגילה ולא מתנגש עם ה-toast (שממורכז) או ה-header (למעלה). */
+   מגרסאות קודמות שחוסמים סנכרון). הוזז לפינה עליונה, *מתחת*
+   לשורת ה-header (לא חופף לכותרת/badges), כדי לא להסתיר יותר
+   את כפתורי הניווט (הבא/חזרה/שמור) שיושבים תמיד בתחתית המסך. */
 #clear-queue-btn{
-  position:fixed;bottom:calc(14px + var(--safe-b));left:14px;z-index:40;
+  position:fixed;top:calc(44px + var(--safe-t));left:10px;z-index:35;
   font-size:.68rem;font-weight:700;color:var(--dim);
   background:var(--card);border:1px solid var(--faint);border-radius:99px;
   padding:6px 12px;opacity:.55;transition:opacity .15s;
