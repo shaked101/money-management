@@ -128,6 +128,36 @@ header .title{font-size:.82rem;font-weight:700;color:var(--dim);letter-spacing:.
 #note-input:focus{border-color:var(--accent)}
 #note-input::placeholder{color:var(--dim)}
 
+/* ── פיצול הוצאה (Split) — שלב 3 ── */
+#split-toggle-qa{
+  font-size:.72rem;font-weight:800;color:var(--gold);background:rgba(201,168,92,.14);
+  border-radius:99px;padding:6px 13px;transition:background .15s,color .15s;
+}
+#split-toggle-qa.on{background:var(--gold);color:var(--bg)}
+#split-panel-qa{display:none;margin-bottom:8px}
+#split-panel-qa.on{display:block}
+#split-remain-qa{font-size:.8rem;font-weight:800;margin-bottom:8px}
+#split-remain-qa.zero{color:var(--accent)}
+#split-remain-qa.off{color:var(--red)}
+.split-row-qa{background:var(--card);border-radius:16px;padding:10px;margin-bottom:8px}
+.split-row-qa .r1{display:flex;gap:6px;margin-bottom:6px}
+.split-row-qa .r2{display:flex;gap:6px;align-items:center}
+.split-row-qa select,.split-row-qa input{
+  background:var(--card-2);border:1.5px solid var(--faint);border-radius:12px;color:var(--ink);
+  font:inherit;font-size:.82rem;padding:9px 8px;outline:none;min-width:0;
+}
+.split-row-qa select:focus,.split-row-qa input:focus{border-color:var(--accent)}
+.split-row-qa select{flex:1}
+.split-row-qa input[data-f="amount"]{width:82px;flex:0 0 auto;text-align:center;direction:ltr}
+.split-row-qa input[data-f="tag"]{flex:1}
+.split-row-qa button{
+  flex:0 0 auto;width:32px;height:32px;border-radius:10px;background:var(--card-2);
+  font-size:.85rem;color:var(--ink);
+}
+.split-row-qa .split-del-qa{color:var(--red)}
+#split-add-qa{font-size:.78rem;font-weight:800;color:var(--accent);padding:9px 0}
+#qa-normal-fields.hidden{display:none}
+
 /* כפתורי ניווט תחתונים */
 .actions{display:flex;gap:9px;margin-top:auto;padding-top:12px}
 .btn{
@@ -247,10 +277,24 @@ header .title{font-size:.82rem;font-weight:700;color:var(--dim);letter-spacing:.
     <span class="nm" id="chosen-nm"></span>
     <span class="amt" id="chosen-amt"></span>
   </div>
-  <div class="sec-label" id="tags-label">תיוג</div>
-  <div id="tag-wrap"></div>
-  <div class="sec-label">הערה חופשית</div>
-  <input id="note-input" maxlength="120" placeholder="למשל: קניות לשבת…" enterkeyhint="done" autocomplete="off">
+
+  <div class="sec-label" style="display:flex;justify-content:space-between;align-items:center">
+    <span>פיצול הוצאה</span>
+    <button type="button" id="split-toggle-qa">➗ פצל</button>
+  </div>
+  <div id="split-panel-qa">
+    <div id="split-remain-qa"></div>
+    <div id="split-rows-qa"></div>
+    <button type="button" id="split-add-qa">➕ הוספת שורה</button>
+  </div>
+
+  <div id="qa-normal-fields">
+    <div class="sec-label" id="tags-label">תיוג</div>
+    <div id="tag-wrap"></div>
+    <div class="sec-label">הערה חופשית</div>
+    <input id="note-input" maxlength="120" placeholder="למשל: קניות לשבת…" enterkeyhint="done" autocomplete="off">
+  </div>
+
   <div class="actions">
     <button type="button" class="btn back" id="back-2">→ חזרה</button>
     <button type="button" class="btn primary" id="save-btn">💾 שמור</button>
@@ -630,11 +674,149 @@ function showDone(queued){
     $('done').classList.remove('on');
     wiz={ amount:'', category:null, tag:'', note:'' };
     $('note-input').value='';
+    qaResetSplit();
     renderAmount();
     gotoStep(1);
   },1400);
 }
+/* ═══ פיצול הוצאה (Split Transactions) ═══════════════════════
+   ▸ הסכום שהוקש במקלדת (שלב 1) הוא "הסכום לחלוקה". כל תת-שורה
+     היא הוצאה עצמאית (UID משלה) שנכנסת לתור האופליין כמערך אחד
+     (items:[...]) עם groupId משותף, בדיוק כמו index.html.
+   ▸ ולידציה קשיחה: כפתור השמירה חסום כל עוד "הנותר לחלוקה"
+     (הסכום הראשי פחות סך שורות הפיצול) אינו בדיוק 0.        */
+var qaSplit={ mode:false, rows:[] };
+function qaSplitRound2(n){ return Math.round((Number(n)||0)*100)/100; }
+function qaSplitDefaultCat(){
+  if(wiz.category && cats.some(function(c){ return c.name===wiz.category.name; })) return wiz.category.name;
+  return cats[0]?cats[0].name:'';
+}
+function qaSplitRemaining(){
+  var total=parseFloat(wiz.amount)||0;
+  var used=qaSplit.rows.reduce(function(s,r){ return s+(parseFloat(r.amount)||0); },0);
+  return qaSplitRound2(total-used);
+}
+function qaSplitCatOptions(selected){
+  if(!cats.length) return '<option value="">אין קטגוריות</option>';
+  return cats.map(function(c){
+    return '<option value="'+esc(c.name)+'"'+(c.name===selected?' selected':'')+'>'+esc(c.emoji||'🏷️')+' '+esc(c.name)+'</option>';
+  }).join('');
+}
+function qaUpdateSplitRemain(){
+  var remain=qaSplitRemaining();
+  var ok=Math.abs(remain)<0.005;
+  var el=$('split-remain-qa');
+  el.textContent='נותר לחלוקה: ₪'+remain.toFixed(2);
+  el.classList.toggle('zero',ok);
+  el.classList.toggle('off',!ok);
+  var rowsValid=qaSplit.rows.length>0 && qaSplit.rows.every(function(r){ return r.category && (parseFloat(r.amount)>0); });
+  $('save-btn').disabled=qaSplit.mode ? !(ok && rowsValid) : false;
+}
+function qaRenderSplitRows(){
+  $('split-rows-qa').innerHTML=qaSplit.rows.map(function(r,i){
+    return '<div class="split-row-qa" data-i="'+i+'">'+
+      '<div class="r1">'+
+        '<select data-f="category" data-i="'+i+'">'+qaSplitCatOptions(r.category)+'</select>'+
+        '<input type="number" inputmode="decimal" step="0.01" placeholder="0.00" value="'+esc(r.amount||'')+'" data-f="amount" data-i="'+i+'">'+
+        '<button type="button" data-fill="'+i+'" title="השלם יתרה">⚡</button>'+
+      '</div>'+
+      '<div class="r2">'+
+        '<input type="text" placeholder="תיוג / הערה" value="'+esc(r.tag||'')+'" data-f="tag" data-i="'+i+'">'+
+        '<button type="button" class="split-del-qa" data-del="'+i+'" title="הסרת שורה">✕</button>'+
+      '</div>'+
+    '</div>';
+  }).join('')||'<span style="font-size:.76rem;color:var(--dim)">הוסיפו שורת פיצול</span>';
+  qaUpdateSplitRemain();
+}
+$('split-toggle-qa').addEventListener('click',function(){
+  qaSplit.mode=!qaSplit.mode;
+  $('split-toggle-qa').classList.toggle('on',qaSplit.mode);
+  $('split-panel-qa').classList.toggle('on',qaSplit.mode);
+  $('qa-normal-fields').classList.toggle('hidden',qaSplit.mode);
+  if(qaSplit.mode && !qaSplit.rows.length){
+    var c=qaSplitDefaultCat();
+    qaSplit.rows=[{category:c,amount:'',tag:''},{category:c,amount:'',tag:''}];
+    qaRenderSplitRows();
+  }else{
+    qaUpdateSplitRemain();
+  }
+  haptic(10);
+});
+$('split-add-qa').addEventListener('click',function(){
+  qaSplit.rows.push({category:qaSplitDefaultCat(),amount:'',tag:''});
+  qaRenderSplitRows();
+  haptic(8);
+});
+$('split-rows-qa').addEventListener('input',function(ev){
+  var t=ev.target, f=t.dataset.f; if(!f) return;
+  var i=+t.dataset.i; if(!qaSplit.rows[i]) return;
+  qaSplit.rows[i][f]=t.value;
+  qaUpdateSplitRemain();
+});
+$('split-rows-qa').addEventListener('change',function(ev){
+  var t=ev.target; if(t.tagName!=='SELECT') return;
+  var f=t.dataset.f; if(!f) return;
+  var i=+t.dataset.i; if(!qaSplit.rows[i]) return;
+  qaSplit.rows[i][f]=t.value;
+  qaUpdateSplitRemain();
+});
+$('split-rows-qa').addEventListener('click',function(ev){
+  var fillBtn=ev.target.closest('[data-fill]');
+  if(fillBtn){
+    var i=+fillBtn.dataset.fill;
+    var r=qaSplit.rows[i]; if(!r) return;
+    var remain=qaSplitRemaining();
+    var cur=parseFloat(r.amount)||0;
+    r.amount=String(Math.max(0,qaSplitRound2(cur+remain)));
+    var inp=$('split-rows-qa').querySelector('[data-f="amount"][data-i="'+i+'"]');
+    if(inp) inp.value=r.amount;
+    qaUpdateSplitRemain();
+    haptic(8);
+    return;
+  }
+  var delBtn=ev.target.closest('[data-del]');
+  if(delBtn){
+    qaSplit.rows.splice(+delBtn.dataset.del,1);
+    qaRenderSplitRows();
+    haptic(8);
+  }
+});
+function qaResetSplit(){
+  qaSplit={ mode:false, rows:[] };
+  $('split-toggle-qa').classList.remove('on');
+  $('split-panel-qa').classList.remove('on');
+  $('qa-normal-fields').classList.remove('hidden');
+}
+function saveSplitQA(){
+  var total=parseFloat(wiz.amount)||0;
+  if(!(total>0)) return;
+  var remain=qaSplitRemaining();
+  if(Math.abs(remain)>=0.005) return;
+  if(!qaSplit.rows.every(function(r){ return r.category && (parseFloat(r.amount)>0); })) return;
+
+  var groupId='grp_'+Date.now().toString(36)+'_'+Math.floor(Math.random()*1e6).toString(36);
+  var dateStr=todayISO();
+  var items=qaSplit.rows.map(function(r){
+    return {
+      type:'expense', who:user, category:r.category, amount:parseFloat(r.amount),
+      note:'', tag:(r.tag||'').trim(), date:dateStr, uid:makeUid(), groupId:groupId
+    };
+  });
+  var payload={items:items,groupId:groupId};
+  var offline=!navigator.onLine;
+
+  /* ═══ Queue-First — זהה לעיקרון בשמירה הרגילה: כל מערך הפיצול
+     נכנס לתור כפריט אחד *לפני* כל ניסיון שידור, כך שכשל שידור
+     לא מאבד שום שורת פיצול — flushQueue הקיים משדר אותו כמכלול. */
+  var q=readQueue(); q.push({path:'/api/add-transaction',payload:payload,ts:Date.now()}); writeQueue(q);
+  haptic(18);
+  showDone(offline);
+  qaResetSplit();
+  if(!offline) flushQueue(true);
+}
+
 $('save-btn').addEventListener('click',function(){
+  if(qaSplit.mode){ saveSplitQA(); return; }
   if(!wiz.category || !(parseFloat(wiz.amount)>0)) return;
   var payload={
     type:'expense',

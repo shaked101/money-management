@@ -363,6 +363,28 @@ nav.bottom button.on .nic{transform:translateY(-1px)}
 .modal h3 .close{font-size:1rem;color:var(--gray-500);width:32px;height:32px;border-radius:9px;display:grid;place-items:center}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
+/* ── פיצול הוצאות (Split Transactions) ── */
+.tx-save-row{display:flex;gap:8px;align-items:stretch;margin-top:4px}
+.tx-save-row .btn.full{flex:1}
+.tx-save-row #tx-split-btn{flex:0 0 auto;white-space:nowrap}
+#tx-split-btn.on{background:var(--g-700);color:#fff;border-color:var(--g-700)}
+.split-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px;font-size:.8rem;font-weight:700;color:var(--gray-700)}
+.split-remain{font-weight:800;font-variant-numeric:tabular-nums}
+.split-remain.zero{color:var(--g-700)}
+.split-remain.off{color:var(--red)}
+.split-row{background:var(--gray-100);border-radius:12px;padding:9px;margin-bottom:8px}
+.split-row .sr-top{display:flex;gap:6px;margin-bottom:6px}
+.split-row .sr-top select{flex:1;min-width:0}
+.split-row .sr-top input.split-amt{width:92px;flex:0 0 auto;text-align:center}
+.split-row .sr-bottom{display:flex;gap:6px;align-items:center}
+.split-row .sr-bottom input.split-tag{flex:1;min-width:0}
+.split-row button.split-ico{
+  flex:0 0 auto;width:34px;height:34px;border-radius:9px;background:var(--card);
+  border:1.5px solid var(--gray-300);font-size:.86rem;display:grid;place-items:center;
+}
+.split-row button.split-del{color:var(--red)}
+#tx-split-addrow{margin-bottom:2px}
+
 /* טוסט */
 #toast{
   position:fixed;bottom:calc(96px + var(--safe-b));right:50%;transform:translateX(50%) translateY(14px);
@@ -1038,13 +1060,28 @@ try{ if(localStorage.getItem('ff_dark')==='1') document.documentElement.classLis
         <button data-v="אביטל">אביטל</button>
       </div>
     </div>
-    <div class="fg">
+    <div class="fg" id="tx-recurring-fg">
       <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:.86rem;font-weight:500;color:var(--ink)">
         <input type="checkbox" id="tx-recurring" style="width:19px;height:19px;accent-color:var(--g-700)">
         <span class="rec-svg" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span> תנועה קבועה — חוזרת אוטומטית כל חודש
       </label>
     </div>
-    <button class="btn full" id="tx-save">💾 שמירת תנועה</button>
+
+    <!-- ═══ פיצול הוצאה (Split Transactions) ═══ -->
+    <div class="fg" id="tx-split-panel" style="display:none">
+      <div class="split-head">
+        <span>פיצול הסכום לתת־שורות</span>
+        <span id="tx-split-remain" class="split-remain">נותר לחלוקה: ₪0.00</span>
+      </div>
+      <div id="tx-split-rows"></div>
+      <button type="button" class="btn sm ghost full" id="tx-split-addrow">➕ הוספת שורה</button>
+    </div>
+
+    <div class="tx-save-row">
+      <button class="btn full" id="tx-save">💾 שמירת תנועה</button>
+      <button class="btn sm ghost" type="button" id="tx-split-btn">➗ פצל הוצאה</button>
+    </div>
+    <button class="btn full" type="button" id="tx-split-save" style="display:none">💾 שמירת פיצול</button>
   </div>
 </div>
 
@@ -2804,6 +2841,8 @@ function openTxModal(){
   txForm.type='expense'; txForm.who=txForm.who||'שקד'; txForm.tag='';
   setSeg('tx-type-seg','expense'); setSeg('tx-who-seg',txForm.who);
   fillCatGrid();
+  closeSplitPanel();
+  $('tx-split-btn').style.display='';
   $('tx-modal').classList.add('on');
   setTimeout(function(){ $('tx-amount').focus(); },120);
 }
@@ -2826,6 +2865,9 @@ function openTxEdit(uid){
   $('tx-date').value=dateKeyOf(r.date)||todayLocalISO();
   $('tx-note').value=r.note||'';
   $('tx-recurring').checked=!!r.recurring;
+  closeSplitPanel();
+  /* פיצול רלוונטי רק להזנה חדשה — לא לעריכת תנועה קיימת */
+  $('tx-split-btn').style.display='none';
   $('tx-modal').classList.add('on');
   setTimeout(function(){ $('tx-amount').focus(); },120);
 }
@@ -2951,6 +2993,170 @@ async function saveTx(){
          לתור לשידור חוזר אוטומטי (online / עלייה הבאה). */
       enqueueOffline(isEdit?'/api/update-transaction':'/api/add-transaction',payload);
       toast('📥 החיבור איטי — נשמר מקומית ויסונכרן אוטומטית ברקע',true);
+      haptic(15);
+    }
+  }
+}
+
+/* ═══ פיצול הוצאות (Split Transactions) ═══════════════════════
+   ▸ הסכום הראשי (tx-amount) הוא "הסכום לחלוקה". כל תת-שורה היא
+     תנועה עצמאית לכל דבר (UID משלה) שנשלחת לשרת כמערך אחד
+     (action:'add', items:[...]) באותה קריאה, עם groupId משותף
+     שנוצר פעם אחת בצד הלקוח, כדי שנדע שהן שייכות לאותה עסקה.
+   ▸ ולידציה קשיחה: שמירת הפיצול חסומה כל עוד "הסכום הנותר
+     לחלוקה" (הסכום הראשי פחות סך הפיצולים) אינו בדיוק 0.
+   ▸ Optimistic UI + תור אופליין: זהה בדיוק לתנועה בודדת
+     (saveTx), רק שכל שורות הפיצול מתווספות/מוסרות יחד, וכשל
+     ברשת מכניס את *כל* מערך הפיצול לתור המקומי כפריט אחד. */
+var splitMode=false;
+var splitRows=[]; /* [{cat, amount, tag}] */
+function splitRound2(n){ return Math.round((Number(n)||0)*100)/100; }
+function splitCatList(){ return state.cats[txForm.type]||[]; }
+function splitDefaultCat(){
+  var list=splitCatList();
+  if(txForm.cat && list.some(function(c){ return c.name===txForm.cat; })) return txForm.cat;
+  return list[0]?list[0].name:'';
+}
+function closeSplitPanel(){
+  splitMode=false; splitRows=[];
+  $('tx-split-panel').style.display='none';
+  $('tx-split-save').style.display='none';
+  $('tx-save').style.display='';
+  $('tx-split-btn').classList.remove('on');
+  $('tx-split-btn').textContent='➗ פצל הוצאה';
+  $('tx-recurring').disabled=false;
+}
+function openSplitPanel(){
+  splitMode=true;
+  if(!splitRows.length){
+    var c=splitDefaultCat();
+    splitRows=[{cat:c,amount:'',tag:''},{cat:c,amount:'',tag:''}];
+  }
+  $('tx-split-panel').style.display='';
+  $('tx-split-save').style.display='';
+  $('tx-save').style.display='none';
+  $('tx-split-btn').classList.add('on');
+  $('tx-split-btn').textContent='✕ ביטול פיצול';
+  $('tx-recurring').checked=false;
+  $('tx-recurring').disabled=true; /* פיצול לא נתמך יחד עם תנועה קבועה */
+  renderSplitRows();
+}
+function splitCatOptionsHtml(selected){
+  var list=splitCatList();
+  if(!list.length) return '<option value="">אין קטגוריות</option>';
+  return list.map(function(c){
+    return '<option value="'+esc(c.name)+'"'+(c.name===selected?' selected':'')+'>'+esc(c.emoji)+' '+esc(c.name)+'</option>';
+  }).join('');
+}
+function renderSplitRows(){
+  var wrap=$('tx-split-rows');
+  wrap.innerHTML=splitRows.map(function(r,i){
+    return '<div class="split-row" data-i="'+i+'">'+
+      '<div class="sr-top">'+
+        '<select class="ifield" data-sf="cat" data-i="'+i+'">'+splitCatOptionsHtml(r.cat)+'</select>'+
+        '<input class="ifield split-amt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" value="'+esc(r.amount||'')+'" data-sf="amount" data-i="'+i+'">'+
+      '</div>'+
+      '<div class="sr-bottom">'+
+        '<input class="ifield split-tag" placeholder="תיוג / הערה (רשות)" value="'+esc(r.tag||'')+'" data-sf="tag" data-i="'+i+'">'+
+        '<button type="button" class="split-ico" data-splitfill="'+i+'" title="השלם יתרה">⚡</button>'+
+        '<button type="button" class="split-ico split-del" data-splitdel="'+i+'" title="הסרת שורה">✕</button>'+
+      '</div>'+
+    '</div>';
+  }).join('')||'<div style="text-align:center;color:var(--gray-500);font-size:.8rem;padding:8px 0">אין שורות פיצול</div>';
+  updateSplitRemain();
+}
+function splitRemaining(){
+  var total=parseFloat($('tx-amount').value)||0;
+  var used=splitRows.reduce(function(s,r){ return s+(parseFloat(r.amount)||0); },0);
+  return splitRound2(total-used);
+}
+function updateSplitRemain(){
+  var remain=splitRemaining();
+  var ok=Math.abs(remain)<0.005;
+  var el=$('tx-split-remain');
+  el.textContent='נותר לחלוקה: ₪'+remain.toFixed(2);
+  el.classList.toggle('zero',ok);
+  el.classList.toggle('off',!ok);
+  var rowsValid=splitRows.length>0 && splitRows.every(function(r){ return r.cat && (parseFloat(r.amount)>0); });
+  $('tx-split-save').disabled=!(ok && rowsValid);
+}
+function addSplitRow(){
+  splitRows.push({cat:splitDefaultCat(),amount:'',tag:''});
+  renderSplitRows();
+}
+function removeSplitRow(i){
+  splitRows.splice(i,1);
+  renderSplitRows();
+}
+function fillSplitRemainder(i){
+  var r=splitRows[i]; if(!r) return;
+  var remain=splitRemaining();
+  var cur=parseFloat(r.amount)||0;
+  r.amount=String(Math.max(0,splitRound2(cur+remain)));
+  var inp=$('tx-split-rows').querySelector('.split-amt[data-i="'+i+'"]');
+  if(inp) inp.value=r.amount;
+  updateSplitRemain();
+  haptic(8);
+}
+async function saveSplitTx(){
+  var total=parseFloat($('tx-amount').value);
+  if(!(total>0)){ toast('נא להזין סכום כולל תקין',true); $('tx-amount').focus(); return; }
+  var remain=splitRemaining();
+  if(Math.abs(remain)>=0.005){ toast('הסכום הנותר לחלוקה חייב להיות 0',true); return; }
+  if(!splitRows.every(function(r){ return r.cat && (parseFloat(r.amount)>0); })){ toast('נא למלא קטגוריה וסכום בכל שורת פיצול',true); return; }
+
+  var groupId='grp_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);
+  var date=$('tx-date').value||todayLocalISO();
+  var items=splitRows.map(function(r){
+    return {
+      uid:'tx_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7),
+      date:date, type:txForm.type, category:r.cat, amount:parseFloat(r.amount),
+      note:'', tag:(r.tag||'').trim(), who:txForm.who, recurring:false,
+      month:state.m, year:state.y, groupId:groupId
+    };
+  });
+
+  /* ═══ Optimistic UI — זהה לעיקרון של saveTx, על כל שורות הפיצול יחד ═══ */
+  $('tx-modal').classList.remove('on');
+  closeSplitPanel();
+
+  var pd=new Date(date);
+  var txKey=mKey(pd.getFullYear(),pd.getMonth()+1);
+  if(txKey===mKey(state.y,state.m)) state.rows=state.rows.concat(items);
+  if(monthCache[txKey]){
+    monthCache[txKey].rows=(monthCache[txKey].rows||[]).concat(items);
+    cacheSave();
+  }
+  items.forEach(function(it){ pendingRows.push({key:txKey,row:it}); });
+  renderAll();
+  toast('✓ הפיצול נשמר ('+items.length+' שורות)');
+  haptic(15);
+
+  function dropOptimisticGroup(){
+    var uids=items.map(function(it){ return String(it.uid); });
+    pendingRows=pendingRows.filter(function(p){ return uids.indexOf(String(p.row.uid))===-1; });
+    state.rows=state.rows.filter(function(r){ return uids.indexOf(String(r.uid))===-1; });
+    Object.keys(monthCache).forEach(function(k){
+      if(monthCache[k].rows) monthCache[k].rows=monthCache[k].rows.filter(function(r){ return uids.indexOf(String(r.uid))===-1; });
+    });
+  }
+  var payload={items:items,groupId:groupId,month:state.m,year:state.y};
+  try{
+    await apiFetch('/api/add-transaction',payload,null,null,15000);
+    var uids=items.map(function(it){ return String(it.uid); });
+    pendingRows=pendingRows.filter(function(p){ return uids.indexOf(String(p.row.uid))===-1; });
+  }catch(e){
+    if(e.code===401){
+      dropOptimisticGroup();
+      cacheSave();
+      renderAll();
+      toast('⚠️ אין הרשאה — הפיצול בוטל',true);
+      haptic([28,40,28]);
+    }else{
+      /* כשל רשת/Timeout — כל מערך הפיצול (items) נכנס לתור כפריט
+         אחד, ומשודר מחדש כמכלול ברקע (online / Polling הקיימים). */
+      enqueueOffline('/api/add-transaction',payload);
+      toast('📥 החיבור איטי — הפיצול נשמר מקומית ויסונכרן אוטומטית ברקע',true);
       haptic(15);
     }
   }
@@ -3786,7 +3992,45 @@ function init(){
   /* תנועות */
   $('fab').addEventListener('click',openTxModal);
   $('tx-save').addEventListener('click',saveTx);
-  segInit('tx-type-seg',function(v){ txForm.type=v; fillCatGrid(); });
+  segInit('tx-type-seg',function(v){
+    txForm.type=v; fillCatGrid();
+    if(splitMode){
+      /* מעבר הוצאה/הכנסה בזמן פיצול פעיל — קטגוריות מתעדכנות בכל שורה */
+      var list=splitCatList();
+      splitRows.forEach(function(r){
+        if(!list.some(function(c){ return c.name===r.cat; })) r.cat=list[0]?list[0].name:'';
+      });
+      renderSplitRows();
+    }
+  });
+
+  /* ── פיצול הוצאות: כפתורי פתיחה/סגירה, הוספת שורה, שמירה ── */
+  $('tx-split-btn').addEventListener('click',function(){
+    if(splitMode) closeSplitPanel(); else openSplitPanel();
+    haptic(10);
+  });
+  $('tx-split-addrow').addEventListener('click',function(){ addSplitRow(); haptic(8); });
+  $('tx-split-save').addEventListener('click',saveSplitTx);
+  $('tx-amount').addEventListener('input',function(){ if(splitMode) updateSplitRemain(); });
+  $('tx-split-rows').addEventListener('input',function(ev){
+    var t=ev.target, f=t.dataset.sf; if(!f) return;
+    var i=+t.dataset.i; if(!splitRows[i]) return;
+    splitRows[i][f]=t.value;
+    updateSplitRemain();
+  });
+  $('tx-split-rows').addEventListener('change',function(ev){
+    var t=ev.target; if(t.tagName!=='SELECT') return;
+    var f=t.dataset.sf; if(!f) return;
+    var i=+t.dataset.i; if(!splitRows[i]) return;
+    splitRows[i][f]=t.value;
+    updateSplitRemain();
+  });
+  $('tx-split-rows').addEventListener('click',function(ev){
+    var fillBtn=ev.target.closest('[data-splitfill]');
+    if(fillBtn){ fillSplitRemainder(+fillBtn.dataset.splitfill); return; }
+    var delBtn=ev.target.closest('[data-splitdel]');
+    if(delBtn){ removeSplitRow(+delBtn.dataset.splitdel); haptic(8); }
+  });
   segInit('tx-who-seg',function(v){ txForm.who=v; });
   $('tx-list').addEventListener('click',function(ev){
     /* לחיצה על Chip של תיוג — "הוצאות דומות" מסוננות לפי התיוג בלבד.
