@@ -863,7 +863,7 @@ try{ if(localStorage.getItem('ff_dark')==='1') document.documentElement.classLis
           <!-- תפריט נפתח: נעילה · דוח AI · מצב לילה -->
           <div id="hmenu" role="menu" aria-label="פעולות מערכת">
             <button class="hm-item" id="lock-btn" role="menuitem"><span class="hm-ic">🔒</span><span>נעילת המערכת</span></button>
-            <button class="hm-item" id="ai-btn" role="menuitem"><span class="hm-ic">🤖</span><span>לוח</span></button>
+            <button class="hm-item" id="ai-btn" role="menuitem"><span class="hm-ic">🤖</span><span>דוח AI</span></button>
             <button class="hm-item" id="audit-btn" role="menuitem"><span class="hm-ic">🛡️</span><span class="hm-lbl">אימות נתונים</span></button>
             <div class="hm-sep"></div>
             <button class="hm-item" id="dm-toggle" role="menuitemcheckbox" aria-checked="false">
@@ -3479,8 +3479,6 @@ function buildAiReport(){
     lines.push('ההוצאה הבודדת הגדולה ביותר: '+fmt(biggest.amount)+' על "'+(biggest.category||'')+
       (biggest.note?' — '+biggest.note:'')+'" (נרשם ע"י '+(biggest.who||'עלום')+').');
   }
-  lines.push('');
-  lines.push('דו-קרב הרישומים: שקד רשם הוצאות בסך '+fmt(byWho['שקד'])+' לעומת אביטל עם '+fmt(byWho['אביטל'])+'.');
   lines.push('');
   lines.push('רשימת כל התנועות (תאריך | סוג | קטגוריה | סכום | תיאור | מי רשם):');
   state.rows.slice().sort(function(a,b){ return parseTxTs(a.date)-parseTxTs(b.date); })
