@@ -813,6 +813,111 @@ html.dark #drag-ghost{filter:brightness(.96)}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
+
+/* ═══════════════════════════════════════════════════════════
+   דוח מצב ויזואלי (PNG לשיתוף) — modal בחירת עיצוב + תבניות
+   מוסתרות 16:9 שמוזרקות בנתונים ומצולמות ע"י html2canvas.
+   פיצ'ר עצמאי לגמרי: לא נוגע בשום Offline/Sync/Split קיים.
+   ═══════════════════════════════════════════════════════════ */
+.rpt-choice-hint{font-size:.8rem;color:var(--gray-700);margin:-6px 0 14px}
+.rpt-choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px}
+.rpt-choice-btn{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  background:var(--gray-100);border:1.5px solid var(--gray-300);border-radius:14px;
+  padding:14px 10px 12px;transition:all .15s;
+}
+.rpt-choice-btn:active{transform:scale(.97);border-color:var(--g-500)}
+.rpt-choice-btn:disabled{opacity:.5;pointer-events:none}
+.rpt-choice-lbl{font-size:.82rem;font-weight:700;color:var(--ink);display:flex;flex-direction:column;gap:2px}
+.rpt-choice-lbl small{font-size:.68rem;font-weight:500;color:var(--gray-500)}
+.rpt-choice-prev{width:100%;height:64px;border-radius:10px;position:relative;overflow:hidden}
+.rpt-prev-light{background:#fff;border:1px solid var(--gray-300)}
+.rpt-prev-light .c1,.rpt-prev-light .c2{position:absolute;top:50%;width:34px;height:34px;border-radius:50%;transform:translateY(-50%)}
+.rpt-prev-light .c1{right:38%;background:#E3EEFA}
+.rpt-prev-light .c2{right:26%;background:#F6EAF3}
+.rpt-prev-blue{background:#E7F0F6}
+.rpt-prev-blue .g1,.rpt-prev-blue .g2,.rpt-prev-blue .g3{position:absolute;bottom:8px;width:12px;border-radius:4px 4px 0 0}
+.rpt-prev-blue .g1{right:30%;height:20px;background:#4C7FA6}
+.rpt-prev-blue .g2{right:45%;height:34px;background:#7FA8C4}
+.rpt-prev-blue .g3{right:60%;height:14px;background:#A9C6DA}
+.rpt-status{font-size:.78rem;color:var(--gray-500);text-align:center;min-height:16px;margin-top:6px}
+.rpt-status.err{color:var(--red)}
+
+/* ── תבניות 16:9 מוסתרות — קבועות לחלוטין מחוץ ל-Viewport,
+   בגודל פיקסלים מלא (לא רספונסיבי) לצילום עקבי ע"י html2canvas ── */
+#rpt-stage{position:fixed;top:0;left:-99999px;pointer-events:none}
+.rpt-tpl{width:1200px;height:675px;box-sizing:border-box;position:relative;overflow:hidden;
+  font-family:'Heebo',-apple-system,'Segoe UI',Arial,sans-serif;direction:rtl;color:#182420}
+
+/* עיצוב 1: בהיר · מעגלים */
+.rpt-light{width:100%;height:100%;background:#FFFFFF;padding:40px 48px;display:flex;flex-direction:column}
+.rpt-l-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex:0 0 auto}
+.rpt-l-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.5rem;color:#0B2E23}
+.rpt-l-brand .coin{width:40px;height:40px;border-radius:12px;background:linear-gradient(140deg,#C9A85C,#A8843B);display:grid;place-items:center;color:#07211A;font-weight:800;font-size:1.2rem}
+.rpt-l-month{font-size:1.1rem;font-weight:700;color:#4C5B54;background:#EEF2F0;border-radius:99px;padding:8px 20px}
+.rpt-l-cards{display:flex;gap:16px;margin-bottom:26px;flex:0 0 auto}
+.rpt-l-card{flex:1;background:#F4F7F5;border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:4px}
+.rpt-l-card .k{font-size:.82rem;font-weight:600;color:#7C8B84}
+.rpt-l-card .v{font-size:1.5rem;font-weight:800;font-variant-numeric:tabular-nums;color:#182420}
+.rpt-l-card .v.inc{color:#2E9B74}
+.rpt-l-card .v.exp{color:#B3402F}
+.rpt-l-body{display:flex;gap:36px;flex:1;min-height:0}
+.rpt-l-circles{width:340px;flex:0 0 auto;position:relative}
+.rpt-l-circle{position:absolute;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.14)}
+.rpt-l-circle .nm{font-size:.9rem;font-weight:700;opacity:.94}
+.rpt-l-circle .amt{font-size:1.15rem;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+.rpt-l-circle.shaked{background:linear-gradient(140deg,#4C7FA6,#2A5B8F)}
+.rpt-l-circle.avital{background:linear-gradient(140deg,#C97FB0,#8F3A76)}
+.rpt-l-right{flex:1;display:flex;flex-direction:column;gap:20px;min-width:0;justify-content:center}
+.rpt-l-bars{display:flex;flex-direction:column;gap:11px}
+.rpt-l-bar-row{display:flex;flex-direction:column;gap:5px}
+.rpt-l-bar-top{display:flex;justify-content:space-between;font-size:.86rem;font-weight:600}
+.rpt-l-bar-top .amt{font-variant-numeric:tabular-nums;color:#4C5B54;font-weight:700}
+.rpt-l-bar-track{height:12px;border-radius:99px;background:#EEF2F0;overflow:hidden}
+.rpt-l-bar-fill{height:100%;border-radius:99px}
+.rpt-l-out{background:#F9ECEA;border-radius:16px;padding:14px 18px}
+.rpt-l-out h4{font-size:.86rem;font-weight:700;color:#B3402F;margin-bottom:8px}
+.rpt-l-out-row{display:flex;justify-content:space-between;gap:10px;font-size:.84rem;font-weight:600;padding:5px 0;border-top:1px solid rgba(179,64,47,.14)}
+.rpt-l-out-row:first-of-type{border-top:0}
+.rpt-l-out-row span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rpt-l-out-row .amt{font-variant-numeric:tabular-nums;color:#B3402F;font-weight:800;flex:0 0 auto}
+
+/* עיצוב 2: תכלת · גריד */
+.rpt-blue{width:100%;height:100%;background:linear-gradient(160deg,#EAF2F7 0%,#DCE8F0 100%);padding:40px 48px;display:flex;flex-direction:column}
+.rpt-b-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;flex:0 0 auto}
+.rpt-b-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.5rem;color:#1E3A52}
+.rpt-b-brand .coin{width:40px;height:40px;border-radius:12px;background:linear-gradient(140deg,#4C7FA6,#2A5B8F);display:grid;place-items:center;color:#fff;font-weight:800;font-size:1.2rem}
+.rpt-b-month{font-size:1.1rem;font-weight:700;color:#2A5B8F;background:rgba(255,255,255,.65);border-radius:99px;padding:8px 20px}
+.rpt-b-cards{display:flex;gap:16px;margin-bottom:20px;flex:0 0 auto}
+.rpt-b-card{flex:1;background:rgba(255,255,255,.72);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:4px}
+.rpt-b-card .k{font-size:.82rem;font-weight:600;color:#4C6478}
+.rpt-b-card .v{font-size:1.5rem;font-weight:800;font-variant-numeric:tabular-nums;color:#1E3A52}
+.rpt-b-card .v.inc{color:#1E7A5A}
+.rpt-b-card .v.exp{color:#B3402F}
+.rpt-b-body{display:flex;gap:20px;flex:1;min-height:0}
+.rpt-b-left{width:360px;flex:0 0 auto;background:rgba(255,255,255,.58);border-radius:20px;padding:22px;display:flex;flex-direction:column;justify-content:center;gap:16px}
+.rpt-b-right{flex:1;background:rgba(255,255,255,.58);border-radius:20px;padding:20px 22px;display:flex;flex-direction:column;min-width:0}
+.rpt-b-strip{margin-top:18px;background:#1E3A52;border-radius:16px;padding:13px 26px;display:flex;justify-content:space-around;color:#fff;font-size:.9rem;font-weight:700;flex:0 0 auto}
+.rpt-b-strip b{font-variant-numeric:tabular-nums;font-size:1.02rem;margin-inline-start:6px}
+.rpt-b-user-row{display:flex;align-items:center;gap:12px}
+.rpt-b-user-ic{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:1.2rem;flex:0 0 auto}
+.rpt-b-user-ic.shaked{background:linear-gradient(140deg,#4C7FA6,#2A5B8F)}
+.rpt-b-user-ic.avital{background:linear-gradient(140deg,#C97FB0,#8F3A76)}
+.rpt-b-user-info{flex:1;min-width:0}
+.rpt-b-user-info .nm{font-size:.92rem;font-weight:700;color:#1E3A52}
+.rpt-b-user-info .sub{font-size:.74rem;color:#5A7A93}
+.rpt-b-user-info .amt{font-size:1.04rem;font-weight:800;color:#1E3A52;font-variant-numeric:tabular-nums}
+.rpt-b-split{height:20px;border-radius:99px;overflow:hidden;display:flex;background:#EEF2F0;margin-top:2px}
+.rpt-b-split span{height:100%}
+.rpt-b-split .shaked{background:#4C7FA6}
+.rpt-b-split .avital{background:#C97FB0}
+.rpt-b-splitlbl{display:flex;justify-content:space-between;font-size:.72rem;color:#4C6478;font-weight:700;margin-top:4px}
+.rpt-b-cathead{font-size:.86rem;font-weight:700;color:#1E3A52;margin-bottom:12px;flex:0 0 auto}
+.rpt-b-barschart{display:flex;align-items:flex-end;gap:16px;flex:1;padding:0 4px}
+.rpt-b-barcol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:7px;height:100%}
+.rpt-b-barcol .bv{width:100%;max-width:44px;border-radius:8px 8px 0 0}
+.rpt-b-barcol .pct{font-size:.78rem;font-weight:800;color:#1E3A52}
+.rpt-b-barcol .nm{font-size:.66rem;color:#4C6478;text-align:center;line-height:1.25;max-width:74px}
 </style>
 <script>
 /* ── מצב לילה: החלה מוקדמת (לפני ציור הדף) — מונע הבזק לבן ── */
@@ -865,6 +970,7 @@ try{ if(localStorage.getItem('ff_dark')==='1') document.documentElement.classLis
             <button class="hm-item" id="lock-btn" role="menuitem"><span class="hm-ic">🔒</span><span>נעילת המערכת</span></button>
             <button class="hm-item" id="ai-btn" role="menuitem"><span class="hm-ic">🤖</span><span>דוח AI ללוח</span></button>
             <button class="hm-item" id="audit-btn" role="menuitem"><span class="hm-ic">🛡️</span><span class="hm-lbl">אימות נתונים</span></button>
+            <button class="hm-item" id="report-btn" role="menuitem"><span class="hm-ic">📊</span><span>הפק דוח מצב</span></button>
             <div class="hm-sep"></div>
             <button class="hm-item" id="dm-toggle" role="menuitemcheckbox" aria-checked="false">
               <span class="hm-ic">🌙</span><span>מצב לילה</span>
@@ -1212,6 +1318,68 @@ try{ if(localStorage.getItem('ff_dark')==='1') document.documentElement.classLis
       <button class="mp-ynav" id="mp-y-next" type="button" aria-label="שנה הבאה">›</button>
     </div>
     <div class="mp-grid" id="mp-grid"></div>
+  </div>
+</div>
+
+<!-- ═══════════ מודאל בחירת עיצוב לדוח מצב ═══════════ -->
+<div class="modal-bg" id="report-choice-modal">
+  <div class="modal" style="max-width:380px">
+    <h3><span>הפקת דוח מצב</span> <button class="close" data-close="report-choice-modal">✕</button></h3>
+    <p class="rpt-choice-hint">בחרו עיצוב לתמונת מצב של החודש הנוכחי, מוכנה לשיתוף</p>
+    <div class="rpt-choice-grid">
+      <button class="rpt-choice-btn" id="rpt-pick-light" type="button">
+        <span class="rpt-choice-prev rpt-prev-light" aria-hidden="true"><span class="c1"></span><span class="c2"></span></span>
+        <span class="rpt-choice-lbl">עיצוב בהיר<small>מעגלים</small></span>
+      </button>
+      <button class="rpt-choice-btn" id="rpt-pick-blue" type="button">
+        <span class="rpt-choice-prev rpt-prev-blue" aria-hidden="true"><span class="g1"></span><span class="g2"></span><span class="g3"></span></span>
+        <span class="rpt-choice-lbl">עיצוב תכלת<small>גריד</small></span>
+      </button>
+    </div>
+    <div id="rpt-status" class="rpt-status"></div>
+  </div>
+</div>
+
+<!-- ═══════════ תבניות דוח מצב מוסתרות (16:9) ═══════════
+     לא מוצגות למשתמש (מחוץ ל-Viewport) — מוזרקות בנתונים
+     בזמן ריצה (renderLightTemplate/renderBlueTemplate) ומצולמות
+     ל-PNG ע"י html2canvas (ר' generateReport). לא נוגע בשום
+     Offline/Sync/Split לוגיקה קיימת — פיצ'ר תצוגה בלבד.        -->
+<div id="rpt-stage" aria-hidden="true">
+  <div class="rpt-tpl rpt-light" id="rpt-tpl-light">
+    <div class="rpt-l-head">
+      <div class="rpt-l-brand"><span class="coin">₪</span>הכסף שלנו</div>
+      <div class="rpt-l-month" id="rpt-l-month">—</div>
+    </div>
+    <div class="rpt-l-cards">
+      <div class="rpt-l-card"><span class="k">הכנסות</span><span class="v inc" id="rpt-l-inc">—</span></div>
+      <div class="rpt-l-card"><span class="k">הוצאות</span><span class="v exp" id="rpt-l-exp">—</span></div>
+      <div class="rpt-l-card"><span class="k">יתרה</span><span class="v" id="rpt-l-bal">—</span></div>
+    </div>
+    <div class="rpt-l-body">
+      <div class="rpt-l-circles" id="rpt-l-circles"></div>
+      <div class="rpt-l-right">
+        <div class="rpt-l-bars" id="rpt-l-bars"></div>
+        <div class="rpt-l-out" id="rpt-l-out"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rpt-tpl rpt-blue" id="rpt-tpl-blue">
+    <div class="rpt-b-head">
+      <div class="rpt-b-brand"><span class="coin">₪</span>הכסף שלנו</div>
+      <div class="rpt-b-month" id="rpt-b-month">—</div>
+    </div>
+    <div class="rpt-b-cards">
+      <div class="rpt-b-card"><span class="k">הכנסות</span><span class="v inc" id="rpt-b-inc">—</span></div>
+      <div class="rpt-b-card"><span class="k">הוצאות</span><span class="v exp" id="rpt-b-exp">—</span></div>
+      <div class="rpt-b-card"><span class="k">יתרה</span><span class="v" id="rpt-b-bal">—</span></div>
+    </div>
+    <div class="rpt-b-body">
+      <div class="rpt-b-left" id="rpt-b-left"></div>
+      <div class="rpt-b-right" id="rpt-b-right"></div>
+    </div>
+    <div class="rpt-b-strip" id="rpt-b-strip"></div>
   </div>
 </div>
 
@@ -3516,6 +3684,208 @@ async function copyAiReport(){
   haptic(15);
 }
 
+/* ═══════════════════════════════════════════════════════════
+   דוח מצב ויזואלי (PNG לשיתוף)
+   ▸ נתונים: אך ורק displayRows() — החודש הנבחר המלא, ללא תלות
+     בטוגל התצוגה השבועית בדשבורד (state.weekly).
+   ▸ שכבה עצמאית לגמרי: לא נוגעת ב-state, ב-Offline Queue,
+     בסנכרון או בלוגיקת הפיצול — קוראת מהם בלבד לצורך תצוגה.
+   ▸ html2canvas נטען דינמית (Lazy) רק בלחיצה בפועל על עיצוב.
+   ═══════════════════════════════════════════════════════════ */
+var WHO_LIST=['שקד','אביטל'];
+/* קטגוריות "קבועות" — לא נחשבות ל"הוצאה חריגה" (סכומן חוזר על
+   עצמו כל חודש וצפוי מראש). ניתן להוסיף/להסיר שמות בהתאם
+   לקטגוריות בפועל בגיליון. */
+var RPT_FIXED_CATS=['שכירות','משכנתא','מעון','חשבונות','ביטוח','ארנונה','דיור'];
+function isFixedCat(name){ return RPT_FIXED_CATS.indexOf(String(name||'').trim())>-1; }
+
+function gatherReportData(){
+  var rows=displayRows(); /* חודש נבחר מלא — לא dashRows/weekViewRows */
+  var inc=0, exp=0;
+  var byUser={}; WHO_LIST.forEach(function(w){ byUser[w]={count:0,total:0}; });
+  var byCat={};
+  rows.forEach(function(r){
+    var a=Number(r.amount)||0;
+    if(r.type==='income') inc+=a; else exp+=a;
+    if(r.who && byUser[r.who]){
+      byUser[r.who].count++;
+      if(r.type==='expense') byUser[r.who].total+=a;
+    }
+    if(r.type==='expense'){
+      var c=r.category||'ללא קטגוריה';
+      byCat[c]=(byCat[c]||0)+a;
+    }
+  });
+  var topCats=Object.keys(byCat).map(function(k){ return {name:k,amount:byCat[k]}; })
+    .sort(function(a,b){ return b.amount-a.amount; }).slice(0,5)
+    .map(function(e){ return {name:e.name,amount:e.amount,pct:exp?Math.round(e.amount/exp*100):0}; });
+  /* הוצאות חריגות: 2-3 ההוצאות הבודדות הגדולות ביותר, בהתעלמות
+     מקטגוריות קבועות (RPT_FIXED_CATS) ומתנועות קבועות (recurring) */
+  var outliers=rows.filter(function(r){
+    return r.type==='expense' && !r.recurring && !isFixedCat(r.category);
+  }).sort(function(a,b){ return (Number(b.amount)||0)-(Number(a.amount)||0); })
+    .slice(0,3)
+    .map(function(r){ return {category:r.category||'ללא קטגוריה',amount:Number(r.amount)||0,note:r.note||''}; });
+  return {
+    monthLabel:HE_MONTHS[state.m-1]+' '+state.y,
+    inc:inc, exp:exp, bal:inc-exp,
+    users:WHO_LIST.map(function(w){ return {name:w,count:byUser[w].count,total:byUser[w].total}; }),
+    topCats:topCats, outliers:outliers
+  };
+}
+
+function renderLightTemplate(d){
+  $('rpt-l-month').textContent=d.monthLabel;
+  $('rpt-l-inc').textContent=fmt(d.inc);
+  $('rpt-l-exp').textContent=fmt(d.exp);
+  var balEl=$('rpt-l-bal'); balEl.textContent=fmt(d.bal);
+  balEl.style.color=d.bal<0?'#B3402F':'#182420';
+
+  /* מעגלים חופפים — קוטר יחסי ל-sqrt(סכום ההוצאות של המשתמש) */
+  var wrap=$('rpt-l-circles'); wrap.innerHTML='';
+  var cls=['shaked','avital'];
+  var left=[14,118];
+  var maxTotal=Math.max(d.users[0].total||0,d.users[1].total||0,1);
+  var wrapH=wrap.clientHeight||380;
+  d.users.forEach(function(u,i){
+    var ratio=Math.sqrt((u.total||0)/maxTotal);
+    var size=Math.round(130+ratio*100); /* 130–230px */
+    var el=document.createElement('div');
+    el.className='rpt-l-circle '+cls[i];
+    el.style.width=size+'px'; el.style.height=size+'px';
+    el.style.left=left[i]+'px';
+    el.style.top=Math.round((wrapH-size)/2)+'px';
+    el.innerHTML='<span class="nm">'+esc(u.name)+'</span><span class="amt">'+fmt(u.total)+'</span>';
+    wrap.appendChild(el);
+  });
+
+  var LBAR_COLORS=['#14503C','#2E9B74','#C9A85C','#4C7FA6','#8F3A76'];
+  $('rpt-l-bars').innerHTML=d.topCats.length ? d.topCats.map(function(c,i){
+    var meta=catMeta('expense',c.name);
+    var ic=meta?esc(meta.emoji):'🏷️';
+    return '<div class="rpt-l-bar-row">'+
+      '<div class="rpt-l-bar-top"><span class="nm">'+ic+' '+esc(c.name)+'</span><span class="amt">'+fmt(c.amount)+' · '+c.pct+'%</span></div>'+
+      '<div class="rpt-l-bar-track"><div class="rpt-l-bar-fill" style="width:'+c.pct+'%;background:'+LBAR_COLORS[i%LBAR_COLORS.length]+'"></div></div>'+
+    '</div>';
+  }).join('') : '<div class="rpt-l-bar-top"><span class="nm">אין נתוני הוצאות החודש</span></div>';
+
+  var outWrap=$('rpt-l-out');
+  if(d.outliers.length){
+    outWrap.style.display='block';
+    outWrap.innerHTML='<h4>💥 הוצאות חריגות</h4>'+d.outliers.map(function(o){
+      return '<div class="rpt-l-out-row"><span>'+esc(o.category)+(o.note?' · '+esc(o.note):'')+'</span><span class="amt">'+fmt(o.amount)+'</span></div>';
+    }).join('');
+  }else{
+    outWrap.style.display='none';
+  }
+}
+
+function renderBlueTemplate(d){
+  $('rpt-b-month').textContent=d.monthLabel;
+  $('rpt-b-inc').textContent=fmt(d.inc);
+  $('rpt-b-exp').textContent=fmt(d.exp);
+  var balEl=$('rpt-b-bal'); balEl.textContent=fmt(d.bal);
+  balEl.style.color=d.bal<0?'#B3402F':'#1E3A52';
+
+  var u1=d.users[0], u2=d.users[1];
+  var totalUsers=(u1.total||0)+(u2.total||0);
+  var p1=totalUsers?Math.round(u1.total/totalUsers*100):50, p2=100-p1;
+  function initial(n){ return n?n.charAt(0):'?'; }
+  $('rpt-b-left').innerHTML=
+    '<div class="rpt-b-user-row"><div class="rpt-b-user-ic shaked">'+esc(initial(u1.name))+'</div>'+
+      '<div class="rpt-b-user-info"><div class="nm">'+esc(u1.name)+'</div><div class="sub">'+u1.count+' פעולות</div><div class="amt">'+fmt(u1.total)+'</div></div></div>'+
+    '<div class="rpt-b-user-row"><div class="rpt-b-user-ic avital">'+esc(initial(u2.name))+'</div>'+
+      '<div class="rpt-b-user-info"><div class="nm">'+esc(u2.name)+'</div><div class="sub">'+u2.count+' פעולות</div><div class="amt">'+fmt(u2.total)+'</div></div></div>'+
+    '<div><div class="rpt-b-split"><span class="shaked" style="width:'+p1+'%"></span><span class="avital" style="width:'+p2+'%"></span></div>'+
+    '<div class="rpt-b-splitlbl"><span>'+p1+'%</span><span>'+p2+'%</span></div></div>';
+
+  var BAR_COLORS=['#2A5B8F','#4C7FA6','#7FA8C4','#A9C6DA','#CBE0EC'];
+  var maxPct=Math.max.apply(null,d.topCats.map(function(c){ return c.pct; }).concat([1]));
+  $('rpt-b-right').innerHTML='<div class="rpt-b-cathead">התפלגות הוצאות לפי קטגוריה</div><div class="rpt-b-barschart">'+
+    (d.topCats.length ? d.topCats.map(function(c,i){
+      var h=Math.round(20+(c.pct/maxPct)*140);
+      return '<div class="rpt-b-barcol"><span class="pct">'+c.pct+'%</span>'+
+        '<div class="bv" style="height:'+h+'px;background:'+BAR_COLORS[i%BAR_COLORS.length]+'"></div>'+
+        '<span class="nm">'+esc(c.name)+'</span></div>';
+    }).join('') : '<div class="rpt-b-barcol"><span class="nm">אין נתוני הוצאות החודש</span></div>')+
+  '</div>';
+
+  $('rpt-b-strip').innerHTML=
+    '<span>הכנסות <b>'+fmt(d.inc)+'</b></span>'+
+    '<span>הוצאות <b>'+fmt(d.exp)+'</b></span>'+
+    '<span>יתרה <b>'+fmt(d.bal)+'</b></span>';
+}
+
+/* טעינה עצלה (Lazy) של html2canvas — נטען פעם אחת, רק כשבאמת
+   נדרש (לחיצה על עיצוב), כדי לא לכבד את הטעינה הראשונית. */
+var _h2cPromise=null;
+function loadHtml2Canvas(){
+  if(window.html2canvas) return Promise.resolve();
+  if(_h2cPromise) return _h2cPromise;
+  _h2cPromise=new Promise(function(resolve,reject){
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    s.onload=function(){ resolve(); };
+    s.onerror=function(){ _h2cPromise=null; reject(new Error('טעינת ספריית הצילום נכשלה')); };
+    document.head.appendChild(s);
+  });
+  return _h2cPromise;
+}
+
+/* שיתוף PNG דרך navigator.share (כולל קבצים); נופל להורדה רק
+   כשאין תמיכה — לא במקרה שהמשתמש ביטל את חלון השיתוף בעצמו. */
+function shareOrDownloadCanvas(canvas,filename,monthLabel){
+  return new Promise(function(resolve){
+    canvas.toBlob(function(blob){
+      if(!blob){ resolve(); return; }
+      var file=null;
+      try{ file=new File([blob],filename,{type:'image/png'}); }catch(e){}
+      var canUseShare=file && navigator.canShare && navigator.canShare({files:[file]});
+      if(canUseShare){
+        navigator.share({files:[file],title:'דוח מצב · '+monthLabel,text:'דוח מצב פיננסי — '+monthLabel})
+          .catch(function(){ /* המשתמש ביטל את חלון השיתוף — לא נופלים להורדה */ })
+          .then(resolve);
+        return;
+      }
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');
+      a.href=url; a.download=filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); },4000);
+      resolve();
+    },'image/png');
+  });
+}
+
+function openReportChoiceModal(){
+  $('rpt-status').className='rpt-status'; $('rpt-status').textContent='';
+  $('report-choice-modal').classList.add('on');
+}
+
+async function generateReport(style){
+  var ids=['rpt-pick-light','rpt-pick-blue'];
+  ids.forEach(function(id){ $(id).disabled=true; });
+  $('rpt-status').className='rpt-status'; $('rpt-status').textContent='מכין דוח…';
+  try{
+    if(!displayRows().length){ throw new Error('אין נתונים תואמים החודש'); }
+    var data=gatherReportData();
+    var tplId=style==='blue'?'rpt-tpl-blue':'rpt-tpl-light';
+    if(style==='blue') renderBlueTemplate(data); else renderLightTemplate(data);
+    await loadHtml2Canvas();
+    /* שני פריימים — נותן לדפדפן להשלים Layout/Paint (פונטים, רוחבי פסים) לפני הצילום */
+    await new Promise(function(r){ requestAnimationFrame(function(){ requestAnimationFrame(r); }); });
+    var canvas=await html2canvas($(tplId),{scale:2,useCORS:true});
+    $('report-choice-modal').classList.remove('on');
+    await shareOrDownloadCanvas(canvas,'דוח-מצב-'+data.monthLabel.replace(/\s+/g,'-')+'.png',data.monthLabel);
+    toast('📊 הדוח מוכן');
+  }catch(e){
+    $('rpt-status').className='rpt-status err';
+    $('rpt-status').textContent=(e&&e.message)?e.message:'לא הצלחנו להפיק את הדוח';
+  }finally{
+    ids.forEach(function(id){ $(id).disabled=false; });
+  }
+}
+
 /* ═══ אנליטיקס — Chart.js ═══════════════════════════════ */
 var pieChart=null, barChart=null;
 function expenseByCat(rows){
@@ -4351,6 +4721,10 @@ function init(){
   $('ai-btn').addEventListener('click',function(){ closeMenu(); copyAiReport(); });
   /* אימות שלמות נתונים — מהתפריט */
   $('audit-btn').addEventListener('click',function(){ closeMenu(); runDataAudit(); });
+  /* דוח מצב ויזואלי (PNG לשיתוף) */
+  $('report-btn').addEventListener('click',function(){ closeMenu(); openReportChoiceModal(); });
+  $('rpt-pick-light').addEventListener('click',function(){ generateReport('light'); });
+  $('rpt-pick-blue').addEventListener('click',function(){ generateReport('blue'); });
 
   /* ── Boot ── */
   monthLabel();
