@@ -849,75 +849,133 @@ html.dark #drag-ghost{filter:brightness(.96)}
 .rpt-tpl{width:1200px;height:675px;box-sizing:border-box;position:relative;overflow:hidden;
   font-family:'Heebo',-apple-system,'Segoe UI',Arial,sans-serif;direction:rtl;color:#182420}
 
-/* עיצוב 1: בהיר · מעגלים */
-.rpt-light{width:100%;height:100%;background:#FFFFFF;padding:40px 48px;display:flex;flex-direction:column}
-.rpt-l-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex:0 0 auto}
-.rpt-l-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.5rem;color:#0B2E23}
-.rpt-l-brand .coin{width:40px;height:40px;border-radius:12px;background:linear-gradient(140deg,#C9A85C,#A8843B);display:grid;place-items:center;color:#07211A;font-weight:800;font-size:1.2rem}
-.rpt-l-month{font-size:1.1rem;font-weight:700;color:#4C5B54;background:#EEF2F0;border-radius:99px;padding:8px 20px}
-.rpt-l-cards{display:flex;gap:16px;margin-bottom:26px;flex:0 0 auto}
-.rpt-l-card{flex:1;background:#F4F7F5;border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:4px}
-.rpt-l-card .k{font-size:.82rem;font-weight:600;color:#7C8B84}
-.rpt-l-card .v{font-size:1.5rem;font-weight:800;font-variant-numeric:tabular-nums;color:#182420}
-.rpt-l-card .v.inc{color:#2E9B74}
-.rpt-l-card .v.exp{color:#B3402F}
-.rpt-l-body{display:flex;gap:36px;flex:1;min-height:0}
-.rpt-l-circles{width:340px;flex:0 0 auto;position:relative}
-.rpt-l-circle{position:absolute;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.14)}
-.rpt-l-circle .nm{font-size:.9rem;font-weight:700;opacity:.94}
-.rpt-l-circle .amt{font-size:1.15rem;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
-.rpt-l-circle.shaked{background:linear-gradient(140deg,#4C7FA6,#2A5B8F)}
-.rpt-l-circle.avital{background:linear-gradient(140deg,#C97FB0,#8F3A76)}
-.rpt-l-right{flex:1;display:flex;flex-direction:column;gap:20px;min-width:0;justify-content:center}
-.rpt-l-bars{display:flex;flex-direction:column;gap:11px}
-.rpt-l-bar-row{display:flex;flex-direction:column;gap:5px}
-.rpt-l-bar-top{display:flex;justify-content:space-between;font-size:.86rem;font-weight:600}
-.rpt-l-bar-top .amt{font-variant-numeric:tabular-nums;color:#4C5B54;font-weight:700}
-.rpt-l-bar-track{height:12px;border-radius:99px;background:#EEF2F0;overflow:hidden}
-.rpt-l-bar-fill{height:100%;border-radius:99px}
-.rpt-l-out{background:#F9ECEA;border-radius:16px;padding:14px 18px}
-.rpt-l-out h4{font-size:.86rem;font-weight:700;color:#B3402F;margin-bottom:8px}
-.rpt-l-out-row{display:flex;justify-content:space-between;gap:10px;font-size:.84rem;font-weight:600;padding:5px 0;border-top:1px solid rgba(179,64,47,.14)}
-.rpt-l-out-row:first-of-type{border-top:0}
-.rpt-l-out-row span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rpt-l-out-row .amt{font-variant-numeric:tabular-nums;color:#B3402F;font-weight:800;flex:0 0 auto}
+/* עיצוב 1: בהיר · לפי תמונת רפרנס — 3 כרטיסי סיכום, 3 כרטיסי
+   ניתוח (חריגים / מי הוציא כמה / התפלגות), באנר סיכום תחתון */
+.rpt-light{width:100%;height:100%;background:#F4F6F8;padding:34px 40px;display:flex;flex-direction:column;gap:16px}
+.rpt-l-cards{display:flex;gap:16px;flex:0 0 auto}
+.rpt-l-card{flex:1;background:#fff;border-radius:16px;padding:16px 20px;display:flex;flex-direction:column;
+  align-items:flex-end;gap:8px;box-shadow:0 2px 10px rgba(20,40,35,.05)}
+.rpt-l-card .top{display:flex;align-items:center;gap:8px;font-size:.92rem;font-weight:700;color:#3A4A44}
+.rpt-l-card .top .ic{font-size:1.1rem;line-height:1}
+.rpt-l-card .v{font-size:1.7rem;font-weight:800;font-variant-numeric:tabular-nums;color:#182420}
+.rpt-l-card.inc .v{color:#3FAE87}
+.rpt-l-card.exp .v{color:#E0725C}
+.rpt-l-card.bal{border-bottom:4px solid #C9A85C}
+.rpt-l-row{display:flex;gap:16px;flex:1;min-height:0}
+.rpt-l-col{background:#fff;border-radius:16px;padding:18px 20px;box-shadow:0 2px 10px rgba(20,40,35,.05);
+  display:flex;flex-direction:column;min-width:0}
+.rpt-l-col h4{font-size:.92rem;font-weight:700;color:#182420;margin-bottom:14px;text-align:right;flex:0 0 auto}
 
-/* עיצוב 2: תכלת · גריד */
-.rpt-blue{width:100%;height:100%;background:linear-gradient(160deg,#EAF2F7 0%,#DCE8F0 100%);padding:40px 48px;display:flex;flex-direction:column}
-.rpt-b-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;flex:0 0 auto}
-.rpt-b-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.5rem;color:#1E3A52}
-.rpt-b-brand .coin{width:40px;height:40px;border-radius:12px;background:linear-gradient(140deg,#4C7FA6,#2A5B8F);display:grid;place-items:center;color:#fff;font-weight:800;font-size:1.2rem}
-.rpt-b-month{font-size:1.1rem;font-weight:700;color:#2A5B8F;background:rgba(255,255,255,.65);border-radius:99px;padding:8px 20px}
-.rpt-b-cards{display:flex;gap:16px;margin-bottom:20px;flex:0 0 auto}
-.rpt-b-card{flex:1;background:rgba(255,255,255,.72);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:4px}
-.rpt-b-card .k{font-size:.82rem;font-weight:600;color:#4C6478}
-.rpt-b-card .v{font-size:1.5rem;font-weight:800;font-variant-numeric:tabular-nums;color:#1E3A52}
-.rpt-b-card .v.inc{color:#1E7A5A}
-.rpt-b-card .v.exp{color:#B3402F}
-.rpt-b-body{display:flex;gap:20px;flex:1;min-height:0}
-.rpt-b-left{width:360px;flex:0 0 auto;background:rgba(255,255,255,.58);border-radius:20px;padding:22px;display:flex;flex-direction:column;justify-content:center;gap:16px}
-.rpt-b-right{flex:1;background:rgba(255,255,255,.58);border-radius:20px;padding:20px 22px;display:flex;flex-direction:column;min-width:0}
-.rpt-b-strip{margin-top:18px;background:#1E3A52;border-radius:16px;padding:13px 26px;display:flex;justify-content:space-around;color:#fff;font-size:.9rem;font-weight:700;flex:0 0 auto}
-.rpt-b-strip b{font-variant-numeric:tabular-nums;font-size:1.02rem;margin-inline-start:6px}
-.rpt-b-user-row{display:flex;align-items:center;gap:12px}
-.rpt-b-user-ic{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:1.2rem;flex:0 0 auto}
-.rpt-b-user-ic.shaked{background:linear-gradient(140deg,#4C7FA6,#2A5B8F)}
-.rpt-b-user-ic.avital{background:linear-gradient(140deg,#C97FB0,#8F3A76)}
-.rpt-b-user-info{flex:1;min-width:0}
-.rpt-b-user-info .nm{font-size:.92rem;font-weight:700;color:#1E3A52}
-.rpt-b-user-info .sub{font-size:.74rem;color:#5A7A93}
-.rpt-b-user-info .amt{font-size:1.04rem;font-weight:800;color:#1E3A52;font-variant-numeric:tabular-nums}
-.rpt-b-split{height:20px;border-radius:99px;overflow:hidden;display:flex;background:#EEF2F0;margin-top:2px}
+/* ── עמודה: חריגים החודש ── */
+.rpt-l-out{flex:1 1 210px;display:flex;flex-direction:column}
+.rpt-l-alert{align-self:flex-start;background:#FBE3DE;color:#B3402F;font-size:.72rem;font-weight:700;
+  border-radius:8px;padding:5px 12px;margin-bottom:10px;display:flex;align-items:center;gap:5px}
+.rpt-l-out-list{display:flex;flex-direction:column;gap:8px;flex:1}
+.rpt-l-out-row{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#FDF2EF;
+  border-radius:11px;padding:9px 13px}
+.rpt-l-out-row .nm{display:flex;align-items:center;gap:7px;font-size:.86rem;font-weight:600;color:#3A4A44;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.rpt-l-out-row .amt{font-variant-numeric:tabular-nums;font-weight:800;color:#182420;flex:0 0 auto;font-size:.9rem}
+.rpt-l-out-empty{font-size:.82rem;color:#9AA8A2;text-align:center;margin:auto}
+
+/* ── עמודה: מי הוציא כמה (Flexbox — לא absolute!) ── */
+.rpt-l-who{flex:1 1 260px;display:flex;flex-direction:column}
+#rpt-l-who-rows{flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px}
+.rpt-l-who-row{display:flex;align-items:center;justify-content:flex-end;gap:16px}
+.rpt-l-who-info{display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:0}
+.rpt-l-who-info .nm{font-size:.94rem;font-weight:700;color:#182420}
+.rpt-l-who-info .sub{font-size:.72rem;color:#9AA8A2}
+.rpt-l-circle{flex:0 0 auto;width:88px;height:88px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;color:#fff;font-weight:800;font-size:1rem;font-variant-numeric:tabular-nums;
+  text-align:center;box-shadow:0 6px 16px rgba(0,0,0,.12);padding:6px;line-height:1.15}
+.rpt-l-circle.shaked{background:#EF9C8A}
+.rpt-l-circle.avital{background:#D9573F}
+
+/* ── עמודה: התפלגות הוצאות — שורות אופקיות (לא עמודות!) ── */
+.rpt-l-dist{flex:1.15 1 260px;display:flex;flex-direction:column}
+.rpt-l-dist-rows{display:flex;flex-direction:column;justify-content:space-around;gap:9px;flex:1}
+.rpt-l-dist-row{display:flex;align-items:center;gap:10px}
+.rpt-l-dist-row .nm{flex:0 0 108px;font-size:.82rem;font-weight:600;color:#3A4A44;text-align:right;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rpt-l-dist-track{flex:1;position:relative;height:16px}
+.rpt-l-dist-fill{position:absolute;top:0;right:0;height:100%;border-radius:99px;background:#EF9C8A}
+.rpt-l-dist-row .amt{flex:0 0 auto;font-size:.78rem;font-weight:700;color:#3A4A44;font-variant-numeric:tabular-nums;
+  white-space:nowrap}
+.rpt-l-dist-empty{font-size:.82rem;color:#9AA8A2;text-align:center;margin:auto}
+
+/* ── באנר סיכום תחתון + תג הישג צף ── */
+.rpt-l-banner{position:relative;flex:0 0 auto;background:#DCEFE8;border-radius:16px;
+  padding:16px 22px;display:flex;align-items:center;gap:14px;margin-top:2px}
+.rpt-l-banner .bulb{flex:0 0 auto;width:34px;height:34px;border-radius:50%;background:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.rpt-l-banner .txt{font-size:.86rem;font-weight:600;color:#1E4A3A;line-height:1.4}
+.rpt-l-banner .txt b{font-weight:800}
+.rpt-l-badge{position:absolute;bottom:-13px;left:22px;background:#1E3A34;color:#fff;font-size:.72rem;
+  font-weight:700;border-radius:10px;padding:7px 14px;box-shadow:0 4px 12px rgba(0,0,0,.18);white-space:nowrap}
+
+/* עיצוב 2: תכלת · גריד — לפי תמונת רפרנס */
+.rpt-blue{width:100%;height:100%;background:linear-gradient(155deg,#3E7CA6 0%,#4FA6A2 100%);
+  padding:34px 40px;display:flex;flex-direction:column;gap:16px;color:#fff}
+.rpt-b-head{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex:0 0 auto}
+.rpt-b-head .ic{font-size:1.6rem;flex:0 0 auto}
+.rpt-b-head h1{font-size:1.5rem;font-weight:800;color:#fff}
+.rpt-b-cards{display:flex;gap:16px;flex:0 0 auto}
+.rpt-b-card{background:rgba(255,255,255,.16);border-radius:16px;padding:14px 18px;display:flex;
+  align-items:center;gap:12px}
+.rpt-b-card.inc{flex:1}
+.rpt-b-card.exp{flex:1}
+.rpt-b-card.bal{flex:1.5}
+.rpt-b-card .ic{flex:0 0 auto;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.9);
+  display:flex;align-items:center;justify-content:center;font-size:1.05rem}
+.rpt-b-card .txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rpt-b-card .k{font-size:.82rem;font-weight:700;color:rgba(255,255,255,.88)}
+.rpt-b-card .v{font-size:1.15rem;font-weight:800;font-variant-numeric:tabular-nums;color:#fff;white-space:nowrap}
+.rpt-b-card .v small{font-size:.66rem;font-weight:600;opacity:.85;margin-inline-start:4px}
+.rpt-b-body{display:flex;gap:16px;flex:1;min-height:0}
+.rpt-b-left{width:330px;flex:0 0 auto;display:flex;flex-direction:column;gap:14px}
+.rpt-b-panel{background:rgba(255,255,255,.95);color:#1E3A52;border-radius:18px;padding:16px 18px}
+.rpt-b-panel h4{font-size:.86rem;font-weight:700;color:#1E3A52;margin-bottom:12px;text-align:right}
+.rpt-b-users{flex:0 0 auto;display:flex;flex-direction:column;gap:10px}
+.rpt-b-avatars{display:flex;justify-content:space-around;margin-bottom:12px}
+.rpt-b-avatar{display:flex;flex-direction:column;align-items:center;gap:5px}
+.rpt-b-avatar .ic{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:1.3rem;font-weight:800}
+.rpt-b-avatar.shaked .ic{background:linear-gradient(140deg,#4C7FA6,#2A5B8F)}
+.rpt-b-avatar.avital .ic{background:linear-gradient(140deg,#D9738F,#B14D6C)}
+.rpt-b-avatar .nm{font-size:.78rem;font-weight:700;color:#1E3A52}
+.rpt-b-split{height:18px;border-radius:99px;overflow:hidden;display:flex;background:#EEF2F0}
 .rpt-b-split span{height:100%}
 .rpt-b-split .shaked{background:#4C7FA6}
-.rpt-b-split .avital{background:#C97FB0}
-.rpt-b-splitlbl{display:flex;justify-content:space-between;font-size:.72rem;color:#4C6478;font-weight:700;margin-top:4px}
-.rpt-b-cathead{font-size:.86rem;font-weight:700;color:#1E3A52;margin-bottom:12px;flex:0 0 auto}
-.rpt-b-barschart{display:flex;align-items:flex-end;gap:16px;flex:1;padding:0 4px}
-.rpt-b-barcol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:7px;height:100%}
-.rpt-b-barcol .bv{width:100%;max-width:44px;border-radius:8px 8px 0 0}
-.rpt-b-barcol .pct{font-size:.78rem;font-weight:800;color:#1E3A52}
-.rpt-b-barcol .nm{font-size:.66rem;color:#4C6478;text-align:center;line-height:1.25;max-width:74px}
+.rpt-b-split .avital{background:#D9738F}
+.rpt-b-splitlbl{display:flex;justify-content:space-between;font-size:.76rem;font-weight:700;margin-top:6px}
+.rpt-b-splitlbl .shaked{color:#2A5B8F}
+.rpt-b-splitlbl .avital{color:#B14D6C}
+.rpt-b-out{flex:1;display:flex;flex-direction:column;min-height:0}
+.rpt-b-out-list{display:flex;flex-direction:column;gap:7px;flex:1;justify-content:center}
+.rpt-b-out-row{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#F2F6F8;
+  border-radius:10px;padding:8px 12px}
+.rpt-b-out-row .nm{font-size:.8rem;font-weight:600;color:#1E3A52;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;min-width:0}
+.rpt-b-out-row .amt{font-size:.84rem;font-weight:800;color:#1E3A52;flex:0 0 auto;font-variant-numeric:tabular-nums}
+.rpt-b-out-empty{font-size:.8rem;color:#7C8B94;text-align:center;margin:auto}
+.rpt-b-right{flex:1;min-width:0;display:flex;flex-direction:column}
+.rpt-b-dist-rows{display:flex;flex-direction:column;justify-content:space-around;gap:10px;flex:1}
+.rpt-b-dist-row{display:flex;align-items:center;gap:10px}
+.rpt-b-dist-row .ic{flex:0 0 auto;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;font-size:.92rem}
+.rpt-b-dist-row .nm{flex:0 0 118px;font-size:.84rem;font-weight:600;color:#1E3A52;text-align:right;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rpt-b-dist-track{flex:1;position:relative;height:18px}
+.rpt-b-dist-fill{position:absolute;top:0;right:0;height:100%;border-radius:99px}
+.rpt-b-dist-row .amt{flex:0 0 auto;font-size:.8rem;font-weight:700;color:#1E3A52;white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.rpt-b-dist-empty{font-size:.84rem;color:#7C8B94;text-align:center;margin:auto}
+.rpt-b-banner{position:relative;flex:0 0 auto;background:rgba(255,255,255,.94);color:#1E3A52;border-radius:16px;
+  padding:15px 22px;display:flex;align-items:center;gap:13px;margin-top:2px}
+.rpt-b-banner .chk{flex:0 0 auto;width:32px;height:32px;border-radius:50%;background:#DCEFE8;color:#1E7A5A;
+  display:flex;align-items:center;justify-content:center;font-size:1rem}
+.rpt-b-banner .txt{font-size:.86rem;font-weight:600;line-height:1.4}
+.rpt-b-banner .txt b{font-weight:800}
 </style>
 <script>
 /* ── מצב לילה: החלה מוקדמת (לפני ציור הדף) — מונע הבזק לבן ── */
@@ -1346,40 +1404,70 @@ try{ if(localStorage.getItem('ff_dark')==='1') document.documentElement.classLis
      ל-PNG ע"י html2canvas (ר' generateReport). לא נוגע בשום
      Offline/Sync/Split לוגיקה קיימת — פיצ'ר תצוגה בלבד.        -->
 <div id="rpt-stage" aria-hidden="true">
+  <!-- עיצוב 1: בהיר — 3 כרטיסי סיכום + 3 כרטיסי ניתוח + באנר -->
   <div class="rpt-tpl rpt-light" id="rpt-tpl-light">
-    <div class="rpt-l-head">
-      <div class="rpt-l-brand"><span class="coin">₪</span>הכסף שלנו</div>
-      <div class="rpt-l-month" id="rpt-l-month">—</div>
-    </div>
     <div class="rpt-l-cards">
-      <div class="rpt-l-card"><span class="k">הכנסות</span><span class="v inc" id="rpt-l-inc">—</span></div>
-      <div class="rpt-l-card"><span class="k">הוצאות</span><span class="v exp" id="rpt-l-exp">—</span></div>
-      <div class="rpt-l-card"><span class="k">יתרה</span><span class="v" id="rpt-l-bal">—</span></div>
+      <div class="rpt-l-card inc"><span class="top"><span class="ic">📈</span>סך הכנסות</span><span class="v" id="rpt-l-inc">—</span></div>
+      <div class="rpt-l-card exp"><span class="top"><span class="ic">📉</span>סך הוצאות</span><span class="v" id="rpt-l-exp">—</span></div>
+      <div class="rpt-l-card bal"><span class="top"><span class="ic">💰</span>יתרה נוכחית</span><span class="v" id="rpt-l-bal">—</span></div>
     </div>
-    <div class="rpt-l-body">
-      <div class="rpt-l-circles" id="rpt-l-circles"></div>
-      <div class="rpt-l-right">
-        <div class="rpt-l-bars" id="rpt-l-bars"></div>
-        <div class="rpt-l-out" id="rpt-l-out"></div>
+    <div class="rpt-l-row">
+      <!-- חריגים החודש -->
+      <div class="rpt-l-col rpt-l-out">
+        <h4>חריגים החודש</h4>
+        <div class="rpt-l-out-list" id="rpt-l-out-list"></div>
       </div>
+      <!-- מי הוציא כמה -->
+      <div class="rpt-l-col rpt-l-who">
+        <h4>מי הוציא כמה?</h4>
+        <div id="rpt-l-who-rows"></div>
+      </div>
+      <!-- התפלגות הוצאות -->
+      <div class="rpt-l-col rpt-l-dist">
+        <h4>התפלגות הוצאות</h4>
+        <div class="rpt-l-dist-rows" id="rpt-l-dist-rows"></div>
+      </div>
+    </div>
+    <div class="rpt-l-banner">
+      <span class="bulb">💡</span>
+      <span class="txt" id="rpt-l-banner-txt"></span>
+      <span class="rpt-l-badge" id="rpt-l-badge"></span>
     </div>
   </div>
 
+  <!-- עיצוב 2: תכלת — כותרת, 3 כרטיסי סיכום, גריד שמאל/ימין, באנר -->
   <div class="rpt-tpl rpt-blue" id="rpt-tpl-blue">
     <div class="rpt-b-head">
-      <div class="rpt-b-brand"><span class="coin">₪</span>הכסף שלנו</div>
-      <div class="rpt-b-month" id="rpt-b-month">—</div>
+      <h1 id="rpt-b-title">תמונת מצב פיננסי</h1>
+      <span class="ic">🗓️</span>
     </div>
     <div class="rpt-b-cards">
-      <div class="rpt-b-card"><span class="k">הכנסות</span><span class="v inc" id="rpt-b-inc">—</span></div>
-      <div class="rpt-b-card"><span class="k">הוצאות</span><span class="v exp" id="rpt-b-exp">—</span></div>
-      <div class="rpt-b-card"><span class="k">יתרה</span><span class="v" id="rpt-b-bal">—</span></div>
+      <div class="rpt-b-card bal"><span class="ic">🐷</span><span class="txt"><span class="k">יתרה:</span><span class="v" id="rpt-b-bal">—</span></span></div>
+      <div class="rpt-b-card exp"><span class="ic">👛</span><span class="txt"><span class="k">הוצאות:</span><span class="v" id="rpt-b-exp">—</span></span></div>
+      <div class="rpt-b-card inc"><span class="ic">💰</span><span class="txt"><span class="k">הכנסות:</span><span class="v" id="rpt-b-inc">—</span></span></div>
     </div>
     <div class="rpt-b-body">
-      <div class="rpt-b-left" id="rpt-b-left"></div>
-      <div class="rpt-b-right" id="rpt-b-right"></div>
+      <div class="rpt-b-left">
+        <div class="rpt-b-panel rpt-b-users">
+          <h4>הוצאות לפי משתמש</h4>
+          <div class="rpt-b-avatars" id="rpt-b-avatars"></div>
+          <div class="rpt-b-split" id="rpt-b-split"></div>
+          <div class="rpt-b-splitlbl" id="rpt-b-splitlbl"></div>
+        </div>
+        <div class="rpt-b-panel rpt-b-out">
+          <h4>הוצאות בולטות החודש</h4>
+          <div class="rpt-b-out-list" id="rpt-b-out-list"></div>
+        </div>
+      </div>
+      <div class="rpt-b-panel rpt-b-right">
+        <h4>התפלגות הוצאות בתק</h4>
+        <div class="rpt-b-dist-rows" id="rpt-b-dist-rows"></div>
+      </div>
     </div>
-    <div class="rpt-b-strip" id="rpt-b-strip"></div>
+    <div class="rpt-b-banner">
+      <span class="chk">✓</span>
+      <span class="txt" id="rpt-b-banner-txt"></span>
+    </div>
   </div>
 </div>
 
@@ -3726,94 +3814,126 @@ function gatherReportData(){
   }).sort(function(a,b){ return (Number(b.amount)||0)-(Number(a.amount)||0); })
     .slice(0,3)
     .map(function(r){ return {category:r.category||'ללא קטגוריה',amount:Number(r.amount)||0,note:r.note||''}; });
+  var bal=inc-exp;
   return {
     monthLabel:HE_MONTHS[state.m-1]+' '+state.y,
-    inc:inc, exp:exp, bal:inc-exp,
+    inc:inc, exp:exp, bal:bal,
+    savingsPct:(bal>0&&inc>0)?Math.round(bal/inc*100):null,
     users:WHO_LIST.map(function(w){ return {name:w,count:byUser[w].count,total:byUser[w].total}; }),
     topCats:topCats, outliers:outliers
   };
 }
 
+/* משפט סיכום משותף לשני העיצובים — נגזר אך ורק מהנתונים
+   (יתרה חיובית/שלילית), ללא שינוי בחישוב עצמו. */
+function reportInsight(d){
+  if(d.bal>=0){
+    return 'שורה תחתונה: החודש שמרתם על מאזן חיובי! ההוצאות השגרתיות נמצאות בשליטה מלאה, ויש לכם עדיין יתרה של '+fmt(d.bal)+'.';
+  }
+  return 'שימו לב: ההוצאות החודש עברו את ההכנסות ב-'+fmt(Math.abs(d.bal))+'. כדאי לבחון את הקטגוריות המובילות ולצמצם בהן בהמשך.';
+}
+
+/* צבעי בר לפי מיקום (מתאים לשני העיצובים) */
+var RPT_BAR_COLORS=['#EF9C8A','#F2B79D','#F0C989','#8FBEA8','#9FB0C9'];
+
 function renderLightTemplate(d){
-  $('rpt-l-month').textContent=d.monthLabel;
   $('rpt-l-inc').textContent=fmt(d.inc);
   $('rpt-l-exp').textContent=fmt(d.exp);
   var balEl=$('rpt-l-bal'); balEl.textContent=fmt(d.bal);
   balEl.style.color=d.bal<0?'#B3402F':'#182420';
 
-  /* מעגלים חופפים — קוטר יחסי ל-sqrt(סכום ההוצאות של המשתמש) */
-  var wrap=$('rpt-l-circles'); wrap.innerHTML='';
+  /* חריגים החודש */
+  var outList=$('rpt-l-out-list');
+  outList.innerHTML=d.outliers.length ? (
+    '<span class="rpt-l-alert">🚨 חריגים</span>'+
+    d.outliers.map(function(o){
+      var meta=catMeta('expense',o.category);
+      var ic=meta?esc(meta.emoji):'🏷️';
+      return '<div class="rpt-l-out-row"><span class="nm">'+ic+' '+esc(o.category)+(o.note?' · '+esc(o.note):'')+'</span><span class="amt">'+fmt(o.amount)+'</span></div>';
+    }).join('')
+  ) : '<span class="rpt-l-alert">🚨 חריגים</span><div class="rpt-l-out-empty">לא נמצאו הוצאות חריגות החודש</div>';
+
+  /* מי הוציא כמה — Flexbox בלבד: שם+פעולות לצד מעגל, ללא חפיפה */
   var cls=['shaked','avital'];
-  var left=[14,118];
-  var maxTotal=Math.max(d.users[0].total||0,d.users[1].total||0,1);
-  var wrapH=wrap.clientHeight||380;
-  d.users.forEach(function(u,i){
-    var ratio=Math.sqrt((u.total||0)/maxTotal);
-    var size=Math.round(130+ratio*100); /* 130–230px */
-    var el=document.createElement('div');
-    el.className='rpt-l-circle '+cls[i];
-    el.style.width=size+'px'; el.style.height=size+'px';
-    el.style.left=left[i]+'px';
-    el.style.top=Math.round((wrapH-size)/2)+'px';
-    el.innerHTML='<span class="nm">'+esc(u.name)+'</span><span class="amt">'+fmt(u.total)+'</span>';
-    wrap.appendChild(el);
-  });
-
-  var LBAR_COLORS=['#14503C','#2E9B74','#C9A85C','#4C7FA6','#8F3A76'];
-  $('rpt-l-bars').innerHTML=d.topCats.length ? d.topCats.map(function(c,i){
-    var meta=catMeta('expense',c.name);
-    var ic=meta?esc(meta.emoji):'🏷️';
-    return '<div class="rpt-l-bar-row">'+
-      '<div class="rpt-l-bar-top"><span class="nm">'+ic+' '+esc(c.name)+'</span><span class="amt">'+fmt(c.amount)+' · '+c.pct+'%</span></div>'+
-      '<div class="rpt-l-bar-track"><div class="rpt-l-bar-fill" style="width:'+c.pct+'%;background:'+LBAR_COLORS[i%LBAR_COLORS.length]+'"></div></div>'+
+  $('rpt-l-who-rows').innerHTML=d.users.map(function(u,i){
+    return '<div class="rpt-l-who-row">'+
+      '<div class="rpt-l-who-info"><span class="nm">'+esc(u.name)+'</span><span class="sub">('+u.count+' פעולות)</span></div>'+
+      '<div class="rpt-l-circle '+cls[i]+'">'+fmt(u.total)+'</div>'+
     '</div>';
-  }).join('') : '<div class="rpt-l-bar-top"><span class="nm">אין נתוני הוצאות החודש</span></div>';
+  }).join('');
 
-  var outWrap=$('rpt-l-out');
-  if(d.outliers.length){
-    outWrap.style.display='block';
-    outWrap.innerHTML='<h4>💥 הוצאות חריגות</h4>'+d.outliers.map(function(o){
-      return '<div class="rpt-l-out-row"><span>'+esc(o.category)+(o.note?' · '+esc(o.note):'')+'</span><span class="amt">'+fmt(o.amount)+'</span></div>';
+  /* התפלגות הוצאות — שורות אופקיות: שם | בר | סכום+אחוז */
+  var distWrap=$('rpt-l-dist-rows');
+  if(d.topCats.length){
+    var maxAmt=d.topCats[0].amount||1;
+    distWrap.innerHTML=d.topCats.map(function(c,i){
+      var w=Math.max(6,Math.round(c.amount/maxAmt*100));
+      return '<div class="rpt-l-dist-row">'+
+        '<span class="nm">'+esc(c.name)+'</span>'+
+        '<span class="rpt-l-dist-track"><span class="rpt-l-dist-fill" style="width:'+w+'%;background:'+RPT_BAR_COLORS[i%RPT_BAR_COLORS.length]+'"></span></span>'+
+        '<span class="amt">'+fmt(c.amount)+' ('+c.pct+'%)</span>'+
+      '</div>';
     }).join('');
   }else{
-    outWrap.style.display='none';
+    distWrap.innerHTML='<div class="rpt-l-dist-empty">אין נתוני הוצאות החודש</div>';
+  }
+
+  /* באנר סיכום + תג הישג חיסכון */
+  $('rpt-l-banner-txt').innerHTML=reportInsight(d);
+  var badge=$('rpt-l-badge');
+  if(d.savingsPct!=null){
+    badge.style.display='block';
+    badge.textContent='ההישג החודשי: שיעור חיסכון מרשים של כ-'+d.savingsPct+'%!';
+  }else{
+    badge.style.display='none';
   }
 }
 
 function renderBlueTemplate(d){
-  $('rpt-b-month').textContent=d.monthLabel;
+  $('rpt-b-title').textContent='תמונת מצב פיננסי: '+d.monthLabel;
   $('rpt-b-inc').textContent=fmt(d.inc);
   $('rpt-b-exp').textContent=fmt(d.exp);
-  var balEl=$('rpt-b-bal'); balEl.textContent=fmt(d.bal);
-  balEl.style.color=d.bal<0?'#B3402F':'#1E3A52';
+  $('rpt-b-bal').innerHTML=fmt(d.bal)+(d.savingsPct!=null?' <small>(מגמה חיובית)</small>':'');
 
   var u1=d.users[0], u2=d.users[1];
+  function initial(n){ return n?n.charAt(0):'?'; }
+  $('rpt-b-avatars').innerHTML=
+    '<div class="rpt-b-avatar shaked"><span class="ic">'+esc(initial(u1.name))+'</span><span class="nm">'+esc(u1.name)+'</span></div>'+
+    '<div class="rpt-b-avatar avital"><span class="ic">'+esc(initial(u2.name))+'</span><span class="nm">'+esc(u2.name)+'</span></div>';
   var totalUsers=(u1.total||0)+(u2.total||0);
   var p1=totalUsers?Math.round(u1.total/totalUsers*100):50, p2=100-p1;
-  function initial(n){ return n?n.charAt(0):'?'; }
-  $('rpt-b-left').innerHTML=
-    '<div class="rpt-b-user-row"><div class="rpt-b-user-ic shaked">'+esc(initial(u1.name))+'</div>'+
-      '<div class="rpt-b-user-info"><div class="nm">'+esc(u1.name)+'</div><div class="sub">'+u1.count+' פעולות</div><div class="amt">'+fmt(u1.total)+'</div></div></div>'+
-    '<div class="rpt-b-user-row"><div class="rpt-b-user-ic avital">'+esc(initial(u2.name))+'</div>'+
-      '<div class="rpt-b-user-info"><div class="nm">'+esc(u2.name)+'</div><div class="sub">'+u2.count+' פעולות</div><div class="amt">'+fmt(u2.total)+'</div></div></div>'+
-    '<div><div class="rpt-b-split"><span class="shaked" style="width:'+p1+'%"></span><span class="avital" style="width:'+p2+'%"></span></div>'+
-    '<div class="rpt-b-splitlbl"><span>'+p1+'%</span><span>'+p2+'%</span></div></div>';
+  $('rpt-b-split').innerHTML='<span class="shaked" style="width:'+p1+'%"></span><span class="avital" style="width:'+p2+'%"></span>';
+  $('rpt-b-splitlbl').innerHTML='<span class="shaked">'+esc(u1.name)+': '+fmt(u1.total)+'</span><span class="avital">'+esc(u2.name)+': '+fmt(u2.total)+'</span>';
 
-  var BAR_COLORS=['#2A5B8F','#4C7FA6','#7FA8C4','#A9C6DA','#CBE0EC'];
-  var maxPct=Math.max.apply(null,d.topCats.map(function(c){ return c.pct; }).concat([1]));
-  $('rpt-b-right').innerHTML='<div class="rpt-b-cathead">התפלגות הוצאות לפי קטגוריה</div><div class="rpt-b-barschart">'+
-    (d.topCats.length ? d.topCats.map(function(c,i){
-      var h=Math.round(20+(c.pct/maxPct)*140);
-      return '<div class="rpt-b-barcol"><span class="pct">'+c.pct+'%</span>'+
-        '<div class="bv" style="height:'+h+'px;background:'+BAR_COLORS[i%BAR_COLORS.length]+'"></div>'+
-        '<span class="nm">'+esc(c.name)+'</span></div>';
-    }).join('') : '<div class="rpt-b-barcol"><span class="nm">אין נתוני הוצאות החודש</span></div>')+
-  '</div>';
+  /* הוצאות בולטות החודש — אותם נתוני outliers כמו בעיצוב הבהיר */
+  var outList=$('rpt-b-out-list');
+  outList.innerHTML=d.outliers.length ? d.outliers.map(function(o){
+    var meta=catMeta('expense',o.category);
+    var ic=meta?esc(meta.emoji):'🏷️';
+    return '<div class="rpt-b-out-row"><span class="nm">'+ic+' '+esc(o.category)+(o.note?' · '+esc(o.note):'')+'</span><span class="amt">'+fmt(o.amount)+'</span></div>';
+  }).join('') : '<div class="rpt-b-out-empty">אין הוצאות בולטות החודש</div>';
 
-  $('rpt-b-strip').innerHTML=
-    '<span>הכנסות <b>'+fmt(d.inc)+'</b></span>'+
-    '<span>הוצאות <b>'+fmt(d.exp)+'</b></span>'+
-    '<span>יתרה <b>'+fmt(d.bal)+'</b></span>';
+  /* התפלגות הוצאות — שורות אופקיות (לא עמודות) */
+  var distWrap=$('rpt-b-dist-rows');
+  if(d.topCats.length){
+    var maxAmt=d.topCats[0].amount||1;
+    distWrap.innerHTML=d.topCats.map(function(c,i){
+      var meta=catMeta('expense',c.name);
+      var ic=meta?esc(meta.emoji):'🏷️';
+      var w=Math.max(6,Math.round(c.amount/maxAmt*100));
+      var color=RPT_BAR_COLORS[i%RPT_BAR_COLORS.length];
+      return '<div class="rpt-b-dist-row">'+
+        '<span class="ic" style="background:'+color+'33">'+ic+'</span>'+
+        '<span class="nm">'+esc(c.name)+'</span>'+
+        '<span class="rpt-b-dist-track"><span class="rpt-b-dist-fill" style="width:'+w+'%;background:'+color+'"></span></span>'+
+        '<span class="amt">'+fmt(c.amount)+' ('+c.pct+'%)</span>'+
+      '</div>';
+    }).join('');
+  }else{
+    distWrap.innerHTML='<div class="rpt-b-dist-empty">אין נתוני הוצאות החודש</div>';
+  }
+
+  $('rpt-b-banner-txt').innerHTML=reportInsight(d);
 }
 
 /* טעינה עצלה (Lazy) של html2canvas — נטען פעם אחת, רק כשבאמת
